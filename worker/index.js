@@ -64,6 +64,61 @@ function clipString(s, max) {
   return s.length > max ? s.slice(0, max) : s;
 }
 
+// ====== Platform link conventions ======
+// Each platform has its own conventions for how external links are handled.
+// Instagram & TikTok DON'T allow clickable URLs in captions — "link in bio" is native.
+// Twitter/X allows direct URLs and they get unfurled into rich cards — direct link is better.
+// Facebook & LinkedIn also allow direct URLs.
+//
+// When a caption is generated for MULTIPLE platforms simultaneously, we default to
+// the most restrictive convention (link in bio) so the caption never breaks on any
+// chosen platform. This is a safety default — it means a caption tagged for both
+// Instagram and Twitter uses "link in bio" instead of a direct URL.
+const PLATFORM_LINK_RULES = {
+  'Instagram':      { allowsLinks: false, native: 'link in bio' },
+  'TikTok':         { allowsLinks: false, native: 'link in bio' },
+  'Twitter / X':    { allowsLinks: true,  native: 'direct link works well' },
+  'Facebook':       { allowsLinks: true,  native: 'direct link works well' },
+  'LinkedIn':       { allowsLinks: true,  native: 'direct link works well' }
+};
+
+// Given the array of platforms the user selected for this batch, return the
+// strongest link instruction. If ANY selected platform doesn't allow links,
+// the whole batch must use "link in bio" — most-restrictive wins.
+//
+// "All" means generate for every platform → most restrictive applies.
+// A single platform like ["Twitter / X"] → direct link allowed.
+// Mixed like ["Instagram", "Twitter / X"] → most restrictive (link in bio).
+function platformLinkInstruction(platforms) {
+  const list = Array.isArray(platforms) ? platforms : [];
+  // Normalize: "All" means every platform — treat as most-restrictive
+  if (!list.length || list.includes('All')) {
+    return {
+      mode: 'restrictive',
+      instruction: 'CTA / LINK RULE: This batch targets multiple platforms including Instagram and TikTok, which do NOT allow clickable links in captions. Always use "link in bio" as the CTA. Never write a direct URL like "yoursite.com" or "listen.to/anything". This rule overrides any brand examples that show direct URLs — those examples may have been for a different platform context.'
+    };
+  }
+  // Are there any restrictive platforms in the selection?
+  const restrictive = list.filter(p => PLATFORM_LINK_RULES[p] && !PLATFORM_LINK_RULES[p].allowsLinks);
+  const permissive = list.filter(p => PLATFORM_LINK_RULES[p] && PLATFORM_LINK_RULES[p].allowsLinks);
+  if (restrictive.length > 0) {
+    // Mixed or all-restrictive → most-restrictive wins
+    const platformList = restrictive.join(' and ');
+    const mixed = permissive.length > 0;
+    return {
+      mode: 'restrictive',
+      instruction: mixed
+        ? `CTA / LINK RULE: This batch targets ${platformList} (which don't allow links in captions) AS WELL AS ${permissive.join(' and ')}. To make every caption work on every selected platform, use "link in bio" as the CTA. Never write a direct URL — even if your brand's smart-link format (listen.to/something, yoursite.com, etc.) appears in the brand docs. Those formats are for Twitter/Facebook/LinkedIn only; they break the Instagram and TikTok native experience.`
+        : `CTA / LINK RULE: This batch targets ${platformList}, which do NOT allow clickable links in captions. Always use "link in bio" as the CTA. Never write a direct URL like "yoursite.com", "listen.to/anything", or any other link format — Instagram and TikTok hide URLs in captions, so they're useless and look broken.`
+    };
+  }
+  // All permissive — direct links are fine
+  return {
+    mode: 'permissive',
+    instruction: `CTA / LINK RULE: This batch targets ${list.join(' and ')}, which support direct URLs in posts. A direct link to your site or smart-link format is appropriate — readers can click. "Link in bio" is fine too, but it's not required on these platforms.`
+  };
+}
+
 // ====== Document normalization ======
 // Accepts what the frontend sends — an array of { name, kind, content, media_type, size }.
 // Returns { docBlocks, textParts, totalBytes } where:
@@ -118,7 +173,9 @@ function normalizeDocs(rawDocs) {
 // ====== Caption generation prompt builder ======
 // When a Brain is present, we use it as the primary source of truth (tight, distilled).
 // When no Brain, we fall back to the raw brand profile fields.
-function buildSystemPrompt(bp, brain) {
+// The `platforms` array (passed from the per-request payload) is used to determine
+// which link-format rules apply to this specific batch — see PLATFORM_LINK_RULES.
+function buildSystemPrompt(bp, brain, platforms) {
   const parts = [];
 
   // ============= OWNER NOTES — HIGHEST PRIORITY =============
@@ -226,11 +283,16 @@ function buildSystemPrompt(bp, brain) {
   ].join(' ').toLowerCase();
 
   const finalChecks = [];
+
+  // === PLATFORM-AWARE LINK RULE (always fires, based on the platforms array) ===
+  // This is independent of the Brain's extracted rules — it's a hard, platform-driven
+  // rule that always applies. Even if the Brain extracted a wrong rule (e.g., "smart link
+  // format is allowed"), this block enforces correct platform behavior.
+  const linkRule = platformLinkInstruction(platforms);
+  finalChecks.push(linkRule.instruction);
+
   if (/lowercase|never capitalize|all lower|no capital/.test(allRulesText)) {
     finalChecks.push('LOWERCASE CHECK: Every character in every caption MUST be lowercase. No capital letters anywhere — not at sentence starts, not in proper nouns, not in brand names. This rule comes from the brand owner and overrides standard English capitalization. Before finalizing each caption, scan for any uppercase letter and convert it to lowercase.');
-  }
-  if (/link in bio|no url|no urls|never.*url|never.*direct link/.test(allRulesText)) {
-    finalChecks.push('CTA CHECK: Use "link in bio" as the CTA. Never write a direct URL like "truedialect.com" or "yoursite.com" — Instagram and TikTok don\'t allow links in captions, so the brand always says "link in bio" instead.');
   }
   if (/no emoji|never.*emoji|no emojis/.test(allRulesText)) {
     finalChecks.push('NO EMOJIS: Do not use any emoji characters anywhere in any caption.');
@@ -241,11 +303,11 @@ function buildSystemPrompt(bp, brain) {
   if (/no hashtag|never.*hashtag|no #/.test(allRulesText)) {
     finalChecks.push('NO HASHTAGS: Do not use the "#" character anywhere in any caption.');
   }
-  if (finalChecks.length) {
-    parts.push('=== FINAL ENFORCEMENT — CHECK BEFORE RETURNING EACH CAPTION ===');
-    finalChecks.forEach(c => parts.push(c));
-    parts.push('');
-  }
+
+  // Final enforcement block ALWAYS present now (because the link rule always fires)
+  parts.push('=== FINAL ENFORCEMENT — CHECK BEFORE RETURNING EACH CAPTION ===');
+  finalChecks.forEach(c => parts.push(c));
+  parts.push('');
 
   // ============= OUTPUT FORMAT =============
   parts.push('Return ONLY a valid JSON array. No preamble, no markdown, no code fences.');
@@ -398,7 +460,8 @@ async function handleGenerate(request, env) {
     ? { docBlocks: [], textParts: [] }
     : normalizeDocs(body.docs);
 
-  const systemPrompt = buildSystemPrompt(safeBp, brain);
+  // Pass platforms into the prompt builder so it can apply platform-aware link rules.
+  const systemPrompt = buildSystemPrompt(safeBp, brain, platforms);
 
   // Build the segment-combination instruction. Multiple segments = mix them all simultaneously.
   let segmentLine;
