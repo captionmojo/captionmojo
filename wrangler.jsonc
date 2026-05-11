@@ -1,0 +1,25 @@
+{
+  // CaptionMojo — Cloudflare Workers configuration
+  // Documentation: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "captionmojo",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-05-10",
+
+  // Static assets configuration
+  // Files in /public are served as static assets first.
+  // The Worker script runs for /api/* paths and falls through to assets otherwise.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Observability — basic logging and metrics in the Cloudflare dashboard
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
