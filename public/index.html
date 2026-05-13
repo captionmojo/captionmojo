@@ -2526,22 +2526,28 @@ footer span{color:var(--mojo)}
 
    Layout, left to right:
      [TD logo lockup] [radio meta: eyebrow + track name] [spacer]
-     [catalog link] [play button]
+     [♪ ▲/▼ toggle button]
 
-   The "need focus music?" hook lives in the catalog drawer (above the
-   playlist grid) — that's where it earns its place, at the moment of
-   decision. Not on the bar where something's already playing.
+   ONE button architecture (after the May 13 redesign): a single toggle
+   opens/closes a unified "music panel" containing:
+     - "need focus music?" header
+     - Scrollable 18-tile playlist catalog
+     - Sticky Spotify embed strip pinned to the panel's bottom
+   This replaces the old two-button system (separate "browse catalog"
+   link + green play button) that confused users by opening two
+   different things with overlapping but distinct state machines.
 
    Behavior:
-   - Default state: bar visible, embed hidden, ▶ icon on play button
-   - Click ▶ → embed slides down BELOW the bar, ▶ becomes ⏸
-   - Click ⏸ → embed stays visible (so you can use Spotify controls),
-     but our play button reverts to ▶ (just visual; user pauses via the
-     iframe's own controls)
-   - Click "browse the catalog ↗" → drawer slides UP from above bar,
-     shows all 18 playlists grouped by featured (7 moods) + deep cuts (11)
-   - Click any drawer tile → swap embed src, close drawer, expand if not
-     already, update bar's "now playing" meta
+   - Default state: bar visible, panel hidden, ▲ chevron on toggle
+   - Click ♪ ▲ → panel slides up from above bar, chevron becomes ▼
+   - Click ♪ ▼ → panel slides back down, chevron becomes ▲
+   - Click any tile in panel → swap embed src, mark tile active, update
+     bar's "now playing" meta. Panel STAYS OPEN so the sticky embed
+     below shows the new playlist; user taps Spotify's ▶ to play.
+   - Spotify embeds CAN'T be programmatically played (cross-origin
+     sandbox blocks external JS from pressing play). User always has
+     to tap Spotify's own ▶ inside the iframe. The hint above the
+     iframe explains this so the UI doesn't pretend to control playback.
 
    .is-pro hides everything for Pro tier (wired to JS later).
 */
@@ -2657,58 +2663,135 @@ footer span{color:var(--mojo)}
   flex-shrink:0;
   height:100%;
 }
-.cm-td-footer .tdf-catalog{
-  background:transparent;
-  border:0;
-  color:rgba(245,241,232,.78);
-  font-family:var(--sans);
-  font-size:13px;
-  font-weight:500;
-  cursor:pointer;
-  text-decoration:underline;
-  text-underline-offset:3px;
-  text-decoration-color:rgba(245,241,232,.3);
-  text-decoration-thickness:1px;
-  white-space:nowrap;
-  padding:0;
-  transition:color .12s var(--ease),text-decoration-color .12s var(--ease);
-}
-.cm-td-footer .tdf-catalog:hover{
-  color:var(--td-yellow);
-  text-decoration-color:var(--td-yellow);
-}
-.cm-td-footer .tdf-play{
+/* ===== UNIFIED TOGGLE BUTTON (♪ + chevron) =====
+   Single button replaces the old separate "browse catalog" link + green play
+   button. Clicking it opens/closes the entire music panel (catalog grid +
+   sticky Spotify embed). One button, one state, no confusion. */
+.cm-td-footer .tdf-toggle{
   background:var(--td-yellow);
   color:#0A0A0A;
   border:0;
-  width:36px;
   height:36px;
-  border-radius:50%;
+  border-radius:18px;
   cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:center;
+  gap:4px;
   font-size:13px;
+  font-weight:600;
+  padding:0 14px;
   flex-shrink:0;
   transition:transform .1s var(--ease),background .12s var(--ease);
-  padding:0;
 }
-.cm-td-footer .tdf-play:hover{transform:scale(1.06)}
-.cm-td-footer .tdf-play:active{transform:scale(.94)}
+.cm-td-footer .tdf-toggle:hover{transform:scale(1.04)}
+.cm-td-footer .tdf-toggle:active{transform:scale(.96)}
+.cm-td-footer .tdf-toggle-note{
+  font-size:14px;
+  line-height:1;
+}
+.cm-td-footer .tdf-toggle-chev{
+  font-size:9px;
+  line-height:1;
+  display:inline-block;
+}
 
-/* ===== EMBED SLOT (hidden until "show player" clicked) ===== */
-.cm-td-footer .tdf-embed{
-  display:none;
-  background:#000;
-  border-top:1px solid #2a2620;
-  position:relative;
-  z-index:1;
+/* ===== PANEL: unified music surface (catalog grid + sticky Spotify embed) ===== */
+.cm-td-footer .tdf-panel{
+  position:absolute;
+  bottom:100%;
+  left:0;
+  right:0;
+  background:#0A0A0A;
+  border-top:1px solid rgba(204,238,42,.2);
+  max-height:520px;
+  display:flex;
+  flex-direction:column;
+  transform:translateY(100%);
+  opacity:0;
+  transition:transform .25s var(--ease),opacity .25s var(--ease);
+  pointer-events:none;
+  z-index:3;
 }
-.cm-td-footer.is-playing .tdf-embed{display:block}
-/* Inline hint above the iframe — explains Spotify's playback model since the
-   show/hide button above only toggles visibility, not playback. Uses the same
-   yellow-green/mono caps treatment as the rest of the TD aesthetic so it
-   reads as a deliberate UI element, not an error. */
+.cm-td-footer.is-open .tdf-panel{
+  transform:translateY(0);
+  opacity:1;
+  pointer-events:auto;
+}
+.cm-td-footer .tdf-panel-head{
+  padding:20px 24px 16px;
+  border-bottom:1px solid rgba(245,241,232,.08);
+  flex-shrink:0;
+}
+.cm-td-footer .tdf-panel-hook{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:13px;
+  color:rgba(204,238,42,.85);
+  margin-bottom:6px;
+  letter-spacing:.1px;
+}
+.cm-td-footer .tdf-panel-h{
+  font-family:var(--serif);
+  font-size:19px;
+  font-weight:600;
+  color:#F5F1E8;
+  line-height:1.15;
+  letter-spacing:-.3px;
+  margin-bottom:4px;
+}
+.cm-td-footer .tdf-panel-h em{font-style:italic;color:var(--td-yellow)}
+.cm-td-footer .tdf-panel-sub{
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:rgba(245,241,232,.5);
+  letter-spacing:.3px;
+}
+.cm-td-footer .tdf-panel-sub strong{color:var(--td-yellow);font-weight:500}
+/* Playlist tile grid — scrolls vertically when content exceeds available
+   height. The sticky bottom embed strip stays pinned regardless. */
+.cm-td-footer .tdf-panel-grid{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:12px;
+  padding:16px 24px;
+  overflow-y:auto;
+  flex:1 1 auto;
+  min-height:0;
+}
+.cm-td-footer .tdf-panel-grid::-webkit-scrollbar{width:6px}
+.cm-td-footer .tdf-panel-grid::-webkit-scrollbar-track{background:transparent}
+.cm-td-footer .tdf-panel-grid::-webkit-scrollbar-thumb{
+  background:rgba(204,238,42,.2);
+  border-radius:3px;
+}
+.cm-td-footer .tdf-panel-group{
+  grid-column:1/-1;
+  font-family:var(--mono);
+  font-size:9.5px;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  color:rgba(204,238,42,.55);
+  padding:6px 0 2px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.cm-td-footer .tdf-panel-group::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:linear-gradient(to right,rgba(204,238,42,.18),transparent);
+}
+.cm-td-footer .tdf-panel-group:first-child{padding-top:0}
+
+/* Sticky Spotify embed strip at the bottom of the panel. Always visible while
+   panel is open so the user can play music while scrolling through tiles. */
+.cm-td-footer .tdf-panel-player{
+  flex-shrink:0;
+  background:#000;
+  border-top:1px solid rgba(204,238,42,.15);
+}
 .cm-td-footer .tdf-embed-hint{
   font-family:var(--mono);
   font-size:10px;
@@ -2726,122 +2809,14 @@ footer span{color:var(--mojo)}
   font-family:inherit;
   margin:0 1px;
 }
-.cm-td-footer .tdf-embed iframe{
+.cm-td-footer .tdf-panel-player iframe{
   display:block;
   width:100%;
   border:0;
   height:80px;
 }
 
-/* ===== CATALOG DRAWER (slides up from above the bar) ===== */
-.cm-td-footer .tdf-drawer{
-  position:absolute;
-  bottom:100%;
-  left:0;
-  right:0;
-  background:#0A0A0A;
-  border-top:1px solid rgba(204,238,42,.2);
-  max-height:440px;
-  overflow:hidden;
-  transform:translateY(100%);
-  opacity:0;
-  transition:transform .25s var(--ease),opacity .25s var(--ease);
-  pointer-events:none;
-  z-index:3;
-}
-.cm-td-footer.is-drawer-open .tdf-drawer{
-  transform:translateY(0);
-  opacity:1;
-  pointer-events:auto;
-}
-.cm-td-footer .tdf-drawer-head{
-  padding:20px 24px 16px;
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap:18px;
-  border-bottom:1px solid rgba(245,241,232,.08);
-}
-.cm-td-footer .tdf-drawer-hook{
-  font-family:var(--serif);
-  font-style:italic;
-  font-size:13px;
-  color:rgba(204,238,42,.85);
-  margin-bottom:6px;
-  letter-spacing:.1px;
-}
-.cm-td-footer .tdf-drawer-h{
-  font-family:var(--serif);
-  font-size:19px;
-  font-weight:600;
-  color:#F5F1E8;
-  line-height:1.15;
-  letter-spacing:-.3px;
-  margin-bottom:4px;
-}
-.cm-td-footer .tdf-drawer-h em{font-style:italic;color:var(--td-yellow)}
-.cm-td-footer .tdf-drawer-sub{
-  font-family:var(--mono);
-  font-size:10.5px;
-  color:rgba(245,241,232,.5);
-  letter-spacing:.3px;
-}
-.cm-td-footer .tdf-drawer-sub strong{color:var(--td-yellow);font-weight:500}
-.cm-td-footer .tdf-drawer-close{
-  font-family:var(--mono);
-  font-size:10px;
-  color:rgba(245,241,232,.5);
-  letter-spacing:.8px;
-  text-transform:uppercase;
-  cursor:pointer;
-  border:1px solid rgba(245,241,232,.15);
-  padding:6px 11px;
-  border-radius:4px;
-  background:transparent;
-  flex-shrink:0;
-  transition:all .12s var(--ease);
-}
-.cm-td-footer .tdf-drawer-close:hover{
-  color:var(--td-yellow);
-  border-color:rgba(204,238,42,.4);
-}
-.cm-td-footer .tdf-drawer-grid{
-  display:grid;
-  grid-template-columns:repeat(6,1fr);
-  gap:10px;
-  padding:18px 24px 24px;
-  max-height:360px;
-  overflow-y:auto;
-  scrollbar-width:thin;
-  scrollbar-color:rgba(204,238,42,.25) transparent;
-}
-.cm-td-footer .tdf-drawer-grid::-webkit-scrollbar{width:6px}
-.cm-td-footer .tdf-drawer-grid::-webkit-scrollbar-track{background:transparent}
-.cm-td-footer .tdf-drawer-grid::-webkit-scrollbar-thumb{
-  background:rgba(204,238,42,.25);
-  border-radius:3px;
-}
-.cm-td-footer .tdf-drawer-group{
-  grid-column:1/-1;
-  font-family:var(--mono);
-  font-size:9.5px;
-  color:var(--td-yellow);
-  letter-spacing:1.5px;
-  text-transform:uppercase;
-  padding:6px 0 2px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.cm-td-footer .tdf-drawer-group::after{
-  content:'';
-  flex:1;
-  height:1px;
-  background:rgba(204,238,42,.2);
-}
-.cm-td-footer .tdf-drawer-group:first-child{padding-top:0}
-
-/* Playlist tile (in drawer) */
+/* Playlist tile (in panel grid) */
 .cm-td-footer .tdf-pl{
   background:rgba(204,238,42,.03);
   border:1px solid rgba(204,238,42,.12);
@@ -2921,27 +2896,15 @@ footer span{color:var(--mojo)}
   .cm-td-footer .tdf-meta-eyebrow{font-size:9px;letter-spacing:1px}
   .cm-td-footer .tdf-meta-track{font-size:13px}
   .cm-td-footer .tdf-controls{padding:0 12px;gap:10px}
-  /* On phones, the underlined text link is harder to tap. Replace with a
-     compact bordered button so it feels like a real tap target. */
-  .cm-td-footer .tdf-catalog{
-    text-decoration:none;
-    border:1px solid rgba(245,241,232,.2);
-    padding:6px 10px;
-    border-radius:4px;
-    font-size:12px;
-    color:rgba(245,241,232,.85);
-  }
-  .cm-td-footer .tdf-catalog:hover{
-    text-decoration:none;
-    border-color:rgba(204,238,42,.4);
-  }
-  /* Hide the "browse the" preamble on mobile — just "catalog ↗" */
-  .cm-td-footer .tdf-catalog-prefix{display:none}
-  .cm-td-footer .tdf-play{width:32px;height:32px;font-size:12px}
-  .cm-td-footer .tdf-drawer-grid{grid-template-columns:repeat(3,1fr);padding:14px 14px 18px}
-  .cm-td-footer .tdf-drawer-head{padding:14px 14px 12px;gap:10px}
-  .cm-td-footer .tdf-drawer-h{font-size:16px}
-  .cm-td-footer .tdf-drawer-hook{font-size:12px;margin-bottom:4px}
+  /* Compact toggle on mobile — keeps the music note legible but shrinks padding */
+  .cm-td-footer .tdf-toggle{height:32px;padding:0 12px;font-size:12px}
+  .cm-td-footer .tdf-toggle-note{font-size:13px}
+  .cm-td-footer .tdf-toggle-chev{font-size:8px}
+  /* Tile grid drops to 3 columns. Panel header tightens. */
+  .cm-td-footer .tdf-panel-grid{grid-template-columns:repeat(3,1fr);padding:14px 14px 18px}
+  .cm-td-footer .tdf-panel-head{padding:14px 14px 12px;gap:10px}
+  .cm-td-footer .tdf-panel-h{font-size:16px}
+  .cm-td-footer .tdf-panel-hook{font-size:12px;margin-bottom:4px}
 }
 
 </style>
@@ -3882,18 +3845,22 @@ footer span{color:var(--mojo)}
   -->
   <div class="cm-td-footer" id="tdFooter">
 
-    <!-- DRAWER: slides up when "browse the catalog" is clicked -->
-    <div class="tdf-drawer">
-      <div class="tdf-drawer-head">
+    <!-- PANEL: unified music surface. Slides up when "♪ ▲" is clicked.
+         Combines what used to be two separate panels (catalog drawer +
+         Spotify embed) into one cohesive surface. The catalog grid scrolls
+         while the Spotify embed stays sticky-pinned to the bottom of the
+         panel. One button on the footer (♪) controls the whole thing —
+         no more confusing two-button state machine. -->
+    <div class="tdf-panel">
+      <div class="tdf-panel-head">
         <div>
-          <div class="tdf-drawer-hook">need focus music?</div>
-          <div class="tdf-drawer-h">the <em>full catalog</em></div>
-          <div class="tdf-drawer-sub">18 playlists. <strong>we went deep so you don't have to.</strong></div>
+          <div class="tdf-panel-hook">need focus music?</div>
+          <div class="tdf-panel-h">the <em>full catalog</em></div>
+          <div class="tdf-panel-sub">18 playlists. <strong>we went deep so you don't have to.</strong></div>
         </div>
-        <button class="tdf-drawer-close" type="button" onclick="tdFooterCloseDrawer()">close ×</button>
       </div>
-      <div class="tdf-drawer-grid">
-        <div class="tdf-drawer-group">★ featured · the moods</div>
+      <div class="tdf-panel-grid">
+        <div class="tdf-panel-group">★ featured · the moods</div>
         <button type="button" class="tdf-pl active" data-playlist-id="4Aea547SpBcBWlCXaHzqfc" data-track-label="chill lofi beats · deep focus">
           <div class="tdf-pl-art tdf-art-1"></div>
           <div class="tdf-pl-name">chill lofi beats</div>
@@ -3929,7 +3896,7 @@ footer span{color:var(--mojo)}
           <div class="tdf-pl-name">bossa nova beats</div>
           <div class="tdf-pl-meta">early morning · bossa</div>
         </button>
-        <div class="tdf-drawer-group">more from the catalog</div>
+        <div class="tdf-panel-group">more from the catalog</div>
         <button type="button" class="tdf-pl" data-playlist-id="6twNqzt9c9jIrRq8DY2vGq" data-track-label="boom bap beats">
           <div class="tdf-pl-art tdf-art-8"></div>
           <div class="tdf-pl-name">boom bap beats</div>
@@ -3981,25 +3948,23 @@ footer span{color:var(--mojo)}
           <div class="tdf-pl-meta">ambient sleep</div>
         </button>
       </div>
+      <!-- Sticky Spotify embed at the bottom of the panel. The hint above the
+           iframe explains Spotify's playback model — clicking a tile loads a
+           playlist into the iframe but doesn't auto-play (cross-origin sandbox
+           blocks external JS from pressing play). User has to click Spotify's
+           own ▶ inside the embed below. -->
+      <div class="tdf-panel-player">
+        <div class="tdf-embed-hint">tap spotify's <span class="tdf-embed-hint-mark">▶</span> below to start audio</div>
+        <iframe id="tdFooterEmbed"
+          src="https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0"
+          width="100%" height="80" frameborder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div>
     </div>
 
-    <!-- EMBED: hidden until user clicks show; Spotify iframe lives here.
-         The "tdf-embed-hint" line above the iframe is critical: Spotify embeds
-         block external JS from starting playback (cross-origin sandbox), so our
-         show/hide button can only reveal the player — it can't press play.
-         Users have to click Spotify's own ▶ inside the iframe. The hint makes
-         this explicit so the UI doesn't lie about what it does. -->
-    <div class="tdf-embed">
-      <div class="tdf-embed-hint">tap spotify's <span class="tdf-embed-hint-mark">▶</span> below to start audio</div>
-      <iframe id="tdFooterEmbed"
-        src="https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0"
-        width="100%" height="80" frameborder="0"
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="lazy"
-        referrerpolicy="strict-origin-when-cross-origin"></iframe>
-    </div>
-
-    <!-- BAR: always-visible 60px row -->
+    <!-- BAR: always-visible 60px row. Single panel-toggle button (♪ ▲/▼). -->
     <div class="tdf-bar">
       <div class="tdf-logo">
         <span class="tdf-logo-lockup">
@@ -4012,8 +3977,10 @@ footer span{color:var(--mojo)}
       </div>
       <div class="tdf-spacer"></div>
       <div class="tdf-controls">
-        <button type="button" class="tdf-catalog" onclick="tdFooterOpenDrawer()"><span class="tdf-catalog-prefix">browse the </span>catalog ↗</button>
-        <button type="button" class="tdf-play" id="tdFooterPlayBtn" onclick="tdFooterTogglePlay()" aria-label="Show player">▲</button>
+        <button type="button" class="tdf-toggle" id="tdFooterToggleBtn" onclick="tdFooterTogglePanel()" aria-label="Show music panel">
+          <span class="tdf-toggle-note">♪</span>
+          <span class="tdf-toggle-chev" id="tdFooterToggleChev">▲</span>
+        </button>
       </div>
     </div>
   </div>
@@ -5125,60 +5092,62 @@ if(document.readyState !== 'loading'){
 }
 
 // ====== TD Studio Radio Player — persistent footer in #page-app ======
-// Bar shows what's playing + TD attribution. Right side has "browse the
-// catalog ↗" (opens drawer) and a play button (toggles embed visibility).
-// All playlist switching happens via the drawer — no mode chips on bar.
+// Bar shows what's playing + TD attribution. One ♪▲/▼ button on the right
+// opens a unified panel containing the catalog grid AND the Spotify embed.
+// Sticky bottom strip in the panel houses the Spotify iframe so the user
+// can hear playback while scrolling through tile options.
 //
 // Behavior contracts:
-// - tdFooterTogglePlay: toggle .is-playing class on footer, which CSS uses
-//   to show/hide the embed AND swap the play button icon ▶ ⇄ ⏸
+// - tdFooterTogglePanel: toggle .is-open on footer. One state, one button,
+//   one panel. CSS slides the panel up/down; chevron swaps ▲ ⇄ ▼.
 // - tdFooterPlayPlaylist: src swap with equality guard (don't reload iframe
-//   if user re-clicks the same playlist). Always sets .is-playing so embed
-//   is visible after a tile click.
-// - Drawer tile click: swap embed, mark tile active, close drawer
-// - Drawer backdrop click (outside any tile) closes drawer
-// - Setup is idempotent via __tdfWired guard
+//   if user re-clicks the same playlist). Panel stays open after a tile
+//   click so the user sees the new playlist in the sticky embed below.
+// - Spotify playback model: clicking a tile LOADS the playlist into the
+//   iframe but doesn't auto-play (cross-origin sandbox). User must tap
+//   Spotify's ▶ inside the iframe. The hint above the iframe says so.
+// - Closing the panel does NOT pause Spotify — audio continues in the
+//   background until user uses Spotify's own ⏸. Hiding the surface ≠
+//   pausing. We can't programmatically pause Spotify from outside the
+//   iframe; that's a known Spotify limitation we accept.
+// - Setup is idempotent via __tdfWired guard.
 
-function tdFooterTogglePlay(){
+// Single panel toggle. Replaces the old two-button system (tdFooterTogglePlay
+// + tdFooterOpenDrawer/CloseDrawer). One class, .is-open, controls the
+// entire music surface: catalog grid + sticky Spotify embed appear together.
+//
+// Audio behavior on close: the Spotify iframe is NOT destroyed when the panel
+// closes — Spotify keeps playing in the background until the user uses
+// Spotify's own ⏸ inside the iframe. That's Spotify's cross-origin sandbox
+// limitation (we can't pause their player from outside). Closing the panel
+// is purely a UI affordance ("hide this surface, keep listening"), not an
+// audio control. The hint above the embed makes this model clear.
+function tdFooterTogglePanel(){
   const f = document.getElementById('tdFooter');
   if(!f) return;
-  const wasOpen = f.classList.contains('is-playing');
-  f.classList.toggle('is-playing');
-  // If we just SHOWED the player (wasOpen was false), kill any other Spotify
-  // iframe so we never have two streams at once. Note: showing the embed does
-  // NOT start playback — Spotify embeds block external JS from pressing play
-  // (cross-origin sandbox). The user must click Spotify's own ▶ inside the
-  // iframe. The inline hint above the iframe (.tdf-embed-hint) tells them so.
+  const wasOpen = f.classList.contains('is-open');
+  f.classList.toggle('is-open');
+  // On first open, defensively kill any other Spotify iframe (e.g. the brain
+  // module's iframe if user somehow re-opens onboarding). Single-player invariant.
   if(!wasOpen){
     stopAllSpotifyEmbedsExcept('tdFooterEmbed');
   }
-  // Update the button glyph + aria-label. ▲ when collapsed (expand player),
-  // ▼ when expanded (collapse player). This honestly reflects what the
-  // button does (toggle visibility), not what it can't do (control playback).
-  const btn = document.getElementById('tdFooterPlayBtn');
-  if(btn){
-    const nowOpen = !wasOpen;
-    btn.textContent = nowOpen ? '▼' : '▲';
-    btn.setAttribute('aria-label', nowOpen ? 'Hide player' : 'Show player');
-  }
-}
-
-function tdFooterOpenDrawer(){
-  const f = document.getElementById('tdFooter');
-  if(!f) return;
-  f.classList.add('is-drawer-open');
-}
-
-function tdFooterCloseDrawer(){
-  const f = document.getElementById('tdFooter');
-  if(!f) return;
-  f.classList.remove('is-drawer-open');
+  // Update chevron + aria-label. ▲ when collapsed (panel will open up),
+  // ▼ when open (panel will close down). The ♪ stays put — it's the constant
+  // music-affordance signal regardless of panel state.
+  const chev = document.getElementById('tdFooterToggleChev');
+  const btn = document.getElementById('tdFooterToggleBtn');
+  const nowOpen = !wasOpen;
+  if(chev) chev.textContent = nowOpen ? '▼' : '▲';
+  if(btn) btn.setAttribute('aria-label', nowOpen ? 'Hide music panel' : 'Show music panel');
 }
 
 // Swap the embed iframe src to a new playlist and update the bar's track
 // label. Skips the src write if it's already pointing at the requested
 // playlist — prevents the iframe from reloading and restarting playback
-// when the user re-clicks the currently-playing playlist.
+// when the user re-clicks the currently-playing playlist. The panel stays
+// open after a tile click so the user can see the new playlist in the
+// sticky Spotify embed and tap Spotify's ▶ to play it.
 function tdFooterPlayPlaylist(id, label){
   const embed = document.getElementById('tdFooterEmbed');
   if(!embed) return;
@@ -5188,20 +5157,9 @@ function tdFooterPlayPlaylist(id, label){
   // we might add (sponsor module, etc) from playing simultaneously.
   stopAllSpotifyEmbedsExcept('tdFooterEmbed');
   const newSrc = `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
-  const isNewTrack = embed.src !== newSrc;
-  if(isNewTrack) embed.src = newSrc;
+  if(embed.src !== newSrc) embed.src = newSrc;
   const trackEl = document.getElementById('tdFooterTrack');
   if(trackEl && label) trackEl.textContent = label;
-  // On a new track from the drawer, ensure embed is visible so user hears
-  // the change. If user is already playing the same track, leave state alone.
-  if(isNewTrack){
-    const f = document.getElementById('tdFooter');
-    if(f && !f.classList.contains('is-playing')){
-      f.classList.add('is-playing');
-      const btn = document.getElementById('tdFooterPlayBtn');
-      if(btn){ btn.textContent = '▼'; btn.setAttribute('aria-label','Hide player'); }
-    }
-  }
 }
 
 function tdFooterSetupHandlers(){
@@ -5209,7 +5167,7 @@ function tdFooterSetupHandlers(){
   if(!f || f.__tdfWired) return;
   f.__tdfWired = true;
 
-  // Catalog tile clicks (any playlist in the drawer grid)
+  // Playlist tile clicks (any playlist in the panel grid)
   f.querySelectorAll('.tdf-pl').forEach(tile => {
     tile.addEventListener('click', () => {
       f.querySelectorAll('.tdf-pl').forEach(t => t.classList.remove('active'));
@@ -5222,20 +5180,11 @@ function tdFooterSetupHandlers(){
         || tile.querySelector('.tdf-pl-name')?.textContent
         || '';
       tdFooterPlayPlaylist(id, label);
-      tdFooterCloseDrawer();
+      // Don't close the panel — user can scroll back up or pick another playlist.
+      // The sticky Spotify embed at the bottom updates so they see the new
+      // playlist and can tap Spotify's ▶ without losing the catalog view.
     });
   });
-
-  // Drawer backdrop click — clicking the drawer's empty area (not a tile,
-  // not the close button) closes it. Tiles and close button get their own
-  // listeners via the elements themselves, so this only fires on the
-  // drawer container itself.
-  const drawer = f.querySelector('.tdf-drawer');
-  if(drawer){
-    drawer.addEventListener('click', (e) => {
-      if(e.target === drawer) tdFooterCloseDrawer();
-    });
-  }
 }
 
 if(document.readyState !== 'loading'){
@@ -6233,9 +6182,10 @@ function fetchWithTimeout(url, opts, ms){
 // were alive, both playing audio. Total cacophony.
 //
 // Strategy: kill the OTHER iframe whenever a player takes focus. Specifically:
-//   - launchApp() kills the brain embed (transitioning out of onboarding)
+//   - showPage() killAllSpotifyAudio on every page transition (catches the
+//     onboarding → studio handoff so brain audio dies when studio mounts)
 //   - tdFooterPlayPlaylist kills any non-footer Spotify iframe defensively
-//   - tdFooterTogglePlay also kills any non-footer iframe when starting playback
+//   - tdFooterTogglePanel kills any non-footer iframe when opening the panel
 //   - tdBrainToggle kills the brain embed when the user collapses the module
 //     (so "hide the player ←" actually does what users expect)
 
@@ -6314,25 +6264,24 @@ function killAllSpotifyAudio(){
 }
 
 // Restore the studio footer player to its default playlist (chill lofi beats),
-// paused. Used after killAllSpotifyAudio at studio entry so the user has a
-// player ready to use without seeing a blank iframe. We also ensure the
-// .is-playing class is removed so the play button shows ▶ (not ⏸) and the
-// embed is hidden until the user explicitly clicks play.
+// with panel closed. Used after killAllSpotifyAudio at studio entry so the
+// user has a clean player ready to use without seeing a stale iframe state.
+// Resets the panel toggle button to ▲ (collapsed) and points the active tile
+// indicator at the default playlist.
 function resetFooterPlayerToDefault(){
   const embed = document.getElementById('tdFooterEmbed');
   if(embed){
     embed.src = 'https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0';
   }
   const footer = document.getElementById('tdFooter');
-  if(footer) footer.classList.remove('is-playing','is-drawer-open');
+  if(footer) footer.classList.remove('is-open');
   const trackEl = document.getElementById('tdFooterTrack');
   if(trackEl) trackEl.textContent = 'chill lofi beats · deep focus';
-  const btn = document.getElementById('tdFooterPlayBtn');
-  if(btn){
-    btn.textContent = '▲';
-    btn.setAttribute('aria-label','Show player');
-  }
-  // Reset active tile in drawer to the default one
+  const chev = document.getElementById('tdFooterToggleChev');
+  if(chev) chev.textContent = '▲';
+  const btn = document.getElementById('tdFooterToggleBtn');
+  if(btn) btn.setAttribute('aria-label','Show music panel');
+  // Reset active tile in panel to the default one
   document.querySelectorAll('#tdFooter .tdf-pl').forEach(t => t.classList.remove('active'));
   const defaultTile = document.querySelector('#tdFooter .tdf-pl[data-playlist-id="4Aea547SpBcBWlCXaHzqfc"]');
   if(defaultTile) defaultTile.classList.add('active');
