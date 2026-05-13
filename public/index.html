@@ -2769,6 +2769,13 @@ footer span{color:var(--mojo)}
 .cm-td-footer .tdf-panel-grid{
   display:grid;
   grid-template-columns:repeat(5,1fr);
+  /* CRITICAL: grid-auto-rows:min-content prevents the grid from distributing
+     rows equally within available space — without it, when the panel has a
+     constrained height (max-height:520px) the grid was forcing each row to
+     ~42px tall, squeezing tiles regardless of their min-height. min-content
+     respects each tile's natural content height. Combined with overflow-y:auto
+     below, the grid scrolls when rows don't fit instead of squeezing. */
+  grid-auto-rows:min-content;
   gap:12px;
   padding:16px 24px;
   overflow-y:auto;
@@ -2832,12 +2839,12 @@ footer span{color:var(--mojo)}
   height:80px;
 }
 
-/* Playlist tile (in panel grid). Each tile has three regions, top to bottom:
-   1. Gradient art (top ~60% of the gradient zone)
-   2. Solid black title strip overlay (bottom ~40% of the gradient zone)
-   3. Meta line in a small dark band below the art entirely
-   Using solid backgrounds for the text strips means text is ALWAYS legible
-   regardless of the underlying gradient colors. */
+/* Playlist tile (in panel grid). Bulletproof simple structure:
+   1. .tdf-pl-art — fixed-height colored gradient block (NO children)
+   2. .tdf-pl-info — solid black band BELOW the art holding title + meta
+   No overlays, no flex children inside art, no aspect-ratio tricks. Text is
+   in a completely separate sibling element below the colored zone. Can't
+   be clipped because the wrapper is its own block flow. */
 .cm-td-footer .tdf-pl{
   background:#0A0A0A;
   border:1px solid rgba(204,238,42,.12);
@@ -2850,8 +2857,7 @@ footer span{color:var(--mojo)}
   text-align:left;
   font-family:inherit;
   color:inherit;
-  display:flex;
-  flex-direction:column;
+  display:block;
 }
 .cm-td-footer .tdf-pl:hover{
   border-color:rgba(204,238,42,.45);
@@ -2861,60 +2867,43 @@ footer span{color:var(--mojo)}
   border-color:var(--td-yellow);
   box-shadow:0 0 0 1px var(--td-yellow);
 }
-/* Gradient art block — fixed-aspect colorful surface. Title sits in a solid
-   bottom strip ON the gradient, not absolutely positioned, so it always
-   reserves its own space and never disappears. */
-/* Gradient art block — gradient gets a min-height of 60px for visual identity,
-   title strip sits below WITHIN this div but is allowed to take its natural
-   height. No aspect-ratio constraint — that was squeezing the title strip and
-   causing descender clipping. */
+/* Gradient art block — pure color, no children. Fixed height. */
 .cm-td-footer .tdf-pl-art{
+  display:block;
   width:100%;
-  min-height:110px;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-end;
+  height:70px;
+}
+/* Info band below the art — holds title + meta. Solid black, no overlays. */
+.cm-td-footer .tdf-pl-info{
+  display:block;
+  padding:10px 12px 12px;
+  background:#0A0A0A;
 }
 .cm-td-footer .tdf-pl-name{
+  display:block;
   font-family:var(--serif);
   font-size:13px;
   font-weight:600;
   color:#F5F1E8;
-  /* Strip must reserve enough vertical space for serif descenders (g, j, p, y).
-     min-height ensures the strip is tall enough that descenders fit INSIDE the
-     visible area, not below it where overflow:hidden would clip them. With
-     font-size:13px + line-height:1.5 = 19.5px line box, plus 12px top + 18px
-     bottom padding, strip is ~49.5px which has comfortable room below baseline. */
-  line-height:1.5;
+  line-height:1.4;
   letter-spacing:-.15px;
-  padding:12px 12px 18px;
-  min-height:48px;
-  box-sizing:border-box;
-  background:rgba(0,0,0,.72);
-  backdrop-filter:blur(2px);
-  -webkit-backdrop-filter:blur(2px);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  margin-bottom:4px;
 }
 .cm-td-footer .tdf-pl.active .tdf-pl-name{color:var(--td-yellow)}
-/* Meta strip below the art — mono caps in small dark band. Same min-height
-   approach so mono descenders (g, p, y) aren't clipped at the strip edge. */
 .cm-td-footer .tdf-pl-meta{
+  display:block;
   font-family:var(--mono);
-  font-size:10px;
-  color:rgba(204,238,42,.65);
+  font-size:9.5px;
+  color:rgba(204,238,42,.6);
   letter-spacing:.3px;
   text-transform:lowercase;
-  line-height:1.5;
+  line-height:1.4;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  padding:10px 12px 14px;
-  min-height:38px;
-  box-sizing:border-box;
-  background:#0A0A0A;
-  border-top:1px solid rgba(204,238,42,.08);
 }
 
 /* Art gradients — 18 unique color combos for visual variety in the catalog */
@@ -3981,75 +3970,124 @@ footer span{color:var(--mojo)}
       <div class="tdf-panel-grid">
         <div class="tdf-panel-group">★ featured · the moods</div>
         <button type="button" class="tdf-pl active" data-playlist-id="4Aea547SpBcBWlCXaHzqfc" data-track-label="chill lofi beats · deep focus">
-          <div class="tdf-pl-art tdf-art-1" style="min-height:120px !important;display:flex !important;flex-direction:column !important;justify-content:flex-end !important">
-            <div class="tdf-pl-name" style="display:block !important;font-family:Georgia,serif !important;font-size:14px !important;color:#FFFFFF !important;background:#FF0000 !important;padding:16px !important;min-height:50px !important;line-height:1.5 !important;font-weight:700 !important">chill lofi beats</div>
+          <div class="tdf-pl-art tdf-art-1"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill lofi beats</div>
+            <div class="tdf-pl-meta">deep focus · lo-fi</div>
           </div>
-          <div class="tdf-pl-meta" style="display:block !important;font-family:monospace !important;font-size:12px !important;color:#FFFF00 !important;background:#0000FF !important;padding:12px !important;min-height:40px !important;line-height:1.5 !important;font-weight:700 !important">deep focus · lo-fi</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="7i2Zca6FfoVFajdjSLrLj9" data-track-label="chill jazz beats · writing">
-          <div class="tdf-pl-art tdf-art-2"><div class="tdf-pl-name">chill jazz beats</div></div>
-          <div class="tdf-pl-meta">writing · jazz</div>
+          <div class="tdf-pl-art tdf-art-2"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill jazz beats</div>
+            <div class="tdf-pl-meta">writing · jazz</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="1Sdo0TELts9qALUCLE8si7" data-track-label="chill trip-hop · reading">
-          <div class="tdf-pl-art tdf-art-3"><div class="tdf-pl-name">chill trip-hop</div></div>
-          <div class="tdf-pl-meta">reading · trip-hop</div>
+          <div class="tdf-pl-art tdf-art-3"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill trip-hop</div>
+            <div class="tdf-pl-meta">reading · trip-hop</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="0qm8pj0yfKqd9xFgdO3IFw" data-track-label="chill jazz house · flow">
-          <div class="tdf-pl-art tdf-art-4"><div class="tdf-pl-name">chill jazz house</div></div>
-          <div class="tdf-pl-meta">flow · jazz house</div>
+          <div class="tdf-pl-art tdf-art-4"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill jazz house</div>
+            <div class="tdf-pl-meta">flow · jazz house</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="2LoO6StTHWRcc6dPpXUMQC" data-track-label="chill afro beats · creating">
-          <div class="tdf-pl-art tdf-art-5"><div class="tdf-pl-name">chill afro beats</div></div>
-          <div class="tdf-pl-meta">creating · afro</div>
+          <div class="tdf-pl-art tdf-art-5"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill afro beats</div>
+            <div class="tdf-pl-meta">creating · afro</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="5rpODqX0KVHKWBVVNET8eZ" data-track-label="chill reggae dub · late night">
-          <div class="tdf-pl-art tdf-art-6"><div class="tdf-pl-name">chill reggae dub</div></div>
-          <div class="tdf-pl-meta">late night · reggae</div>
+          <div class="tdf-pl-art tdf-art-6"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill reggae dub</div>
+            <div class="tdf-pl-meta">late night · reggae</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="3TLmPkei8FtOIqYIentnPw" data-track-label="bossa nova beats · early morning">
-          <div class="tdf-pl-art tdf-art-7"><div class="tdf-pl-name">bossa nova beats</div></div>
-          <div class="tdf-pl-meta">early morning · bossa</div>
+          <div class="tdf-pl-art tdf-art-7"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">bossa nova beats</div>
+            <div class="tdf-pl-meta">early morning · bossa</div>
+          </div>
         </button>
         <div class="tdf-panel-group">more from the catalog</div>
         <button type="button" class="tdf-pl" data-playlist-id="6twNqzt9c9jIrRq8DY2vGq" data-track-label="boom bap beats">
-          <div class="tdf-pl-art tdf-art-8"><div class="tdf-pl-name">boom bap beats</div></div>
-          <div class="tdf-pl-meta">classic hip hop</div>
+          <div class="tdf-pl-art tdf-art-8"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">boom bap beats</div>
+            <div class="tdf-pl-meta">classic hip hop</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="2dONHRzDfXvdYLeSX8NsG4" data-track-label="neo-psychedelic">
-          <div class="tdf-pl-art tdf-art-9"><div class="tdf-pl-name">neo-psychedelic</div></div>
-          <div class="tdf-pl-meta">hazy · late-night</div>
+          <div class="tdf-pl-art tdf-art-9"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">neo-psychedelic</div>
+            <div class="tdf-pl-meta">hazy · late-night</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="26zEJnHzfBl6m3Te4cypoK" data-track-label="chill ambient beats">
-          <div class="tdf-pl-art tdf-art-10"><div class="tdf-pl-name">chill ambient beats</div></div>
-          <div class="tdf-pl-meta">atmospheric</div>
+          <div class="tdf-pl-art tdf-art-10"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill ambient beats</div>
+            <div class="tdf-pl-meta">atmospheric</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="05sBkP3uhYfNWzrHlwc49Z" data-track-label="nu-bap beats">
-          <div class="tdf-pl-art tdf-art-11"><div class="tdf-pl-name">nu-bap beats</div></div>
-          <div class="tdf-pl-meta">experimental boom bap</div>
+          <div class="tdf-pl-art tdf-art-11"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">nu-bap beats</div>
+            <div class="tdf-pl-meta">experimental boom bap</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="5ZryEQDZw9LxCdJSIKRad6" data-track-label="progressive house">
-          <div class="tdf-pl-art tdf-art-12"><div class="tdf-pl-name">progressive house</div></div>
-          <div class="tdf-pl-meta">house</div>
+          <div class="tdf-pl-art tdf-art-12"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">progressive house</div>
+            <div class="tdf-pl-meta">house</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="3Hspz7347NMYkwQoEW9Qjo" data-track-label="deep house">
-          <div class="tdf-pl-art tdf-art-13"><div class="tdf-pl-name">deep house</div></div>
-          <div class="tdf-pl-meta">house</div>
+          <div class="tdf-pl-art tdf-art-13"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">deep house</div>
+            <div class="tdf-pl-meta">house</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="3RpeRiFyCLXUPFYrMmOPos" data-track-label="chill garage beats">
-          <div class="tdf-pl-art tdf-art-14"><div class="tdf-pl-name">chill garage beats</div></div>
-          <div class="tdf-pl-meta">UK garage</div>
+          <div class="tdf-pl-art tdf-art-14"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill garage beats</div>
+            <div class="tdf-pl-meta">UK garage</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="68e80chYCQzKAhxL7oRezn" data-track-label="afro house beats">
-          <div class="tdf-pl-art tdf-art-15"><div class="tdf-pl-name">afro house beats</div></div>
-          <div class="tdf-pl-meta">afro house</div>
+          <div class="tdf-pl-art tdf-art-15"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">afro house beats</div>
+            <div class="tdf-pl-meta">afro house</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="7C1JVFTpxH2MdwzN6qyOYF" data-track-label="chill house beats">
-          <div class="tdf-pl-art tdf-art-16"><div class="tdf-pl-name">chill house beats</div></div>
-          <div class="tdf-pl-meta">house</div>
+          <div class="tdf-pl-art tdf-art-16"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill house beats</div>
+            <div class="tdf-pl-meta">house</div>
+          </div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="4ZT70HCQl7mb4pnVZhazWo" data-track-label="chill sleep beats">
-          <div class="tdf-pl-art tdf-art-17"><div class="tdf-pl-name">chill sleep beats</div></div>
-          <div class="tdf-pl-meta">ambient sleep</div>
+          <div class="tdf-pl-art tdf-art-17"></div>
+          <div class="tdf-pl-info">
+            <div class="tdf-pl-name">chill sleep beats</div>
+            <div class="tdf-pl-meta">ambient sleep</div>
+          </div>
         </button>
       </div>
       <!-- Sticky Spotify embed at the bottom of the panel. The hint above the
