@@ -3302,9 +3302,16 @@ footer span{color:var(--mojo)}
             <div class="price-tier">Pro</div>
             <div class="price-amount">$29<span>/mo</span></div>
             <div class="price-desc">For pros running a real content operation. Unlimited tags. 3 brands. Schedule.</div>
+            <!-- TODO: Wire Pro-tier gating for folders/workflow. Right now the
+                 Folders tab (Final / WIP / Liked / Trash) is available to ALL
+                 tiers including anonymous. Listed here for marketing positioning;
+                 actual gating happens when we wire .is-pro detection across the
+                 studio (handoff followup #3). When gated: Free/Basic see Liked
+                 and Trash only; Pro+ see the full Final/WIP/Liked/Trash flow. -->
             <ul class="price-features">
               <li><strong>Unlimited audience tags</strong></li>
               <li>3 brand profiles</li>
+              <li>Folders &amp; workflow (Final / WIP / Liked)</li>
               <li>Schedule to calendar</li>
               <li>Tell AI why feedback</li>
               <li>500 captions/day, no ads</li>
@@ -4529,9 +4536,28 @@ function updateOutageBanner(){
 
 // ============ PAGE NAV ============
 function showPage(id){
+  // PAGE TRANSITION: kill all Spotify audio. This catches the case where music
+  // is playing during onboarding (brain module) and the user advances into the
+  // studio — the brain iframe's audio would otherwise persist into the new
+  // page (Spotify's audio context doesn't always die when src changes to
+  // about:blank). Removing the iframe element entirely is the universal way
+  // to halt the audio: the browser GCs the iframe and any audio session with it.
+  //
+  // Inner tab switches (Generate/Captions/Folders) don't go through showPage,
+  // so footer music continues normally during in-studio navigation.
+  killAllSpotifyAudio();
+
   document.querySelectorAll('.page,.app-page').forEach(p=>p.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   if(!id.includes('app')) window.scrollTo(0,0);
+
+  // After page swap, if we just entered the studio, restore the footer iframe
+  // to its default state (chill lofi beats, paused). killAllSpotifyAudio set
+  // every iframe src to '' which makes them blank — we need to give the
+  // footer back its default playlist so the user can press play later.
+  if(id === 'page-app'){
+    resetFooterPlayerToDefault();
+  }
 }
 function goTracks(){showPage('page-tracks');}
 
@@ -5602,11 +5628,10 @@ let aSegSel = [];
 let capFilterSegs = [];
 
 function launchApp(){
-  // Kill the onboarding brain module's Spotify embed if it's still playing.
-  // Without this, music from the brain module continues into the studio AND
-  // collides with the footer's player when the user presses play there.
-  // See "Spotify iframe lifecycle helpers" near fetchWithTimeout for context.
-  stopSpotifyEmbed('tdBrainEmbed');
+  // Note: showPage() below now handles the Spotify audio kill at every page
+  // transition (see killAllSpotifyAudio). This means brain-module audio gets
+  // stopped automatically when we transition into the studio — no need for
+  // an explicit stopSpotifyEmbed call here anymore.
   document.getElementById('brandChip').textContent=BP.name||'My Brand';
   populateSegmentUI();
   showPage('page-app');
@@ -6162,19 +6187,21 @@ function fetchWithTimeout(url, opts, ms){
 //   - tdBrainToggle kills the brain embed when the user collapses the module
 //     (so "hide the player ←" actually does what users expect)
 
-// Stop a single Spotify embed by ID. Setting src to "about:blank" instantly
-// terminates the iframe's audio — Spotify's player gets unloaded with the
-// document swap. about:blank is preferred over removing the iframe entirely
-// because removing it would break the next attempt to play (we'd have to
-// re-create the iframe with the right attrs each time).
+// Stop a single Spotify embed by ID. The reliable way to halt Spotify audio
+// is to BLANK the iframe (src='') so the document inside unloads. Setting to
+// 'about:blank' isn't always reliable on Safari/Firefox because Spotify's
+// audio context can persist briefly through the document swap — empty-string
+// src forces a full unload. We also clear the src attribute (vs the property)
+// for paranoia: some browsers cache the attribute and revert.
 function stopSpotifyEmbed(iframeId){
   const f = document.getElementById(iframeId);
   if(!f) return;
   try {
-    // Only stop if it's currently pointing at a Spotify URL — avoids needless
-    // about:blank churn if it's already stopped.
     if(f.src && f.src.indexOf('open.spotify.com') !== -1){
-      f.src = 'about:blank';
+      // Blank the src first so the document unloads, then clear the attribute
+      // for good measure. Two-step works across Chrome/Safari/Firefox.
+      f.src = '';
+      f.removeAttribute('src');
     }
   } catch(_) {
     // Cross-origin or src access blocked by some browsers in rare cases —
@@ -6188,9 +6215,51 @@ function stopSpotifyEmbed(iframeId){
 function stopAllSpotifyEmbedsExcept(keepId){
   document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => {
     if(f.id !== keepId){
-      try { f.src = 'about:blank'; } catch(_) {}
+      try {
+        f.src = '';
+        f.removeAttribute('src');
+      } catch(_) {}
     }
   });
+}
+
+// Nuclear option: kill every Spotify embed on the page, no exceptions. Used
+// at major page transitions (landing → onboarding → studio → back) where we
+// want a clean audio reset. Callers should restore default state for any
+// player visible on the new page (e.g. resetFooterPlayerToDefault on studio
+// entry) since this leaves every iframe with src=''.
+function killAllSpotifyAudio(){
+  document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => {
+    try {
+      f.src = '';
+      f.removeAttribute('src');
+    } catch(_) {}
+  });
+}
+
+// Restore the studio footer player to its default playlist (chill lofi beats),
+// paused. Used after killAllSpotifyAudio at studio entry so the user has a
+// player ready to use without seeing a blank iframe. We also ensure the
+// .is-playing class is removed so the play button shows ▶ (not ⏸) and the
+// embed is hidden until the user explicitly clicks play.
+function resetFooterPlayerToDefault(){
+  const embed = document.getElementById('tdFooterEmbed');
+  if(embed){
+    embed.src = 'https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0';
+  }
+  const footer = document.getElementById('tdFooter');
+  if(footer) footer.classList.remove('is-playing','is-drawer-open');
+  const trackEl = document.getElementById('tdFooterTrack');
+  if(trackEl) trackEl.textContent = 'chill lofi beats · deep focus';
+  const btn = document.getElementById('tdFooterPlayBtn');
+  if(btn){
+    btn.textContent = '▶';
+    btn.setAttribute('aria-label','Play');
+  }
+  // Reset active tile in drawer to the default one
+  document.querySelectorAll('#tdFooter .tdf-pl').forEach(t => t.classList.remove('active'));
+  const defaultTile = document.querySelector('#tdFooter .tdf-pl[data-playlist-id="4Aea547SpBcBWlCXaHzqfc"]');
+  if(defaultTile) defaultTile.classList.add('active');
 }
 function tLike(id){const c=F(id);if(c){c.liked=!c.liked;if(c.liked)c.disliked=false;render();save();}}
 function tDislike(id){const c=F(id);if(c){c.disliked=!c.disliked;if(c.disliked)c.liked=false;render();save();}}
