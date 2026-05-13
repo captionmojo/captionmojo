@@ -2864,26 +2864,32 @@ footer span{color:var(--mojo)}
 /* Gradient art block — fixed-aspect colorful surface. Title sits in a solid
    bottom strip ON the gradient, not absolutely positioned, so it always
    reserves its own space and never disappears. */
+/* Gradient art block — gradient gets a min-height of 60px for visual identity,
+   title strip sits below WITHIN this div but is allowed to take its natural
+   height. No aspect-ratio constraint — that was squeezing the title strip and
+   causing descender clipping. */
 .cm-td-footer .tdf-pl-art{
   width:100%;
-  aspect-ratio:1.6;
+  min-height:110px;
   display:flex;
   flex-direction:column;
   justify-content:flex-end;
-  overflow:hidden;
 }
 .cm-td-footer .tdf-pl-name{
   font-family:var(--serif);
   font-size:13px;
   font-weight:600;
   color:#F5F1E8;
-  /* Looser line-height + generous bottom padding so descenders in letters
-     like g, j, p, y, and the dot below 'j' in 'jazz' aren't clipped by the
-     strip's edge. Was line-height:1.2 / padding-bottom:12px — descenders got
-     cropped on serif italics. */
-  line-height:1.45;
+  /* Strip must reserve enough vertical space for serif descenders (g, j, p, y).
+     min-height ensures the strip is tall enough that descenders fit INSIDE the
+     visible area, not below it where overflow:hidden would clip them. With
+     font-size:13px + line-height:1.5 = 19.5px line box, plus 12px top + 18px
+     bottom padding, strip is ~49.5px which has comfortable room below baseline. */
+  line-height:1.5;
   letter-spacing:-.15px;
-  padding:10px 12px 14px;
+  padding:12px 12px 18px;
+  min-height:48px;
+  box-sizing:border-box;
   background:rgba(0,0,0,.72);
   backdrop-filter:blur(2px);
   -webkit-backdrop-filter:blur(2px);
@@ -2892,18 +2898,21 @@ footer span{color:var(--mojo)}
   text-overflow:ellipsis;
 }
 .cm-td-footer .tdf-pl.active .tdf-pl-name{color:var(--td-yellow)}
-/* Meta strip below the art — mono caps in small dark band */
+/* Meta strip below the art — mono caps in small dark band. Same min-height
+   approach so mono descenders (g, p, y) aren't clipped at the strip edge. */
 .cm-td-footer .tdf-pl-meta{
   font-family:var(--mono);
-  font-size:9.5px;
-  color:rgba(204,238,42,.6);
+  font-size:10px;
+  color:rgba(204,238,42,.65);
   letter-spacing:.3px;
   text-transform:lowercase;
-  line-height:1.4;
+  line-height:1.5;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  padding:8px 12px 10px;
+  padding:10px 12px 14px;
+  min-height:38px;
+  box-sizing:border-box;
   background:#0A0A0A;
   border-top:1px solid rgba(204,238,42,.08);
 }
