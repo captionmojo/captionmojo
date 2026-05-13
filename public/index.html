@@ -5045,8 +5045,13 @@ function tdBrainToggle(){
 }
 function tdBrainSetupHandlers(){
   const chips = document.getElementById('tdBrainChips');
-  const embed = document.getElementById('tdBrainEmbed');
-  if(!chips || !embed || chips.__tdWired) return;
+  if(!chips || chips.__tdWired) return;
+  // NOTE: We do NOT capture `embed` here in closure. The iframe element can be
+  // destroyed and re-created by killAllSpotifyAudio / stopSpotifyEmbed on page
+  // transitions (those helpers DOM-replace iframes to halt their audio). If we
+  // captured the element here at wire time, that reference would become stale
+  // after the first transition — pointing to a detached old iframe nobody sees.
+  // Instead, look up the iframe by ID fresh inside each click handler.
   chips.__tdWired = true;
   chips.querySelectorAll('.td-brain-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -5057,6 +5062,9 @@ function tdBrainSetupHandlers(){
       chip.classList.add('active');
       // Defensive single-player invariant: kill any non-brain Spotify iframe
       stopAllSpotifyEmbedsExcept('tdBrainEmbed');
+      // Look up iframe FRESH on each click — see note above for why
+      const embed = document.getElementById('tdBrainEmbed');
+      if(!embed) return;
       // Swap iframe src — Spotify embed loads the new playlist inline.
       // theme=0 = dark theme so the player blends with the page surface.
       const newSrc = `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
