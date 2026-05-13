@@ -2877,9 +2877,13 @@ footer span{color:var(--mojo)}
   font-size:13px;
   font-weight:600;
   color:#F5F1E8;
-  line-height:1.2;
+  /* Looser line-height + generous bottom padding so descenders in letters
+     like g, j, p, y, and the dot below 'j' in 'jazz' aren't clipped by the
+     strip's edge. Was line-height:1.2 / padding-bottom:12px — descenders got
+     cropped on serif italics. */
+  line-height:1.45;
   letter-spacing:-.15px;
-  padding:10px 12px 12px;
+  padding:10px 12px 14px;
   background:rgba(0,0,0,.72);
   backdrop-filter:blur(2px);
   -webkit-backdrop-filter:blur(2px);
@@ -2895,10 +2899,11 @@ footer span{color:var(--mojo)}
   color:rgba(204,238,42,.6);
   letter-spacing:.3px;
   text-transform:lowercase;
+  line-height:1.4;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  padding:7px 12px 9px;
+  padding:8px 12px 10px;
   background:#0A0A0A;
   border-top:1px solid rgba(204,238,42,.08);
 }
