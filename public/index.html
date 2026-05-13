@@ -2483,6 +2483,25 @@ footer span{color:var(--mojo)}
   overflow:hidden;
   background:#000;
 }
+/* Same hint pattern as the studio footer: explains Spotify's playback model
+   since clicking a chip only LOADS a playlist, doesn't auto-play it. */
+.cm-td-brain .td-brain-embed-hint{
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(204,238,42,.72);
+  padding:8px 12px 6px;
+  text-align:center;
+  background:#000;
+  border-bottom:1px solid rgba(204,238,42,.08);
+}
+.cm-td-brain .td-brain-embed-hint-mark{
+  font-size:11px;
+  color:#cceea0;
+  font-family:inherit;
+  margin:0 1px;
+}
 .cm-td-brain .td-brain-embed iframe{
   display:block;
   width:100%;
@@ -2673,14 +2692,11 @@ footer span{color:var(--mojo)}
   flex-shrink:0;
   transition:transform .1s var(--ease),background .12s var(--ease);
   padding:0;
-  padding-left:2px; /* visual centering for the ▶ glyph */
 }
 .cm-td-footer .tdf-play:hover{transform:scale(1.06)}
 .cm-td-footer .tdf-play:active{transform:scale(.94)}
-/* When playing, button shows ⏸ — no left-padding compensation needed */
-.cm-td-footer.is-playing .tdf-play{padding-left:0}
 
-/* ===== EMBED SLOT (hidden until play clicked) ===== */
+/* ===== EMBED SLOT (hidden until "show player" clicked) ===== */
 .cm-td-footer .tdf-embed{
   display:none;
   background:#000;
@@ -2689,6 +2705,27 @@ footer span{color:var(--mojo)}
   z-index:1;
 }
 .cm-td-footer.is-playing .tdf-embed{display:block}
+/* Inline hint above the iframe — explains Spotify's playback model since the
+   show/hide button above only toggles visibility, not playback. Uses the same
+   yellow-green/mono caps treatment as the rest of the TD aesthetic so it
+   reads as a deliberate UI element, not an error. */
+.cm-td-footer .tdf-embed-hint{
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(204,238,42,.72);
+  padding:8px 16px 6px;
+  text-align:center;
+  background:#000;
+  border-bottom:1px solid rgba(204,238,42,.08);
+}
+.cm-td-footer .tdf-embed-hint-mark{
+  font-size:11px;
+  color:#cceea0;
+  font-family:inherit;
+  margin:0 1px;
+}
 .cm-td-footer .tdf-embed iframe{
   display:block;
   width:100%;
@@ -3646,6 +3683,7 @@ footer span{color:var(--mojo)}
               <button class="td-brain-chip" type="button" data-playlist-id="3TLmPkei8FtOIqYIentnPw"><span class="td-brain-chip-dot"></span>early morning</button>
             </div>
             <div class="td-brain-embed">
+              <div class="td-brain-embed-hint">tap spotify's <span class="td-brain-embed-hint-mark">▶</span> below to start audio</div>
               <iframe id="tdBrainEmbed"
                 src="https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0"
                 width="100%" height="80" frameborder="0"
@@ -3945,8 +3983,14 @@ footer span{color:var(--mojo)}
       </div>
     </div>
 
-    <!-- EMBED: hidden until user clicks play; Spotify iframe lives here -->
+    <!-- EMBED: hidden until user clicks show; Spotify iframe lives here.
+         The "tdf-embed-hint" line above the iframe is critical: Spotify embeds
+         block external JS from starting playback (cross-origin sandbox), so our
+         show/hide button can only reveal the player — it can't press play.
+         Users have to click Spotify's own ▶ inside the iframe. The hint makes
+         this explicit so the UI doesn't lie about what it does. -->
     <div class="tdf-embed">
+      <div class="tdf-embed-hint">tap spotify's <span class="tdf-embed-hint-mark">▶</span> below to start audio</div>
       <iframe id="tdFooterEmbed"
         src="https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0"
         width="100%" height="80" frameborder="0"
@@ -3969,7 +4013,7 @@ footer span{color:var(--mojo)}
       <div class="tdf-spacer"></div>
       <div class="tdf-controls">
         <button type="button" class="tdf-catalog" onclick="tdFooterOpenDrawer()"><span class="tdf-catalog-prefix">browse the </span>catalog ↗</button>
-        <button type="button" class="tdf-play" id="tdFooterPlayBtn" onclick="tdFooterTogglePlay()" aria-label="Play">▶</button>
+        <button type="button" class="tdf-play" id="tdFooterPlayBtn" onclick="tdFooterTogglePlay()" aria-label="Show player">▲</button>
       </div>
     </div>
   </div>
@@ -5098,24 +5142,24 @@ if(document.readyState !== 'loading'){
 function tdFooterTogglePlay(){
   const f = document.getElementById('tdFooter');
   if(!f) return;
-  const wasPlaying = f.classList.contains('is-playing');
+  const wasOpen = f.classList.contains('is-playing');
   f.classList.toggle('is-playing');
-  // If we just STARTED playing (wasPlaying was false), kill any other
-  // Spotify iframe so we never have two streams at once. The "hide player"
-  // direction (wasPlaying true → false) doesn't actually pause Spotify
-  // — clicking ⏸ here just hides our embed visually; the iframe keeps
-  // playing until the user uses Spotify's own controls inside it.
-  // This is a known Spotify embed limitation; the button is honest about
-  // it via aria-label "Hide player" rather than "Pause".
-  if(!wasPlaying){
+  // If we just SHOWED the player (wasOpen was false), kill any other Spotify
+  // iframe so we never have two streams at once. Note: showing the embed does
+  // NOT start playback — Spotify embeds block external JS from pressing play
+  // (cross-origin sandbox). The user must click Spotify's own ▶ inside the
+  // iframe. The inline hint above the iframe (.tdf-embed-hint) tells them so.
+  if(!wasOpen){
     stopAllSpotifyEmbedsExcept('tdFooterEmbed');
   }
-  // Update the button glyph + aria-label so screen readers narrate state
+  // Update the button glyph + aria-label. ▲ when collapsed (expand player),
+  // ▼ when expanded (collapse player). This honestly reflects what the
+  // button does (toggle visibility), not what it can't do (control playback).
   const btn = document.getElementById('tdFooterPlayBtn');
   if(btn){
-    const nowPlaying = !wasPlaying;
-    btn.textContent = nowPlaying ? '⏸' : '▶';
-    btn.setAttribute('aria-label', nowPlaying ? 'Hide player' : 'Play');
+    const nowOpen = !wasOpen;
+    btn.textContent = nowOpen ? '▼' : '▲';
+    btn.setAttribute('aria-label', nowOpen ? 'Hide player' : 'Show player');
   }
 }
 
@@ -5155,7 +5199,7 @@ function tdFooterPlayPlaylist(id, label){
     if(f && !f.classList.contains('is-playing')){
       f.classList.add('is-playing');
       const btn = document.getElementById('tdFooterPlayBtn');
-      if(btn){ btn.textContent = '⏸'; btn.setAttribute('aria-label','Hide player'); }
+      if(btn){ btn.textContent = '▼'; btn.setAttribute('aria-label','Hide player'); }
     }
   }
 }
@@ -6285,8 +6329,8 @@ function resetFooterPlayerToDefault(){
   if(trackEl) trackEl.textContent = 'chill lofi beats · deep focus';
   const btn = document.getElementById('tdFooterPlayBtn');
   if(btn){
-    btn.textContent = '▶';
-    btn.setAttribute('aria-label','Play');
+    btn.textContent = '▲';
+    btn.setAttribute('aria-label','Show player');
   }
   // Reset active tile in drawer to the default one
   document.querySelectorAll('#tdFooter .tdf-pl').forEach(t => t.classList.remove('active'));
