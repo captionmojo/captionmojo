@@ -2430,8 +2430,10 @@ footer span{color:var(--mojo)}
   border-top:1px solid rgba(245,241,232,.1);
 }
 .cm-td-brain.is-open .td-brain-expanded{display:block}
-.cm-td-brain.is-open .td-brain-link#tdBrainExpand,
-.cm-td-brain.is-open #tdBrainExpand{
+/* Highlight the "play one →" / "hide the player ←" link when module is open.
+   Uses an attribute selector to catch any id starting with "tdBrainExpand-"
+   so it works across all instances (fast/quick/deep). */
+.cm-td-brain.is-open [id^="tdBrainExpand-"]{
   color:var(--td-yellow);
   text-decoration-color:var(--td-yellow);
   font-weight:500;
@@ -2752,7 +2754,7 @@ footer span{color:var(--mojo)}
    height. The sticky bottom embed strip stays pinned regardless. */
 .cm-td-footer .tdf-panel-grid{
   display:grid;
-  grid-template-columns:repeat(6,1fr);
+  grid-template-columns:repeat(5,1fr);
   gap:12px;
   padding:16px 24px;
   overflow-y:auto;
@@ -2816,12 +2818,14 @@ footer span{color:var(--mojo)}
   height:80px;
 }
 
-/* Playlist tile (in panel grid) */
+/* Playlist tile (in panel grid). Text-overlay design: title sits ON the
+   gradient color art with a darkening overlay for legibility. The "art"
+   IS the tile background. Meta line sits below outside the art. */
 .cm-td-footer .tdf-pl{
-  background:rgba(204,238,42,.03);
+  background:transparent;
   border:1px solid rgba(204,238,42,.12);
   border-radius:8px;
-  padding:10px;
+  padding:0;
   cursor:pointer;
   transition:all .15s var(--ease);
   position:relative;
@@ -2829,41 +2833,62 @@ footer span{color:var(--mojo)}
   text-align:left;
   font-family:inherit;
   color:inherit;
+  display:flex;
+  flex-direction:column;
 }
 .cm-td-footer .tdf-pl:hover{
-  background:rgba(204,238,42,.09);
-  border-color:rgba(204,238,42,.35);
+  border-color:rgba(204,238,42,.45);
   transform:translateY(-2px);
 }
 .cm-td-footer .tdf-pl.active{
-  background:rgba(204,238,42,.16);
   border-color:var(--td-yellow);
+  box-shadow:0 0 0 1px var(--td-yellow);
 }
+/* Color art block — now holds the title text overlay */
 .cm-td-footer .tdf-pl-art{
   width:100%;
-  aspect-ratio:1;
-  border-radius:5px;
-  margin-bottom:8px;
+  aspect-ratio:1.4;
+  border-radius:0;
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  padding:10px 10px 8px;
+}
+/* Darkening overlay on the art so light text stays readable on every gradient.
+   Linear gradient from transparent at the top to dark at the bottom-left where
+   the text sits. Pseudo-element so it doesn't fight with the art bg gradient. */
+.cm-td-footer .tdf-pl-art::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.55) 0%,rgba(0,0,0,.15) 50%,transparent 100%);
+  border-radius:inherit;
+  pointer-events:none;
 }
 .cm-td-footer .tdf-pl-name{
   font-family:var(--serif);
-  font-size:12px;
+  font-size:13px;
   font-weight:600;
   color:#F5F1E8;
   line-height:1.15;
   letter-spacing:-.15px;
-  margin-bottom:2px;
+  position:relative;
+  z-index:1;
+  text-shadow:0 1px 3px rgba(0,0,0,.4);
 }
 .cm-td-footer .tdf-pl.active .tdf-pl-name{color:var(--td-yellow)}
+/* Meta below the art — small, low-contrast */
 .cm-td-footer .tdf-pl-meta{
   font-family:var(--mono);
-  font-size:8.5px;
+  font-size:9px;
   color:rgba(204,238,42,.55);
   letter-spacing:.3px;
   text-transform:lowercase;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  padding:6px 10px 8px;
+  background:rgba(0,0,0,.4);
 }
 
 /* Art gradients — 18 unique color combos for visual variety in the catalog */
@@ -3454,6 +3479,40 @@ footer span{color:var(--mojo)}
         <p class="ob-hint">Based on your brand profile, we've built these marketing segments. Select the ones you want to use. Click any name to rename it. Add your own at the bottom.</p>
         <div id="q-seg-container"><div class="seg-loading"><div class="seg-spinner"></div>Building your segments from your brand profile…</div></div>
         <div class="seg-add-row" style="margin-top:18px"><input type="text" id="q-seg-input" placeholder="Add a custom segment name..."><button class="btn btn-soft btn-md" onclick="addSeg('q')">+ Add</button></div>
+
+        <!-- TD radio sponsor module — same pattern as Fast (#f4). Lets the
+             user listen to TD playlists while segments load. Independent
+             instance with suffix "-quick" so it has its own iframe + state. -->
+        <div class="cm-td-brain" id="tdBrainModule-quick">
+          <div class="td-brain-row1">
+            <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
+            <span class="td-brain-kicker">radio · while you wait</span>
+          </div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <em>press play.</em></div>
+          <div class="td-brain-meta">
+            18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-quick" onclick="tdBrainToggle('quick')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
+          </div>
+          <div class="td-brain-expanded">
+            <div class="td-brain-chips" id="tdBrainChips-quick" data-brain-suffix="quick">
+              <button class="td-brain-chip active" type="button" data-playlist-id="4Aea547SpBcBWlCXaHzqfc"><span class="td-brain-chip-dot"></span>deep focus</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="7i2Zca6FfoVFajdjSLrLj9"><span class="td-brain-chip-dot"></span>writing</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="1Sdo0TELts9qALUCLE8si7"><span class="td-brain-chip-dot"></span>reading</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="0qm8pj0yfKqd9xFgdO3IFw"><span class="td-brain-chip-dot"></span>flow</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="2LoO6StTHWRcc6dPpXUMQC"><span class="td-brain-chip-dot"></span>creating</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="5rpODqX0KVHKWBVVNET8eZ"><span class="td-brain-chip-dot"></span>late night</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="3TLmPkei8FtOIqYIentnPw"><span class="td-brain-chip-dot"></span>early morning</button>
+            </div>
+            <div class="td-brain-embed">
+              <div class="td-brain-embed-hint">tap spotify's <span class="td-brain-embed-hint-mark">▶</span> below to start audio</div>
+              <iframe id="tdBrainEmbed-quick"
+                src="https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0"
+                width="100%" height="80" frameborder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="ob-foot">
@@ -3539,6 +3598,39 @@ footer span{color:var(--mojo)}
         <p class="ob-hint">Based on everything you've told us, we've built these marketing segments. Select the ones you want to use. Click any name to rename it. Add your own at the bottom.</p>
         <div id="d-seg-container"><div class="seg-loading"><div class="seg-spinner"></div>Analyzing your full brand profile and building segments…</div></div>
         <div class="seg-add-row" style="margin-top:18px"><input type="text" id="d-seg-input" placeholder="Add a custom segment name..."><button class="btn btn-soft btn-md" onclick="addSeg('d')">+ Add</button></div>
+
+        <!-- TD radio sponsor module — same pattern as Fast (#f4) and Quick (#q5).
+             Independent instance with suffix "-deep" so it has its own iframe. -->
+        <div class="cm-td-brain" id="tdBrainModule-deep">
+          <div class="td-brain-row1">
+            <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
+            <span class="td-brain-kicker">radio · while you wait</span>
+          </div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <em>press play.</em></div>
+          <div class="td-brain-meta">
+            18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-deep" onclick="tdBrainToggle('deep')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
+          </div>
+          <div class="td-brain-expanded">
+            <div class="td-brain-chips" id="tdBrainChips-deep" data-brain-suffix="deep">
+              <button class="td-brain-chip active" type="button" data-playlist-id="4Aea547SpBcBWlCXaHzqfc"><span class="td-brain-chip-dot"></span>deep focus</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="7i2Zca6FfoVFajdjSLrLj9"><span class="td-brain-chip-dot"></span>writing</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="1Sdo0TELts9qALUCLE8si7"><span class="td-brain-chip-dot"></span>reading</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="0qm8pj0yfKqd9xFgdO3IFw"><span class="td-brain-chip-dot"></span>flow</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="2LoO6StTHWRcc6dPpXUMQC"><span class="td-brain-chip-dot"></span>creating</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="5rpODqX0KVHKWBVVNET8eZ"><span class="td-brain-chip-dot"></span>late night</button>
+              <button class="td-brain-chip" type="button" data-playlist-id="3TLmPkei8FtOIqYIentnPw"><span class="td-brain-chip-dot"></span>early morning</button>
+            </div>
+            <div class="td-brain-embed">
+              <div class="td-brain-embed-hint">tap spotify's <span class="td-brain-embed-hint-mark">▶</span> below to start audio</div>
+              <iframe id="tdBrainEmbed-deep"
+                src="https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0"
+                width="100%" height="80" frameborder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="ob-foot">
@@ -3626,17 +3718,17 @@ footer span{color:var(--mojo)}
              Click "play one while you wait →" to expand the mood chips +
              Spotify embed. Hidden for Pro users via .is-pro CSS class.
              Playlist names per truedialect.com (May 2026). -->
-        <div class="cm-td-brain" id="tdBrainModule">
+        <div class="cm-td-brain" id="tdBrainModule-fast">
           <div class="td-brain-row1">
             <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
             <span class="td-brain-kicker">radio · while you wait</span>
           </div>
           <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <em>press play.</em></div>
           <div class="td-brain-meta">
-            18 curated playlists · <a class="td-brain-link" id="tdBrainExpand" onclick="tdBrainToggle()">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
+            18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-fast" onclick="tdBrainToggle('fast')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
           </div>
           <div class="td-brain-expanded">
-            <div class="td-brain-chips" id="tdBrainChips">
+            <div class="td-brain-chips" id="tdBrainChips-fast" data-brain-suffix="fast">
               <button class="td-brain-chip active" type="button" data-playlist-id="4Aea547SpBcBWlCXaHzqfc"><span class="td-brain-chip-dot"></span>deep focus</button>
               <button class="td-brain-chip" type="button" data-playlist-id="7i2Zca6FfoVFajdjSLrLj9"><span class="td-brain-chip-dot"></span>writing</button>
               <button class="td-brain-chip" type="button" data-playlist-id="1Sdo0TELts9qALUCLE8si7"><span class="td-brain-chip-dot"></span>reading</button>
@@ -3647,7 +3739,7 @@ footer span{color:var(--mojo)}
             </div>
             <div class="td-brain-embed">
               <div class="td-brain-embed-hint">tap spotify's <span class="td-brain-embed-hint-mark">▶</span> below to start audio</div>
-              <iframe id="tdBrainEmbed"
+              <iframe id="tdBrainEmbed-fast"
                 src="https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0"
                 width="100%" height="80" frameborder="0"
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
@@ -3862,89 +3954,72 @@ footer span{color:var(--mojo)}
       <div class="tdf-panel-grid">
         <div class="tdf-panel-group">★ featured · the moods</div>
         <button type="button" class="tdf-pl active" data-playlist-id="4Aea547SpBcBWlCXaHzqfc" data-track-label="chill lofi beats · deep focus">
-          <div class="tdf-pl-art tdf-art-1"></div>
-          <div class="tdf-pl-name">chill lofi beats</div>
+          <div class="tdf-pl-art tdf-art-1"><div class="tdf-pl-name">chill lofi beats</div></div>
           <div class="tdf-pl-meta">deep focus · lo-fi</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="7i2Zca6FfoVFajdjSLrLj9" data-track-label="chill jazz beats · writing">
-          <div class="tdf-pl-art tdf-art-2"></div>
-          <div class="tdf-pl-name">chill jazz beats</div>
+          <div class="tdf-pl-art tdf-art-2"><div class="tdf-pl-name">chill jazz beats</div></div>
           <div class="tdf-pl-meta">writing · jazz</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="1Sdo0TELts9qALUCLE8si7" data-track-label="chill trip-hop · reading">
-          <div class="tdf-pl-art tdf-art-3"></div>
-          <div class="tdf-pl-name">chill trip-hop</div>
+          <div class="tdf-pl-art tdf-art-3"><div class="tdf-pl-name">chill trip-hop</div></div>
           <div class="tdf-pl-meta">reading · trip-hop</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="0qm8pj0yfKqd9xFgdO3IFw" data-track-label="chill jazz house · flow">
-          <div class="tdf-pl-art tdf-art-4"></div>
-          <div class="tdf-pl-name">chill jazz house</div>
+          <div class="tdf-pl-art tdf-art-4"><div class="tdf-pl-name">chill jazz house</div></div>
           <div class="tdf-pl-meta">flow · jazz house</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="2LoO6StTHWRcc6dPpXUMQC" data-track-label="chill afro beats · creating">
-          <div class="tdf-pl-art tdf-art-5"></div>
-          <div class="tdf-pl-name">chill afro beats</div>
+          <div class="tdf-pl-art tdf-art-5"><div class="tdf-pl-name">chill afro beats</div></div>
           <div class="tdf-pl-meta">creating · afro</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="5rpODqX0KVHKWBVVNET8eZ" data-track-label="chill reggae dub · late night">
-          <div class="tdf-pl-art tdf-art-6"></div>
-          <div class="tdf-pl-name">chill reggae dub</div>
+          <div class="tdf-pl-art tdf-art-6"><div class="tdf-pl-name">chill reggae dub</div></div>
           <div class="tdf-pl-meta">late night · reggae</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="3TLmPkei8FtOIqYIentnPw" data-track-label="bossa nova beats · early morning">
-          <div class="tdf-pl-art tdf-art-7"></div>
-          <div class="tdf-pl-name">bossa nova beats</div>
+          <div class="tdf-pl-art tdf-art-7"><div class="tdf-pl-name">bossa nova beats</div></div>
           <div class="tdf-pl-meta">early morning · bossa</div>
         </button>
         <div class="tdf-panel-group">more from the catalog</div>
         <button type="button" class="tdf-pl" data-playlist-id="6twNqzt9c9jIrRq8DY2vGq" data-track-label="boom bap beats">
-          <div class="tdf-pl-art tdf-art-8"></div>
-          <div class="tdf-pl-name">boom bap beats</div>
+          <div class="tdf-pl-art tdf-art-8"><div class="tdf-pl-name">boom bap beats</div></div>
           <div class="tdf-pl-meta">classic hip hop</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="2dONHRzDfXvdYLeSX8NsG4" data-track-label="neo-psychedelic">
-          <div class="tdf-pl-art tdf-art-9"></div>
-          <div class="tdf-pl-name">neo-psychedelic</div>
+          <div class="tdf-pl-art tdf-art-9"><div class="tdf-pl-name">neo-psychedelic</div></div>
           <div class="tdf-pl-meta">hazy · late-night</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="26zEJnHzfBl6m3Te4cypoK" data-track-label="chill ambient beats">
-          <div class="tdf-pl-art tdf-art-10"></div>
-          <div class="tdf-pl-name">chill ambient beats</div>
+          <div class="tdf-pl-art tdf-art-10"><div class="tdf-pl-name">chill ambient beats</div></div>
           <div class="tdf-pl-meta">atmospheric</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="05sBkP3uhYfNWzrHlwc49Z" data-track-label="nu-bap beats">
-          <div class="tdf-pl-art tdf-art-11"></div>
-          <div class="tdf-pl-name">nu-bap beats</div>
+          <div class="tdf-pl-art tdf-art-11"><div class="tdf-pl-name">nu-bap beats</div></div>
           <div class="tdf-pl-meta">experimental boom bap</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="5ZryEQDZw9LxCdJSIKRad6" data-track-label="progressive house">
-          <div class="tdf-pl-art tdf-art-12"></div>
-          <div class="tdf-pl-name">progressive house</div>
+          <div class="tdf-pl-art tdf-art-12"><div class="tdf-pl-name">progressive house</div></div>
           <div class="tdf-pl-meta">house</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="3Hspz7347NMYkwQoEW9Qjo" data-track-label="deep house">
-          <div class="tdf-pl-art tdf-art-13"></div>
-          <div class="tdf-pl-name">deep house</div>
+          <div class="tdf-pl-art tdf-art-13"><div class="tdf-pl-name">deep house</div></div>
           <div class="tdf-pl-meta">house</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="3RpeRiFyCLXUPFYrMmOPos" data-track-label="chill garage beats">
-          <div class="tdf-pl-art tdf-art-14"></div>
-          <div class="tdf-pl-name">chill garage beats</div>
+          <div class="tdf-pl-art tdf-art-14"><div class="tdf-pl-name">chill garage beats</div></div>
           <div class="tdf-pl-meta">UK garage</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="68e80chYCQzKAhxL7oRezn" data-track-label="afro house beats">
-          <div class="tdf-pl-art tdf-art-15"></div>
-          <div class="tdf-pl-name">afro house beats</div>
+          <div class="tdf-pl-art tdf-art-15"><div class="tdf-pl-name">afro house beats</div></div>
           <div class="tdf-pl-meta">afro house</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="7C1JVFTpxH2MdwzN6qyOYF" data-track-label="chill house beats">
-          <div class="tdf-pl-art tdf-art-16"></div>
-          <div class="tdf-pl-name">chill house beats</div>
+          <div class="tdf-pl-art tdf-art-16"><div class="tdf-pl-name">chill house beats</div></div>
           <div class="tdf-pl-meta">house</div>
         </button>
         <button type="button" class="tdf-pl" data-playlist-id="4ZT70HCQl7mb4pnVZhazWo" data-track-label="chill sleep beats">
-          <div class="tdf-pl-art tdf-art-17"></div>
-          <div class="tdf-pl-name">chill sleep beats</div>
+          <div class="tdf-pl-art tdf-art-17"><div class="tdf-pl-name">chill sleep beats</div></div>
           <div class="tdf-pl-meta">ambient sleep</div>
         </button>
       </div>
@@ -5018,73 +5093,70 @@ function fSetBuildStep(stepEl, state, title, detail, detailIsHtml){
 // and Spotify embed appear. Clicking any mood chip swaps the embed src so
 // music plays inline. No external redirects (except "browse the catalog ↗"
 // which goes to TD's Spotify profile — wired inline).
-function tdBrainToggle(){
-  const m = document.getElementById('tdBrainModule');
+// Brain module supports multiple instances (one per onboarding flow: fast,
+// quick, deep). Each instance is identified by a suffix like "fast", "quick",
+// "deep" which gets appended to the element IDs:
+//   tdBrainModule-{suffix}, tdBrainChips-{suffix}, tdBrainEmbed-{suffix},
+//   tdBrainExpand-{suffix}
+// onclick handlers in HTML call tdBrainToggle("fast"), etc.
+function tdBrainToggle(suffix){
+  if(!suffix) return;
+  const m = document.getElementById('tdBrainModule-' + suffix);
   if(!m) return;
+  const embedId = 'tdBrainEmbed-' + suffix;
+  const chipsSel = '#tdBrainChips-' + suffix;
+  const linkId = 'tdBrainExpand-' + suffix;
   const wasOpen = m.classList.contains('is-open');
   m.classList.toggle('is-open');
-  const isNowClosing = wasOpen; // was open before toggle → now closing
-  // When the user collapses the player (clicks "hide the player ←"), stop
-  // the Spotify embed. Otherwise the iframe keeps playing audio invisibly
-  // while it's collapsed under `display:none`. Users who click "hide" expect
-  // music to stop, even though Spotify's own pause control is the "official"
-  // way. We accept that re-opening the module restarts from track beginning
-  // since src was nulled — that's a small price for honest behavior.
+  const isNowClosing = wasOpen;
   if(isNowClosing){
-    stopSpotifyEmbed('tdBrainEmbed');
+    stopSpotifyEmbed(embedId);
   } else {
-    // When user RE-OPENS the module, restore the embed src if we previously
-    // nulled it. Otherwise the iframe would show "about:blank" with no player.
-    // We restore to whichever chip is currently marked active (defaults to
-    // the first chip — "deep focus" — set in the HTML markup).
-    const embed = document.getElementById('tdBrainEmbed');
+    const embed = document.getElementById(embedId);
     if(embed && (!embed.src || embed.src.indexOf('open.spotify.com') === -1)){
-      const activeChip = document.querySelector('#tdBrainChips .td-brain-chip.active');
+      const activeChip = document.querySelector(chipsSel + ' .td-brain-chip.active');
       const id = activeChip ? activeChip.getAttribute('data-playlist-id') : '4Aea547SpBcBWlCXaHzqfc';
       embed.src = `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
     }
-    // Also stop any other Spotify iframe — defensive single-player invariant
-    stopAllSpotifyEmbedsExcept('tdBrainEmbed');
+    stopAllSpotifyEmbedsExcept(embedId);
   }
-  // Friendly label swap on the expand link
-  const link = document.getElementById('tdBrainExpand');
+  const link = document.getElementById(linkId);
   if(link){
     link.textContent = m.classList.contains('is-open')
       ? 'hide the player ←'
       : 'play one →';
   }
 }
+// Wire chip click handlers for every brain instance currently in the DOM.
+// Each instance has its own chips container with ID tdBrainChips-{suffix}.
+// Reads the suffix from the data-brain-suffix attribute on the chips container.
 function tdBrainSetupHandlers(){
-  const chips = document.getElementById('tdBrainChips');
-  if(!chips || chips.__tdWired) return;
-  // NOTE: We do NOT capture `embed` here in closure. The iframe element can be
-  // destroyed and re-created by killAllSpotifyAudio / stopSpotifyEmbed on page
-  // transitions (those helpers DOM-replace iframes to halt their audio). If we
-  // captured the element here at wire time, that reference would become stale
-  // after the first transition — pointing to a detached old iframe nobody sees.
-  // Instead, look up the iframe by ID fresh inside each click handler.
-  chips.__tdWired = true;
-  chips.querySelectorAll('.td-brain-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const id = chip.getAttribute('data-playlist-id');
-      if(!id) return;
-      // Mark active state on the clicked chip
-      chips.querySelectorAll('.td-brain-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      // Defensive single-player invariant: kill any non-brain Spotify iframe
-      stopAllSpotifyEmbedsExcept('tdBrainEmbed');
-      // Look up iframe FRESH on each click — see note above for why
-      const embed = document.getElementById('tdBrainEmbed');
-      if(!embed) return;
-      // Swap iframe src — Spotify embed loads the new playlist inline.
-      // theme=0 = dark theme so the player blends with the page surface.
-      const newSrc = `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
-      if(embed.src !== newSrc) embed.src = newSrc;
+  document.querySelectorAll('[id^="tdBrainChips-"]').forEach(chips => {
+    if(chips.__tdWired) return;
+    chips.__tdWired = true;
+    const suffix = chips.getAttribute('data-brain-suffix');
+    if(!suffix) return;
+    const embedId = 'tdBrainEmbed-' + suffix;
+    chips.querySelectorAll('.td-brain-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const id = chip.getAttribute('data-playlist-id');
+        if(!id) return;
+        // Mark active on this instance's chips
+        chips.querySelectorAll('.td-brain-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        // Defensive: kill every OTHER Spotify iframe — there are now multiple
+        // brain iframes on the page (one per onboarding flow) plus the studio
+        // footer iframe. Single-player invariant means only THIS one stays alive.
+        stopAllSpotifyEmbedsExcept(embedId);
+        // Look up iframe fresh — DOM may have been mutated by kill helpers
+        const embed = document.getElementById(embedId);
+        if(!embed) return;
+        const newSrc = `https://open.spotify.com/embed/playlist/${id}?utm_source=generator&theme=0`;
+        if(embed.src !== newSrc) embed.src = newSrc;
+      });
     });
   });
 }
-// Wire handlers once on first DOMContentLoaded. The module exists in DOM from
-// page load (just hidden inside #f4 which is display:none until brain build).
 if(document.readyState !== 'loading'){
   tdBrainSetupHandlers();
 } else {
@@ -6231,10 +6303,13 @@ function stopAllSpotifyEmbedsExcept(keepId){
   // queries catches iframes whose src may have been temporarily reset.
   const candidates = new Set();
   document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => candidates.add(f));
-  // Belt-and-suspenders: also explicitly check our two known iframe IDs
-  ['tdFooterEmbed', 'tdBrainEmbed'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el && el.tagName === 'IFRAME') candidates.add(el);
+  // Belt-and-suspenders: also explicitly check known iframe ID patterns.
+  // The footer has one iframe; brain modules have one per onboarding flow
+  // (fast/quick/deep), so we use a prefix-based id selector to catch them all.
+  const knownEl = document.getElementById('tdFooterEmbed');
+  if(knownEl && knownEl.tagName === 'IFRAME') candidates.add(knownEl);
+  document.querySelectorAll('[id^="tdBrainEmbed-"]').forEach(el => {
+    if(el.tagName === 'IFRAME') candidates.add(el);
   });
   candidates.forEach(f => {
     if(f.id !== keepId){
@@ -6254,9 +6329,10 @@ function killAllSpotifyAudio(){
   // selector AND by known IDs in case src was temporarily empty.
   const candidates = new Set();
   document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => candidates.add(f));
-  ['tdFooterEmbed', 'tdBrainEmbed'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el && el.tagName === 'IFRAME') candidates.add(el);
+  const footerEl = document.getElementById('tdFooterEmbed');
+  if(footerEl && footerEl.tagName === 'IFRAME') candidates.add(footerEl);
+  document.querySelectorAll('[id^="tdBrainEmbed-"]').forEach(el => {
+    if(el.tagName === 'IFRAME') candidates.add(el);
   });
   candidates.forEach(f => {
     if(f.id) stopSpotifyEmbed(f.id);
