@@ -6187,25 +6187,37 @@ function fetchWithTimeout(url, opts, ms){
 //   - tdBrainToggle kills the brain embed when the user collapses the module
 //     (so "hide the player ←" actually does what users expect)
 
-// Stop a single Spotify embed by ID. The reliable way to halt Spotify audio
-// is to BLANK the iframe (src='') so the document inside unloads. Setting to
-// 'about:blank' isn't always reliable on Safari/Firefox because Spotify's
-// audio context can persist briefly through the document swap — empty-string
-// src forces a full unload. We also clear the src attribute (vs the property)
-// for paranoia: some browsers cache the attribute and revert.
+// Stop a single Spotify embed by ID. The ONLY reliable way to halt Spotify
+// audio across all browsers is to REMOVE the iframe element from the DOM.
+// Earlier versions of this code tried setting src='' then removeAttribute,
+// but Chrome's AudioContext keeps playing the stream after src changes —
+// the iframe element stays in the DOM and so does its audio session.
+// Removing the element destroys the iframe entirely.
+//
+// We then recreate the iframe so the next play attempt has a clean target.
+// The recreated iframe has the same id/class/attributes as the original but
+// src=about:blank so it's silent until something explicitly sets it.
 function stopSpotifyEmbed(iframeId){
   const f = document.getElementById(iframeId);
   if(!f) return;
   try {
-    if(f.src && f.src.indexOf('open.spotify.com') !== -1){
-      // Blank the src first so the document unloads, then clear the attribute
-      // for good measure. Two-step works across Chrome/Safari/Firefox.
-      f.src = '';
-      f.removeAttribute('src');
+    // Capture the attributes we need to recreate the iframe at the same spot
+    const parent = f.parentNode;
+    if(!parent) return;
+    const replacement = document.createElement('iframe');
+    // Copy all attributes from the original except src
+    for(const attr of f.attributes){
+      if(attr.name !== 'src') replacement.setAttribute(attr.name, attr.value);
     }
+    // about:blank gives us a fresh, silent iframe ready to be set later
+    replacement.src = 'about:blank';
+    // Replace in place — this destroys the old iframe (and its audio) and
+    // mounts a new silent one with the same id, so other code that looks up
+    // by getElementById still finds something
+    parent.replaceChild(replacement, f);
   } catch(_) {
-    // Cross-origin or src access blocked by some browsers in rare cases —
-    // ignore, the embed will be reset next time someone calls play.
+    // If anything fails, fall back to the legacy src-clear pattern
+    try { f.src = 'about:blank'; } catch(_) {}
   }
 }
 
@@ -6213,12 +6225,19 @@ function stopSpotifyEmbed(iframeId){
 // any player when it's about to start audio, to guarantee single-player
 // invariant even if a new iframe gets added in the future.
 function stopAllSpotifyEmbedsExcept(keepId){
-  document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => {
+  // Find all Spotify iframes by src OR by the IDs we know about. Using both
+  // queries catches iframes whose src may have been temporarily reset.
+  const candidates = new Set();
+  document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => candidates.add(f));
+  // Belt-and-suspenders: also explicitly check our two known iframe IDs
+  ['tdFooterEmbed', 'tdBrainEmbed'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.tagName === 'IFRAME') candidates.add(el);
+  });
+  candidates.forEach(f => {
     if(f.id !== keepId){
-      try {
-        f.src = '';
-        f.removeAttribute('src');
-      } catch(_) {}
+      // Use the robust replace-the-element method (see stopSpotifyEmbed comment)
+      stopSpotifyEmbed(f.id);
     }
   });
 }
@@ -6227,13 +6246,18 @@ function stopAllSpotifyEmbedsExcept(keepId){
 // at major page transitions (landing → onboarding → studio → back) where we
 // want a clean audio reset. Callers should restore default state for any
 // player visible on the new page (e.g. resetFooterPlayerToDefault on studio
-// entry) since this leaves every iframe with src=''.
+// entry) since this leaves every iframe pointing at about:blank.
 function killAllSpotifyAudio(){
-  document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => {
-    try {
-      f.src = '';
-      f.removeAttribute('src');
-    } catch(_) {}
+  // Same dual-query approach as stopAllSpotifyEmbedsExcept — catch by src
+  // selector AND by known IDs in case src was temporarily empty.
+  const candidates = new Set();
+  document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => candidates.add(f));
+  ['tdFooterEmbed', 'tdBrainEmbed'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.tagName === 'IFRAME') candidates.add(el);
+  });
+  candidates.forEach(f => {
+    if(f.id) stopSpotifyEmbed(f.id);
   });
 }
 
