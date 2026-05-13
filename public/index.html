@@ -2818,11 +2818,14 @@ footer span{color:var(--mojo)}
   height:80px;
 }
 
-/* Playlist tile (in panel grid). Text-overlay design: title sits ON the
-   gradient color art with a darkening overlay for legibility. The "art"
-   IS the tile background. Meta line sits below outside the art. */
+/* Playlist tile (in panel grid). Each tile has three regions, top to bottom:
+   1. Gradient art (top ~60% of the gradient zone)
+   2. Solid black title strip overlay (bottom ~40% of the gradient zone)
+   3. Meta line in a small dark band below the art entirely
+   Using solid backgrounds for the text strips means text is ALWAYS legible
+   regardless of the underlying gradient colors. */
 .cm-td-footer .tdf-pl{
-  background:transparent;
+  background:#0A0A0A;
   border:1px solid rgba(204,238,42,.12);
   border-radius:8px;
   padding:0;
@@ -2844,51 +2847,46 @@ footer span{color:var(--mojo)}
   border-color:var(--td-yellow);
   box-shadow:0 0 0 1px var(--td-yellow);
 }
-/* Color art block — now holds the title text overlay */
+/* Gradient art block — fixed-aspect colorful surface. Title sits in a solid
+   bottom strip ON the gradient, not absolutely positioned, so it always
+   reserves its own space and never disappears. */
 .cm-td-footer .tdf-pl-art{
   width:100%;
-  aspect-ratio:1.4;
-  border-radius:0;
-  position:relative;
+  aspect-ratio:1.6;
   display:flex;
-  align-items:flex-end;
-  padding:10px 10px 8px;
-}
-/* Darkening overlay on the art so light text stays readable on every gradient.
-   Linear gradient from transparent at the top to dark at the bottom-left where
-   the text sits. Pseudo-element so it doesn't fight with the art bg gradient. */
-.cm-td-footer .tdf-pl-art::after{
-  content:'';
-  position:absolute;
-  inset:0;
-  background:linear-gradient(to top,rgba(0,0,0,.55) 0%,rgba(0,0,0,.15) 50%,transparent 100%);
-  border-radius:inherit;
-  pointer-events:none;
+  flex-direction:column;
+  justify-content:flex-end;
+  overflow:hidden;
 }
 .cm-td-footer .tdf-pl-name{
   font-family:var(--serif);
   font-size:13px;
   font-weight:600;
   color:#F5F1E8;
-  line-height:1.15;
+  line-height:1.2;
   letter-spacing:-.15px;
-  position:relative;
-  z-index:1;
-  text-shadow:0 1px 3px rgba(0,0,0,.4);
+  padding:8px 12px;
+  background:rgba(0,0,0,.72);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .cm-td-footer .tdf-pl.active .tdf-pl-name{color:var(--td-yellow)}
-/* Meta below the art — small, low-contrast */
+/* Meta strip below the art — mono caps in small dark band */
 .cm-td-footer .tdf-pl-meta{
   font-family:var(--mono);
-  font-size:9px;
-  color:rgba(204,238,42,.55);
+  font-size:9.5px;
+  color:rgba(204,238,42,.6);
   letter-spacing:.3px;
   text-transform:lowercase;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  padding:6px 10px 8px;
-  background:rgba(0,0,0,.4);
+  padding:7px 12px 9px;
+  background:#0A0A0A;
+  border-top:1px solid rgba(204,238,42,.08);
 }
 
 /* Art gradients — 18 unique color combos for visual variety in the catalog */
