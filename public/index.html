@@ -1894,6 +1894,19 @@ footer span{color:var(--mojo)}
   max-width:860px;
 }
 .cm-v4 .hero-h1 em{color:var(--mojo);font-style:italic}
+/* The positioning mantra — sits between the H1 and the deck paragraph.
+   Italic serif in the brand accent color. The whole product thesis in
+   one line. Larger than the deck below it but smaller than the H1. */
+.cm-v4 .hero-mantra{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:24px;
+  line-height:1.3;
+  color:var(--mojo);
+  margin-bottom:20px;
+  max-width:680px;
+  letter-spacing:-.3px;
+}
 .cm-v4 .hero-deck{
   font-size:18px;color:var(--ink2);line-height:1.5;
   max-width:680px;margin-bottom:30px;
@@ -2267,6 +2280,7 @@ footer span{color:var(--mojo)}
   .cm-v4 .landing-hero{padding:36px 20px 48px}
   .cm-v4 .hero-eyebrow{font-size:11px;padding:5px 10px}
   .cm-v4 .hero-h1{font-size:42px;line-height:1.02;letter-spacing:-1.5px}
+  .cm-v4 .hero-mantra{font-size:18px;margin-bottom:14px;max-width:none}
   .cm-v4 .hero-deck{font-size:16px;margin-top:16px;max-width:none}
   .cm-v4 .hero-actions{flex-direction:column;gap:10px;margin-top:24px}
   .cm-v4 .hero-cta-primary,.cm-v4 .hero-cta-secondary{width:100%;justify-content:center;font-size:14px;padding:14px 20px}
@@ -2865,7 +2879,7 @@ footer span{color:var(--mojo)}
   color:#F5F1E8;
   line-height:1.2;
   letter-spacing:-.15px;
-  padding:8px 12px;
+  padding:10px 12px 12px;
   background:rgba(0,0,0,.72);
   backdrop-filter:blur(2px);
   -webkit-backdrop-filter:blur(2px);
@@ -2966,6 +2980,7 @@ footer span{color:var(--mojo)}
         <div class="hero-inner">
           <span class="hero-eyebrow"><span class="hero-eyebrow-dot"></span>Free public beta · live now</span>
           <h1 class="hero-h1">An AI caption <em>workflow</em>, not another caption generator.</h1>
+          <p class="hero-mantra">You're the editor, not the writer.</p>
           <p class="hero-deck">Train it on your brand once. Generate batches of on-brand captions. Edit them in one click. Ship. <strong>Scale from solo creator to full agency</strong> — same workflow, more horsepower.</p>
 
           <div class="workflow">
@@ -5699,6 +5714,36 @@ let aSegSel = [];
 let capFilterSegs = [];
 
 function launchApp(){
+  // ===== BRAND-CHANGE DETECTION =====
+  // If the user is re-onboarding as a different brand than what's in storage
+  // (e.g., tested as one company, now setting up another), clear out the stale
+  // captions, segments, and brain so the studio doesn't show old TD captions
+  // when the new brand is, say, a pizza shop. We detect "different brand" by
+  // comparing the just-completed BP.name to whatever brand name is currently
+  // saved in localStorage. If they don't match (case-insensitive, trimmed),
+  // we wipe everything before the studio loads its data.
+  try {
+    const prev = loadFromStorage();
+    const newName = (BP.name || '').trim().toLowerCase();
+    const oldName = (prev && prev.BP && prev.BP.name ? prev.BP.name : '').trim().toLowerCase();
+    if(prev && oldName && newName && oldName !== newName){
+      // Different brand — nuke the previous brand's library so the studio
+      // doesn't show captions/segments/brain that were generated for the old
+      // identity. The new BP is already populated in memory and will be saved
+      // by load() → save() during launchApp below.
+      caps = [];
+      nId = 0;
+      segments = [];
+      if(BP.brain) delete BP.brain;
+      // Wipe localStorage explicitly so load() doesn't restore the old caps
+      try { localStorage.removeItem(STORAGE_KEY); } catch(_) {}
+      console.log(`[brand-change] Cleared previous brand data: "${oldName}" → "${newName}"`);
+    }
+  } catch(_) {
+    // If detection fails for any reason, fall through to normal launch.
+    // Worst case: old captions persist (current behavior, not worse).
+  }
+
   // Note: showPage() below now handles the Spotify audio kill at every page
   // transition (see killAllSpotifyAudio). This means brain-module audio gets
   // stopped automatically when we transition into the studio — no need for
@@ -5707,6 +5752,10 @@ function launchApp(){
   populateSegmentUI();
   showPage('page-app');
   load();
+  // After load() completes the studio is rdy=true, which means save() will
+  // actually write. Persist the current BP/segments now so a page refresh
+  // immediately after onboarding doesn't lose the just-completed setup.
+  save();
   updateUsagePill();
   updateNotesButton(); // sync notes-active dot with BP.notes loaded from localStorage
   updateOutageBanner(); // restore outage banner if recent failures still in window
