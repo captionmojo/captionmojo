@@ -1526,7 +1526,7 @@ footer span{color:var(--mojo)}
   position:absolute;
   top:calc(100% + 8px);
   right:0;
-  background:var(--card);
+  background:var(--surface);
   border:1px solid var(--border);
   border-radius:10px;
   min-width:240px;
@@ -1586,7 +1586,7 @@ footer span{color:var(--mojo)}
 }
 .auth-modal-backdrop.show{display:flex}
 .auth-modal{
-  background:var(--card);
+  background:var(--surface);
   border-radius:16px;
   width:100%;
   max-width:420px;
@@ -1768,10 +1768,10 @@ footer span{color:var(--mojo)}
 }
 .signup-wall.show{display:flex}
 .signup-wall-card{
-  background:var(--card);
+  background:var(--surface);
   border-radius:16px;
   width:100%;
-  max-width:460px;
+  max-width:920px;
   padding:36px;
   text-align:center;
   box-shadow:0 16px 48px rgba(0,0,0,.16);
@@ -1835,12 +1835,12 @@ footer span{color:var(--mojo)}
    overlay and the new upgrade-modal overlay. */
 .conv-card-wrap{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:1fr 1fr 1fr;
   gap:14px;
   text-align:left;
   margin:20px 0 14px;
 }
-@media(max-width:560px){ .conv-card-wrap{ grid-template-columns:1fr; gap:10px; } }
+@media(max-width:760px){ .conv-card-wrap{ grid-template-columns:1fr; gap:10px; } }
 .conv-card{
   border-radius:12px;
   padding:18px 18px 22px;
@@ -1854,6 +1854,24 @@ footer span{color:var(--mojo)}
   background:linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
   border:2px solid var(--mojo);
   box-shadow:0 4px 14px rgba(232,93,48,.10);
+}
+.conv-card.basic{
+  background:var(--surface);
+  border:1.5px solid var(--ink2);
+}
+.conv-card.basic .conv-card-label{
+  color:var(--ink);
+  font-weight:700;
+}
+.conv-card.basic .conv-card-perks li:before{
+  color:var(--ink);
+}
+.conv-card.basic .conv-card-cta{
+  background:var(--ink);
+  color:#fff;
+}
+.conv-card.basic .conv-card-cta:hover{
+  background:#000;
 }
 .conv-card-label{
   font-family:var(--mono);
@@ -1961,10 +1979,10 @@ footer span{color:var(--mojo)}
 }
 .upgrade-modal.show{display:flex}
 .upgrade-modal-card{
-  background:var(--card);
+  background:var(--surface);
   border-radius:16px;
   width:100%;
-  max-width:640px;
+  max-width:920px;
   padding:36px;
   text-align:center;
   box-shadow:0 16px 48px rgba(0,0,0,.16);
@@ -4404,6 +4422,18 @@ footer span{color:var(--mojo)}
         </ul>
         <button class="conv-card-cta" onclick="openAuthModal()">Sign up free</button>
       </div>
+      <div class="conv-card basic">
+        <div class="conv-card-label">Basic</div>
+        <div class="conv-card-price">$9<span class="small"> / mo</span></div>
+        <div class="conv-card-tagline">For getting consistent</div>
+        <ul class="conv-card-perks">
+          <li><strong>50 captions/day</strong></li>
+          <li>Combine up to 2 tags</li>
+          <li>1 brand profile</li>
+          <li>All audience dimensions</li>
+        </ul>
+        <button class="conv-card-cta" onclick="openAuthModal(); /* TODO: route to Basic signup */">Start with Basic →</button>
+      </div>
       <div class="conv-card pro">
         <div class="conv-card-tag">Recommended</div>
         <div class="conv-card-label">Pro</div>
@@ -4444,6 +4474,18 @@ footer span{color:var(--mojo)}
           <li>Want to ship today? →</li>
         </ul>
         <button class="conv-card-cta" onclick="hideUpgradeModal()">Wait til tomorrow</button>
+      </div>
+      <div class="conv-card basic">
+        <div class="conv-card-label">Basic</div>
+        <div class="conv-card-price">$9<span class="small"> / mo</span></div>
+        <div class="conv-card-tagline">For getting consistent</div>
+        <ul class="conv-card-perks">
+          <li><strong>50 captions/day</strong></li>
+          <li>Combine up to 2 tags</li>
+          <li>1 brand profile</li>
+          <li>All audience dimensions</li>
+        </ul>
+        <button class="conv-card-cta" onclick="hideUpgradeModal(); /* TODO: route to Basic signup */">Start Basic · $9/mo →</button>
       </div>
       <div class="conv-card pro">
         <div class="conv-card-tag">Recommended</div>
