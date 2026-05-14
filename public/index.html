@@ -3815,7 +3815,7 @@ footer span{color:var(--mojo)}
        ============================================================================ -->
   <div class="soft-prompt" id="softPrompt">
     <div class="soft-prompt-text">
-      Like CaptionMojo? <strong>Sign up free</strong> to save your work and get 10 captions per day instead of 5 total.
+      Like CaptionMojo? <strong>Sign up free</strong> to save your work and get 10 captions per day (vs 5 for guests).
     </div>
     <button class="soft-prompt-cta" onclick="openAuthModal()">Sign up free</button>
     <button class="soft-prompt-dismiss" onclick="dismissSoftPrompt()" title="Dismiss">×</button>
@@ -3866,9 +3866,10 @@ footer span{color:var(--mojo)}
           <div>
             <label>How many</label>
             <select id="gQty">
+              <option value="1">1</option>
+              <option value="3" selected>3</option>
               <option value="5">5</option>
-              <option value="10" selected>10</option>
-              <option value="15">15</option>
+              <option value="10">10</option>
               <option value="20">20</option>
             </select>
           </div>
@@ -4205,7 +4206,7 @@ footer span{color:var(--mojo)}
   <div class="signup-wall-card">
     <div class="signup-wall-icon">✦</div>
     <h2 class="signup-wall-title">You've used your free trial</h2>
-    <p class="signup-wall-text">You've generated 5 captions as a guest. Sign up free to keep going — no credit card, no commitment.</p>
+    <p class="signup-wall-text" id="signupWallText">You've generated 5 captions as a guest. Sign up free to keep going — no credit card, no commitment.</p>
     <ul class="signup-wall-perks">
       <li><span class="perk-check">✓</span> <strong>10 captions per day</strong> on the free plan</li>
       <li><span class="perk-check">✓</span> <strong>Your work is saved</strong> across devices</li>
@@ -4222,7 +4223,14 @@ footer span{color:var(--mojo)}
 let BP={name:'',what:'',industry:'',customer:'',tones:[],avoid:'',usp:'',platforms:[],voice:'',lookalike:'',platRules:'',goodEx:'',badEx:'',docs:[],pastedDocs:'',notes:'',brain:null,tier:'free'};
 let segments=[];
 let caps=[],nId=0,pF='all',fTab='final',fEId=null,saveTO=null,rdy=false;
-const DAILY_LIMIT = 30;
+// CAPTION LIMITS (free tier business model)
+// Anonymous: 5 total captions/day before the signup wall (NOT batches — actual captions).
+// Free signed-in: 10 total captions/day before the upgrade prompt.
+// Both counters increment by the quantity returned, not by 1 per request.
+const DAILY_LIMIT_FREE = 10;
+const DAILY_LIMIT_ANON = 5;
+// DAILY_LIMIT is the cap for the current user — set at runtime based on auth state.
+let DAILY_LIMIT = DAILY_LIMIT_ANON;
 
 // ============================================================================
 // SUPABASE CONFIG — PUBLIC KEYS ONLY
@@ -4248,20 +4256,21 @@ let user = null;
 let profile = null;
 let sbClient = null; // the Supabase client, initialized on page load
 
-// Anonymous caption count — for the soft prompt (3rd) and hard wall (5th)
+// Anonymous caption count — total captions generated, not batches.
+// Triggers soft prompt at 3 and hard wall at 5 (DAILY_LIMIT_ANON).
 // Tracked in localStorage so it persists across page reloads.
 const ANON_COUNT_KEY = 'cm_anon_count_v1';
 const SOFT_PROMPT_DISMISSED_KEY = 'cm_soft_prompt_dismissed_v1';
-const ANON_HARD_WALL = 5;
+const ANON_HARD_WALL = DAILY_LIMIT_ANON;   // 5 captions
 const ANON_SOFT_PROMPT = 3;
 
 function getAnonCount(){
   try { return parseInt(localStorage.getItem(ANON_COUNT_KEY) || '0', 10); }
   catch(e){ return 0; }
 }
-function incrementAnonCount(){
+function incrementAnonCount(by){
   if(user) return; // logged-in users don't count against anonymous limit
-  const n = getAnonCount() + 1;
+  const n = getAnonCount() + (by || 1);
   try { localStorage.setItem(ANON_COUNT_KEY, String(n)); } catch(e){}
   return n;
 }
@@ -4677,6 +4686,8 @@ function updateAuthUI(){
     if(landingLogin) landingLogin.style.display = '';
     if(landingAccount) landingAccount.style.display = 'none';
   }
+  // Refresh the usage pill — caps and counters differ between anon and signed-in.
+  updateUsagePill();
 }
 
 // ============ AUTH MODAL FUNCTIONS ============
@@ -4819,11 +4830,11 @@ function copyReferralLink(){
 
 // ============ SOFT PROMPT / SIGNUP WALL ============
 // Called by doGen() AFTER a successful generation.
-// Decides whether to show the soft prompt banner or the hard wall modal.
+// Decides whether to show the soft prompt banner.
 function checkAnonGateAfterGenerate(){
-  if(user) return; // logged-in users are never gated
+  if(user) return; // logged-in users are never gated by anon wall
   const count = getAnonCount();
-  // Soft prompt at 3+ (unless dismissed)
+  // Soft prompt at 3+ (unless dismissed), only while still under hard wall
   if(count >= ANON_SOFT_PROMPT && count < ANON_HARD_WALL){
     const dismissed = localStorage.getItem(SOFT_PROMPT_DISMISSED_KEY) === '1';
     if(!dismissed){
@@ -4834,11 +4845,26 @@ function checkAnonGateAfterGenerate(){
 }
 // Called BEFORE doGen() makes the API call.
 // Returns true if generation should proceed, false if blocked.
-function checkAnonGateBeforeGenerate(){
-  if(user) return true; // logged-in users always proceed
+// qty = number of captions about to be requested. We block if adding qty
+// would exceed the cap. This counts captions, not generation events.
+function checkAnonGateBeforeGenerate(qty){
+  if(user) return true; // logged-in users go through checkFreeTierGateBeforeGenerate instead
   const count = getAnonCount();
-  if(count >= ANON_HARD_WALL){
-    showSignupWall();
+  if(count >= ANON_HARD_WALL || count + (qty || 1) > ANON_HARD_WALL){
+    showSignupWall(count, qty);
+    return false;
+  }
+  return true;
+}
+// Free-tier signed-in users: same idea but with the higher cap and a softer
+// upgrade nudge instead of the signup wall.
+function checkFreeTierGateBeforeGenerate(qty){
+  if(!user) return true; // anonymous goes through anon gate
+  // Pro/agency tiers (when implemented) skip this gate. For now everyone
+  // signed in is on free tier.
+  const usage = getUsage();
+  if(usage.count >= DAILY_LIMIT_FREE || usage.count + (qty || 1) > DAILY_LIMIT_FREE){
+    showUpgradePrompt(usage.count, qty);
     return false;
   }
   return true;
@@ -4848,13 +4874,37 @@ function dismissSoftPrompt(){
   const sp = document.getElementById('softPrompt');
   if(sp) sp.classList.remove('show');
 }
-function showSignupWall(){
+function showSignupWall(currentCount, requestedQty){
   const wall = document.getElementById('signupWall');
-  if(wall) wall.classList.add('show');
+  if(wall){
+    // Update body copy to reflect actual numbers if we have them
+    const txt = document.getElementById('signupWallText');
+    if(txt && typeof currentCount === 'number'){
+      const remaining = Math.max(0, ANON_HARD_WALL - currentCount);
+      if(requestedQty && remaining > 0){
+        txt.textContent = `You've used ${currentCount} of ${ANON_HARD_WALL} free captions today. You asked for ${requestedQty} more — that would push you over. Sign up free to keep going.`;
+      } else {
+        txt.textContent = `You've used all ${ANON_HARD_WALL} free captions today. Sign up free to keep going — no credit card.`;
+      }
+    }
+    wall.classList.add('show');
+  }
 }
 function hideSignupWall(){
   const wall = document.getElementById('signupWall');
   if(wall) wall.classList.remove('show');
+}
+// Free-tier upgrade prompt — shown when a signed-in free user hits 10/day.
+// For now this just uses an alert; can be upgraded to a modal later.
+function showUpgradePrompt(currentCount, requestedQty){
+  const remaining = Math.max(0, DAILY_LIMIT_FREE - currentCount);
+  let msg;
+  if(remaining === 0){
+    msg = `You've used all ${DAILY_LIMIT_FREE} captions on the free plan today. Upgrade to Basic for more daily captions and additional features.`;
+  } else {
+    msg = `You're at ${currentCount}/${DAILY_LIMIT_FREE} captions today. This batch of ${requestedQty} would push you over. Try a smaller batch or upgrade to Basic for more daily captions.`;
+  }
+  alert(msg);
 }
 
 // ============ STORAGE (browser localStorage) ============
@@ -4886,19 +4936,28 @@ function getUsage(){
     return u;
   }catch(e){return {date: new Date().toISOString().slice(0,10), count: 0};}
 }
-function bumpUsage(){
+function bumpUsage(by){
   const u = getUsage();
-  u.count++;
+  u.count += (by || 1);
   localStorage.setItem(USAGE_KEY, JSON.stringify(u));
   updateUsagePill();
 }
 function updateUsagePill(){
-  const u = getUsage();
-  const remaining = Math.max(0, DAILY_LIMIT - u.count);
+  // Pick the right counter and cap based on auth state.
+  // Anonymous: ANON counter / ANON_HARD_WALL (5)
+  // Signed-in free: daily USAGE counter / DAILY_LIMIT_FREE (10)
+  // (Paid tiers will get higher caps once Stripe is wired in.)
+  const isAnon = !user;
+  const cap = isAnon ? ANON_HARD_WALL : DAILY_LIMIT_FREE;
+  const used = isAnon ? getAnonCount() : getUsage().count;
+  const remaining = Math.max(0, cap - used);
+  // Keep the runtime DAILY_LIMIT mirror in sync so other code paths see the
+  // right cap (e.g. any old code still reading DAILY_LIMIT directly).
+  DAILY_LIMIT = cap;
   const pill = document.getElementById('usagePill');
   if(pill){
-    pill.textContent = `${remaining} / ${DAILY_LIMIT} left today`;
-    pill.className = 'usage-pill' + (remaining < 5 ? ' danger' : remaining < 10 ? ' warn' : '');
+    pill.textContent = `${remaining} / ${cap} left today`;
+    pill.className = 'usage-pill' + (remaining === 0 ? ' danger' : remaining <= 2 ? ' warn' : '');
   }
 }
 
@@ -7089,17 +7148,17 @@ function doCopyAll(){
 async function doGen(){
   const btn=document.getElementById('gBtn'),st=document.getElementById('gSt');
 
-  // Anonymous gate: block generation if hit hard wall
-  if(!checkAnonGateBeforeGenerate()){
+  // Read the requested batch size first so we can gate with awareness of how
+  // many captions are about to be added to today's count.
+  const qty=parseInt(document.getElementById('gQty').value) || 3;
+
+  // Anonymous: hard wall if total would exceed ANON_HARD_WALL (5 captions)
+  if(!user && !checkAnonGateBeforeGenerate(qty)){
     return; // signup wall already shown
   }
-
-  // Client-side usage check (server enforces too)
-  const u = getUsage();
-  if(u.count >= DAILY_LIMIT){
-    st.className='smsg err';
-    st.textContent=`Daily beta limit reached (${DAILY_LIMIT}/day). Resets at midnight UTC.`;
-    return;
+  // Free signed-in: upgrade prompt if total would exceed DAILY_LIMIT_FREE
+  if(user && !checkFreeTierGateBeforeGenerate(qty)){
+    return; // upgrade prompt already shown
   }
 
   // Require at least one segment selected
@@ -7117,7 +7176,6 @@ async function doGen(){
   // Strip 'desc' for storing on the caption (smaller, only need name+category for display/filter)
   const segsForCaption = segsForRequest.map(s => ({ name: s.name, category: s.category }));
 
-  const qty=parseInt(document.getElementById('gQty').value);
   const plats=getPlats('gPlats');
   const prompt=V('gPrompt');
 
@@ -7216,16 +7274,17 @@ async function doGen(){
       });
     });
 
-    bumpUsage();
+    // USAGE TRACKING — count captions actually returned, not requests.
+    // For signed-in free users this drives the topbar pill and triggers the
+    // upgrade prompt at DAILY_LIMIT_FREE. For anonymous, the next block
+    // updates the anon counter and may show the soft prompt.
+    bumpUsage(captions.length);
 
     // ANONYMOUS GATE TRACKING
-    // Anonymous users get 5 total captions before hard wall. Track each
-    // successful generation. checkAnonGateAfterGenerate() decides whether
-    // to show the soft prompt banner (at 3+) once we cross that threshold.
+    // Anonymous users get DAILY_LIMIT_ANON (5) total captions before hard wall.
+    // Increment by actual captions returned, not by 1 per request.
     if(!user){
-      // We increment by 1 per generation REQUEST, not per caption returned.
-      // The hard wall is about how many TIMES they used the tool, not output volume.
-      incrementAnonCount();
+      incrementAnonCount(captions.length);
       checkAnonGateAfterGenerate();
     }
 
