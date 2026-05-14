@@ -6650,6 +6650,17 @@ function launchApp(){
   document.getElementById('brandChip').textContent=BP.name||'My Brand';
   populateSegmentUI();
   showPage('page-app');
+  // ===== PRE-LOAD PERSIST (BUG-1 follow-up fix) =====
+  // Save the fresh BP + segments to localStorage BEFORE load() runs. Without
+  // this, load() reads stale localStorage from a previous session and
+  // overwrites BP.name (causing the brand chip to show the wrong brand) and
+  // potentially other state. The brand-change wipe is too conservative — it
+  // only fires when previous content existed, so re-onboarding without ever
+  // generating captions leaves stale BP in localStorage that gets spread over
+  // the fresh in-memory BP at load() line "BP={...BP,...d.BP}".
+  try {
+    saveToStorage({BP, segments, caps, nId});
+  } catch(e) { console.warn('[launchApp] pre-load persist failed:', e); }
   load();
   // After load() completes the studio is rdy=true, which means save() will
   // actually write. Persist the current BP/segments now so a page refresh
