@@ -1093,6 +1093,46 @@ footer span{color:var(--mojo)}
 #v-caps{padding-bottom:32px}
 #v-fold{padding-bottom:0}
 
+/* ====== GEN MODE TABS — pill switcher for AI Generate / Write Your Own ======
+   Sits at the top of the Generate view. Two pill-shaped tabs in a rounded
+   container. Active tab gets the mojo orange fill + white text; inactive
+   stays transparent with muted text. Mobile keeps the same row layout —
+   tabs scale down via flex: 1 so they always fill the container width. */
+.gen-tabs{
+  display:flex;
+  gap:6px;
+  margin:12px 12px 0;
+  padding:4px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:999px;
+}
+.gen-tab{
+  flex:1;
+  padding:10px 16px;
+  border:none;
+  border-radius:999px;
+  background:transparent;
+  color:var(--muted);
+  font-family:var(--sans);
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .15s var(--ease);
+  white-space:nowrap;
+}
+.gen-tab:hover:not(.active){
+  color:var(--ink);
+  background:var(--surface2);
+}
+.gen-tab.active{
+  background:var(--mojo);
+  color:#fff;
+}
+@media(max-width:560px){
+  .gen-tab{font-size:12px;padding:9px 12px}
+}
+
 .gen-block{
   background:var(--surface);
   margin:12px;
@@ -4035,7 +4075,15 @@ footer span{color:var(--mojo)}
     <button class="tnav" title="Organize by status: Final, In Progress, Liked, Trash" onclick="showTab('fold',this)">▤ Folders</button>
   </div>
   <div class="view on" id="v-gen">
-    <div class="gen-block primary" style="margin-top:12px">
+    <!-- ===== GEN MODE TABS — switch between AI Generate / Write your own =====
+         Replaces the old "Write Your Own" collapsible block. Two pill tabs at
+         the top of the Generate view: clicking switches which gen-block shows.
+         Default is AI Generate. State lives in window.genMode ('ai' | 'write'). -->
+    <div class="gen-tabs" role="tablist" aria-label="Caption generation mode">
+      <button class="gen-tab active" id="genTabAi" role="tab" aria-selected="true" onclick="switchGenMode('ai')">✦ AI Generate</button>
+      <button class="gen-tab" id="genTabWrite" role="tab" aria-selected="false" onclick="switchGenMode('write')">✎ Write your own</button>
+    </div>
+    <div class="gen-block primary" id="aiGenBlock" style="margin-top:12px">
       <div class="gen-hdr"><div class="gen-dot"></div>AI Generate</div>
       <div class="gen-inner">
         <div>
@@ -4084,12 +4132,11 @@ footer span{color:var(--mojo)}
         <div class="smsg" id="gSt"></div>
       </div>
     </div>
-    <div class="gen-block" id="writeOwnBlock">
-      <div class="gen-hdr" onclick="toggleWriteOwn()" style="cursor:pointer;justify-content:space-between">
+    <div class="gen-block" id="writeOwnBlock" style="display:none;margin-top:12px">
+      <div class="gen-hdr">
         <div style="display:flex;align-items:center;gap:8px"><div class="gen-dot" style="background:var(--muted)"></div>Write Your Own</div>
-        <span class="write-own-chev" id="writeOwnChev" style="font-size:14px;color:var(--mojo);transition:transform .25s var(--ease)">+</span>
       </div>
-      <div class="gen-inner" id="writeOwnBody" style="display:none">
+      <div class="gen-inner" id="writeOwnBody">
         <div><label>Caption</label><textarea id="aText" rows="3" placeholder="Write a caption here..." oninput="aCC()"></textarea><div class="cc-note" id="aNote">0 chars</div></div>
         <div><label>Platform</label><div class="pchips" id="aPlats"><button class="pchip on" onclick="tPC(this)">All</button><button class="pchip" onclick="tPC(this)">Instagram</button><button class="pchip" onclick="tPC(this)">TikTok</button><button class="pchip" onclick="tPC(this)">Twitter / X</button><button class="pchip" onclick="tPC(this)">Facebook</button><button class="pchip" onclick="tPC(this)">LinkedIn</button></div></div>
         <div><label>Tag with dimensions <span class="lh">(optional, select any that apply)</span></label><div class="seg-picker" id="aSeg"></div></div>
@@ -5471,12 +5518,28 @@ async function goTracks(){
 }
 
 // ============ UI HELPERS ============
-function toggleWriteOwn(){
-  const body=document.getElementById('writeOwnBody');
-  const chev=document.getElementById('writeOwnChev');
-  const open=body.style.display!=='none';
-  body.style.display=open?'none':'';
-  chev.textContent=open?'+':'−';
+// Switch between AI Generate and Write Your Own modes in the Generate tab.
+// Replaces the old collapsible "Write Your Own" toggle pattern. Only one
+// block is visible at a time. Tab buttons live above the blocks; clicking a
+// tab swaps which gen-block has display:none.
+window.genMode = 'ai';
+function switchGenMode(mode){
+  if(mode !== 'ai' && mode !== 'write') return;
+  window.genMode = mode;
+  const aiBlock = document.getElementById('aiGenBlock');
+  const writeBlock = document.getElementById('writeOwnBlock');
+  const aiTab = document.getElementById('genTabAi');
+  const writeTab = document.getElementById('genTabWrite');
+  if(aiBlock) aiBlock.style.display = (mode === 'ai') ? '' : 'none';
+  if(writeBlock) writeBlock.style.display = (mode === 'write') ? '' : 'none';
+  if(aiTab){
+    aiTab.classList.toggle('active', mode === 'ai');
+    aiTab.setAttribute('aria-selected', mode === 'ai' ? 'true' : 'false');
+  }
+  if(writeTab){
+    writeTab.classList.toggle('active', mode === 'write');
+    writeTab.setAttribute('aria-selected', mode === 'write' ? 'true' : 'false');
+  }
 }
 function toggleFAQ(el){
   const item = el.closest('.faq-item');
