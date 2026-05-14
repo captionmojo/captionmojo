@@ -1001,9 +1001,19 @@ async function handleRefine(request, env) {
   if (!originalCaption) {
     return jsonResp({ error: 'Missing caption to refine' }, 400);
   }
-  const allowedActions = ['shorter','punchier','addCta','moreLikeThis','rewrite','changeTone','lessSalesy','tryAgain'];
+  const allowedActions = ['shorter','punchier','addCta','moreLikeThis','rewrite','changeTone','lessSalesy','tryAgain','custom'];
   if (!allowedActions.includes(action)) {
     return jsonResp({ error: 'Invalid action' }, 400);
+  }
+
+  // For 'custom' action, extract and validate user's freeform instruction.
+  // Cap at 500 chars to prevent abuse / runaway tokens. Required for custom action.
+  let customInstruction = '';
+  if (action === 'custom') {
+    customInstruction = clipString(body.customInstruction, 500).trim();
+    if (!customInstruction) {
+      return jsonResp({ error: 'Custom action requires a customInstruction field with your edit request.' }, 400);
+    }
   }
 
   // Brand context — same shape as /api/generate but slimmer use
@@ -1058,6 +1068,21 @@ async function handleRefine(request, env) {
       break;
     case 'tryAgain':
       actionInstruction = 'Regenerate this caption from scratch with the same brief and context, but produce a meaningfully different result. Don\'t mirror the original\'s structure or word choices. Fresh angle, fresh language.';
+      break;
+    case 'custom':
+      // User's freeform instruction. We wrap it with framing that keeps it on
+      // the rails — the model still respects voice rules, never-do rules, and
+      // platform link rules from the system prompt. The user instruction
+      // describes WHAT to change; the brand context describes WHAT NEVER CHANGES.
+      actionInstruction = `The user has a specific instruction for how to edit this caption:
+
+"${customInstruction}"
+
+Follow that instruction precisely. But:
+- Do not violate any brand voice rules, never-do rules, or platform link rules from your system prompt — those are inviolate
+- If the user instruction would require breaking a brand rule, follow the brand rule and apply the instruction in the closest possible way that doesn't break it
+- Keep the caption recognizably the same caption (unless the user instruction explicitly asks for a full rewrite)
+- Apply the user's instruction with intent — don't half-do it or hedge`;
       break;
   }
 
