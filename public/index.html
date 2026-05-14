@@ -1164,6 +1164,73 @@ footer span{color:var(--mojo)}
 .gen-inner{padding:16px;display:flex;flex-direction:column;gap:14px}
 .two-col-sm{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
+/* ========== POST IMAGE UPLOAD (BUG-2B) ==========
+   Dashed drop zone in AI Generate block. Users drop an image here and the
+   caption batch is written for THAT specific photo. Image is base64-encoded
+   in JS and sent as body.postImage to /api/generate. Cleared after success. */
+.img-drop{
+  border:2px dashed var(--border2);
+  border-radius:var(--r-md);
+  padding:18px;
+  text-align:center;
+  cursor:pointer;
+  background:var(--surface2);
+  transition:border-color .15s, background .15s;
+  position:relative;
+}
+.img-drop:hover{border-color:var(--mojo);background:var(--mojo-tint)}
+.img-drop.drag-over{border-color:var(--mojo);background:var(--mojo-soft);border-style:solid}
+.img-drop-text{font-size:13px;color:var(--ink2);font-weight:600;margin-bottom:2px}
+.img-drop-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.img-drop-icon{font-size:22px;margin-bottom:6px;opacity:.75}
+.img-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+/* Preview state — replaces the drop zone content when an image is loaded */
+.img-preview{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-md);
+}
+.img-preview-thumb{
+  width:64px;height:64px;
+  border-radius:6px;
+  object-fit:cover;
+  border:1px solid var(--border);
+  flex-shrink:0;
+}
+.img-preview-info{flex:1;min-width:0;text-align:left}
+.img-preview-name{
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.img-preview-size{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.img-preview-remove{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--ink2);
+  width:28px;height:28px;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:background .15s, color .15s, border-color .15s;
+}
+.img-preview-remove:hover{background:#FFE5E5;color:#C73838;border-color:#C73838}
+.img-error{
+  font-size:12px;
+  color:#C73838;
+  margin-top:6px;
+  font-family:var(--mono);
+}
+
 .pchips{display:flex;gap:6px;flex-wrap:wrap}
 .pchip{
   font-size:12px;
@@ -4135,6 +4202,23 @@ footer span{color:var(--mojo)}
             <input type="text" id="gPrompt" placeholder="e.g. new summer menu">
           </div>
         </div>
+        <!-- ===== POST IMAGE UPLOAD (BUG-2B) =====
+             Always-visible drop zone. User drops/picks an image; we base64-encode
+             and send as body.postImage to /api/generate. Worker passes it through
+             to Claude vision so the captions are written for THIS specific photo.
+             Cleared automatically after successful generation. -->
+        <div>
+          <label>Image <span class="lh">(optional — caption a specific photo)</span></label>
+          <div class="img-drop" id="postImgDrop" onclick="document.getElementById('postImgFile').click()">
+            <div id="postImgDropContent">
+              <div class="img-drop-icon">📷</div>
+              <div class="img-drop-text">Drop an image or click to upload</div>
+              <div class="img-drop-sub">JPG, PNG, WebP, or GIF · max 6MB</div>
+            </div>
+            <input type="file" id="postImgFile" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onchange="handlePostImagePick(event)">
+          </div>
+          <div class="img-error" id="postImgError" style="display:none"></div>
+        </div>
         <button class="btn btn-mojo btn-lg" id="gBtn" onclick="doGen()" style="width:100%;font-size:15px;padding:16px 24px;margin-top:4px">✦ Generate Captions</button>
         <div class="smsg" id="gSt"></div>
       </div>
@@ -6934,6 +7018,10 @@ function load(){
   rdy=true;
   updateNotesButton(); // sync notes-active dot with hydrated BP.notes
   render();
+  // BUG-2B: initialize the image drop zone after render (it's part of the studio
+  // which only enters the DOM after launchApp). DOMContentLoaded may have run too
+  // early, so re-init here. Function is idempotent (guarded by dropInit dataset).
+  setTimeout(initPostImageDropZone, 50);
 }
 
 function showTab(n,btn){
@@ -7557,6 +7645,178 @@ function doCopyAll(){
 }
 
 // ============ GENERATE via backend ============
+// ============ POST IMAGE UPLOAD (BUG-2B) ============
+// State for the image attached to the next AI Generate request. NOT persisted
+// to localStorage — image is for THIS specific batch only, cleared after the
+// generation completes or the user picks a new one.
+//
+// Shape: { name, size, media_type, content (base64), dataUrl (for preview) } or null
+let postImage = null;
+
+// Validate + load an image file. Called from both the file input change and
+// the drag-and-drop handler. Sets postImage state on success, shows an
+// inline error and clears state on failure.
+function loadPostImage(file){
+  const errEl = document.getElementById('postImgError');
+  errEl.style.display = 'none';
+  errEl.textContent = '';
+
+  if(!file){
+    clearPostImage();
+    return;
+  }
+
+  // Validate type — accept common web image formats. Worker also validates,
+  // but client-side check gives instant feedback.
+  const allowedTypes = ['image/jpeg','image/jpg','image/png','image/webp','image/gif'];
+  if(!allowedTypes.includes(file.type)){
+    errEl.style.display = 'block';
+    errEl.textContent = `Unsupported format (${file.type || 'unknown'}). Use JPG, PNG, WebP, or GIF.`;
+    clearPostImage();
+    return;
+  }
+
+  // Validate size — 6MB raw file becomes ~8MB after base64 encoding, which
+  // is right at the worker's MAX_IMG_B64_BYTES cap. Set a 6MB raw limit to
+  // give ourselves headroom and keep upload time reasonable.
+  const MAX_RAW_BYTES = 6 * 1024 * 1024;
+  if(file.size > MAX_RAW_BYTES){
+    errEl.style.display = 'block';
+    errEl.textContent = `Image too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 6MB.`;
+    clearPostImage();
+    return;
+  }
+
+  // Read as data URL for preview + extract base64 for upload.
+  // FileReader.readAsDataURL returns "data:image/jpeg;base64,XXXXX"
+  // We need just the XXXXX part for the worker.
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const base64 = dataUrl.split(',')[1] || '';
+    if(!base64){
+      errEl.style.display = 'block';
+      errEl.textContent = 'Could not read image. Try a different file.';
+      clearPostImage();
+      return;
+    }
+    postImage = {
+      name: file.name,
+      size: file.size,
+      media_type: file.type,
+      content: base64,
+      dataUrl: dataUrl
+    };
+    renderPostImagePreview();
+  };
+  reader.onerror = () => {
+    errEl.style.display = 'block';
+    errEl.textContent = 'Could not read image. Try a different file.';
+    clearPostImage();
+  };
+  reader.readAsDataURL(file);
+}
+
+// Render the preview state inside the drop zone container. Replaces the
+// "drop an image" prompt with a thumbnail + filename + size + remove button.
+function renderPostImagePreview(){
+  if(!postImage){
+    // Restore the empty drop zone state
+    const container = document.getElementById('postImgDropContent');
+    if(container){
+      container.innerHTML = `
+        <div class="img-drop-icon">📷</div>
+        <div class="img-drop-text">Drop an image or click to upload</div>
+        <div class="img-drop-sub">JPG, PNG, WebP, or GIF · max 6MB</div>
+      `;
+    }
+    return;
+  }
+
+  // Show preview state. Remove button must stopPropagation so clicking it
+  // doesn't trigger the parent drop zone's "open file picker" handler.
+  const sizeKb = (postImage.size / 1024).toFixed(0);
+  const sizeStr = postImage.size > 1024*1024
+    ? `${(postImage.size / 1024 / 1024).toFixed(1)}MB`
+    : `${sizeKb}KB`;
+  // Escape filename for HTML safety (basic — filename could contain HTML chars)
+  const safeName = postImage.name
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const container = document.getElementById('postImgDropContent');
+  if(container){
+    container.innerHTML = `
+      <div class="img-preview">
+        <img class="img-preview-thumb" src="${postImage.dataUrl}" alt="">
+        <div class="img-preview-info">
+          <div class="img-preview-name">${safeName}</div>
+          <div class="img-preview-size">${sizeStr}</div>
+        </div>
+        <button class="img-preview-remove" onclick="event.stopPropagation();clearPostImage()" aria-label="Remove image" type="button">✕</button>
+      </div>
+    `;
+  }
+}
+
+// Wipe the postImage state and re-render the drop zone in its empty state.
+// Called: on remove button click, on validation failure, on successful generation.
+function clearPostImage(){
+  postImage = null;
+  // Reset the file input so picking the same file again triggers onchange
+  const fileInput = document.getElementById('postImgFile');
+  if(fileInput) fileInput.value = '';
+  const errEl = document.getElementById('postImgError');
+  if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
+  renderPostImagePreview();
+}
+
+// Handler for the <input type="file" onchange="..."> — pulls the picked file
+// out of the event and feeds it to the validator.
+function handlePostImagePick(event){
+  const file = event.target.files && event.target.files[0];
+  loadPostImage(file);
+}
+
+// Initialize drag-and-drop on the drop zone. Wire up dragenter/dragover/dragleave
+// for visual feedback (highlighted border) and drop to actually load the file.
+// Called once when the studio view becomes active so it works on returning users.
+function initPostImageDropZone(){
+  const dropEl = document.getElementById('postImgDrop');
+  if(!dropEl) return;
+  // Prevent double-init if user switches views back and forth
+  if(dropEl.dataset.dropInit === '1') return;
+  dropEl.dataset.dropInit = '1';
+
+  // Prevent the browser's default behavior of OPENING the file when you drop it
+  // (which would navigate away from the page). Must preventDefault on enter/over too.
+  ['dragenter','dragover','dragleave','drop'].forEach(evtName => {
+    dropEl.addEventListener(evtName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  });
+
+  // Visual feedback when user is dragging a file over the zone
+  ['dragenter','dragover'].forEach(evtName => {
+    dropEl.addEventListener(evtName, () => dropEl.classList.add('drag-over'));
+  });
+  ['dragleave','drop'].forEach(evtName => {
+    dropEl.addEventListener(evtName, () => dropEl.classList.remove('drag-over'));
+  });
+
+  dropEl.addEventListener('drop', (e) => {
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(file) loadPostImage(file);
+  });
+}
+
+// Run drop-zone init when the page loads. The element might not exist yet
+// (studio is rendered after launchApp), so we re-try in launchApp too.
+document.addEventListener('DOMContentLoaded', () => {
+  // Defer one tick — studio render happens via launchApp
+  setTimeout(initPostImageDropZone, 100);
+});
+
 async function doGen(){
   const btn=document.getElementById('gBtn'),st=document.getElementById('gSt');
 
@@ -7637,7 +7897,14 @@ async function doGen(){
         docs,
         pastedDocs: brainPresent ? '' : (BP.pastedDocs||''),
         brain: brainPresent ? BP.brain : null,
-        feedback
+        feedback,
+        // BUG-2B: per-request image. Worker validates and passes to Claude vision.
+        // null when user hasn't uploaded one — worker handles either case.
+        postImage: postImage ? {
+          name: postImage.name,
+          content: postImage.content,
+          media_type: postImage.media_type
+        } : null
       })
     });
 
@@ -7705,6 +7972,10 @@ async function doGen(){
 
     render();save();
     clearFailureHistory(); // Successful generation clears outage banner if showing
+
+    // BUG-2B: clear the attached image after success so the next batch doesn't
+    // accidentally reuse it. User uploads a fresh image per intended post.
+    clearPostImage();
 
     st.className='smsg ok';
     st.textContent=`✓ Generated ${captions.length} captions. Switch to Captions tab to view.`;
