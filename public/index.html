@@ -4291,13 +4291,41 @@ async function initSupabase(){
   sbClient.auth.onAuthStateChange(async (event, newSession) => {
     console.log('[auth] state change:', event);
     await applySession(newSession);
+    // After Supabase processes the OAuth callback (SIGNED_IN event with
+    // detectSessionInUrl), the tokens are still in the URL hash. Clean them
+    // up now that the session is established.
+    if(event === 'SIGNED_IN') cleanOAuthParamsFromUrl();
   });
 
-  // Clean up OAuth callback params from the URL. Supabase has already
-  // consumed them by this point (detectSessionInUrl: true above), but they
-  // linger in the address bar making the URL look broken (?error=... or
-  // ?code=...&state=...). Strip them silently using replaceState so we don't
-  // trigger a navigation or break the back button.
+  // Also clean error params (e.g. ?error=invalid_request from a failed OAuth)
+  // — these don't trigger any auth event so we need to clean them ourselves.
+  // We DON'T touch access_token/refresh_token in URL here because Supabase
+  // may still be processing them async; SIGNED_IN cleanup handles those.
+  cleanOAuthErrorParamsOnly();
+}
+
+// Clean ONLY the error params from the URL, leaving any access_token /
+// refresh_token / code / state in place so Supabase can still consume them.
+// Safe to call at init time. Failed OAuth attempts populate ?error=... in
+// the search string, which doesn't trigger any Supabase event.
+function cleanOAuthErrorParamsOnly(){
+  try {
+    const url = new URL(window.location.href);
+    const errorParams = ['error', 'error_code', 'error_description'];
+    let dirty = false;
+    errorParams.forEach(p => {
+      if(url.searchParams.has(p)){ url.searchParams.delete(p); dirty = true; }
+    });
+    if(dirty){
+      const cleanUrl = url.pathname + (url.search || '') + (url.hash || '');
+      window.history.replaceState({}, '', cleanUrl);
+    }
+  } catch(e){ console.warn('[auth] error param cleanup failed:', e); }
+}
+
+// Strip OAuth callback tokens from the URL after a successful sign-in.
+// Called from the SIGNED_IN handler, when we know Supabase has consumed them.
+function cleanOAuthParamsFromUrl(){
   try {
     const url = new URL(window.location.href);
     const dirtyParams = ['error', 'error_code', 'error_description',
