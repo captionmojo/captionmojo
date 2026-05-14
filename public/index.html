@@ -6482,6 +6482,20 @@ let aSegSel = [];
 let capFilterSegs = [];
 
 function launchApp(){
+  // ===== EMPTY-SEGMENTS GUARD (BUG-1 fix) =====
+  // If we reached launchApp with no segments in memory, something upstream
+  // failed silently: generateSegments() hit a timeout, the network call errored
+  // before catch could fire, or the user clicked "Enter Studio →" before the
+  // fetch resolved. Rather than land the user in an unusable studio with
+  // "no audience dimensions yet" and a blocked Generate button, fall back
+  // to generic segments so they can immediately start generating captions.
+  // The brand-aware fallback gives at least 5 categories tied to BP.industry
+  // and BP.what when those are present.
+  if(!segments || segments.length === 0){
+    console.warn('[launchApp] segments empty — applying fallback to prevent unusable studio');
+    segments = fallbackSegments();
+  }
+
   // ===== BRAND-CHANGE DETECTION =====
   // If the user is re-onboarding as a different brand than what's in storage
   // (e.g., tested as one company, now setting up another), clear out the stale
