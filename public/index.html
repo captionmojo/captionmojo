@@ -1183,7 +1183,7 @@ footer span{color:var(--mojo)}
 .img-drop-text{font-size:13px;color:var(--ink2);font-weight:600;margin-bottom:2px}
 .img-drop-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
 .img-drop-icon{font-size:22px;margin-bottom:6px;opacity:.75}
-.img-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.img-drop input[type=file]{display:none}
 /* Preview state — replaces the drop zone content when an image is loaded */
 .img-preview{
   display:flex;
@@ -4182,6 +4182,25 @@ footer span{color:var(--mojo)}
     <div class="gen-block primary" id="aiGenBlock" style="margin-top:12px">
       <div class="gen-hdr"><div class="gen-dot"></div>AI Generate</div>
       <div class="gen-inner">
+        <!-- ===== POST IMAGE UPLOAD (BUG-2B) =====
+             Always-visible drop zone at TOP of generate panel. Image is the
+             primary subject when present, so it leads. User drops/picks an
+             image; we base64-encode and send as body.postImage to /api/generate.
+             Worker passes it through to Claude vision so the captions are
+             written for THIS specific photo. Cleared automatically after
+             successful generation. -->
+        <div>
+          <label>Image <span class="lh">(optional — caption a specific photo)</span></label>
+          <div class="img-drop" id="postImgDrop" onclick="handlePostImgDropClick(event)">
+            <div id="postImgDropContent">
+              <div class="img-drop-icon">📷</div>
+              <div class="img-drop-text">Drop an image or click to upload</div>
+              <div class="img-drop-sub">JPG, PNG, WebP, or GIF · max 6MB</div>
+            </div>
+            <input type="file" id="postImgFile" accept="image/*" onchange="handlePostImagePick(event)">
+          </div>
+          <div class="img-error" id="postImgError" style="display:none"></div>
+        </div>
         <div>
           <label>Audience dimensions <span class="lh">(select one or more — they combine)</span></label>
           <div class="seg-filter-wrap">
@@ -4223,23 +4242,6 @@ footer span{color:var(--mojo)}
             <label>Direction <span class="lh">(optional)</span></label>
             <input type="text" id="gPrompt" placeholder="e.g. new summer menu">
           </div>
-        </div>
-        <!-- ===== POST IMAGE UPLOAD (BUG-2B) =====
-             Always-visible drop zone. User drops/picks an image; we base64-encode
-             and send as body.postImage to /api/generate. Worker passes it through
-             to Claude vision so the captions are written for THIS specific photo.
-             Cleared automatically after successful generation. -->
-        <div>
-          <label>Image <span class="lh">(optional — caption a specific photo)</span></label>
-          <div class="img-drop" id="postImgDrop" onclick="handlePostImgDropClick(event)">
-            <div id="postImgDropContent">
-              <div class="img-drop-icon">📷</div>
-              <div class="img-drop-text">Drop an image or click to upload</div>
-              <div class="img-drop-sub">JPG, PNG, WebP, or GIF · max 6MB</div>
-            </div>
-            <input type="file" id="postImgFile" accept="image/*" onchange="handlePostImagePick(event)">
-          </div>
-          <div class="img-error" id="postImgError" style="display:none"></div>
         </div>
         <button class="btn btn-mojo btn-lg" id="gBtn" onclick="doGen()" style="width:100%;font-size:15px;padding:16px 24px;margin-top:4px">✦ Generate Captions</button>
         <div class="smsg" id="gSt"></div>
