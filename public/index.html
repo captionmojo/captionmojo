@@ -4292,6 +4292,38 @@ async function initSupabase(){
     console.log('[auth] state change:', event);
     await applySession(newSession);
   });
+
+  // Clean up OAuth callback params from the URL. Supabase has already
+  // consumed them by this point (detectSessionInUrl: true above), but they
+  // linger in the address bar making the URL look broken (?error=... or
+  // ?code=...&state=...). Strip them silently using replaceState so we don't
+  // trigger a navigation or break the back button.
+  try {
+    const url = new URL(window.location.href);
+    const dirtyParams = ['error', 'error_code', 'error_description',
+                          'code', 'state', 'provider_token', 'access_token',
+                          'refresh_token', 'expires_in', 'token_type'];
+    let dirty = false;
+    dirtyParams.forEach(p => {
+      if(url.searchParams.has(p)){ url.searchParams.delete(p); dirty = true; }
+    });
+    if(url.hash){
+      // OAuth implicit flow puts tokens in the hash fragment
+      const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+      let hashDirty = false;
+      dirtyParams.forEach(p => {
+        if(hashParams.has(p)){ hashParams.delete(p); hashDirty = true; }
+      });
+      if(hashDirty){
+        url.hash = hashParams.toString() ? '#' + hashParams.toString() : '';
+        dirty = true;
+      }
+    }
+    if(dirty){
+      const cleanUrl = url.pathname + (url.search || '') + (url.hash || '');
+      window.history.replaceState({}, '', cleanUrl);
+    }
+  } catch(e){ console.warn('[auth] URL cleanup failed:', e); }
 }
 
 // Apply a session to the app state and update the UI.
