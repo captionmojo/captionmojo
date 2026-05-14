@@ -1231,6 +1231,28 @@ footer span{color:var(--mojo)}
   font-family:var(--mono);
 }
 
+/* ========== HASHTAG DISPLAY ==========
+   Hashtags rendered beneath caption text. Monospace font + muted color so
+   they're visually distinct from the caption itself. Click any hashtag to
+   copy just that one tag. "Copy with hashtags" button (in cap-actions row)
+   merges the caption + hashtags into clipboard. */
+.cap-hashtags{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--muted);
+  margin-top:8px;
+  line-height:1.6;
+  word-break:break-word;
+}
+.cap-hashtags .htag{
+  display:inline-block;
+  margin-right:4px;
+  cursor:pointer;
+  transition:color .15s;
+  user-select:all;
+}
+.cap-hashtags .htag:hover{color:var(--mojo)}
+
 .pchips{display:flex;gap:6px;flex-wrap:wrap}
 .pchip{
   font-size:12px;
@@ -4209,13 +4231,13 @@ footer span{color:var(--mojo)}
              Cleared automatically after successful generation. -->
         <div>
           <label>Image <span class="lh">(optional — caption a specific photo)</span></label>
-          <div class="img-drop" id="postImgDrop" onclick="document.getElementById('postImgFile').click()">
+          <div class="img-drop" id="postImgDrop" onclick="handlePostImgDropClick(event)">
             <div id="postImgDropContent">
               <div class="img-drop-icon">📷</div>
               <div class="img-drop-text">Drop an image or click to upload</div>
               <div class="img-drop-sub">JPG, PNG, WebP, or GIF · max 6MB</div>
             </div>
-            <input type="file" id="postImgFile" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onchange="handlePostImagePick(event)">
+            <input type="file" id="postImgFile" accept="image/*" onchange="handlePostImagePick(event)">
           </div>
           <div class="img-error" id="postImgError" style="display:none"></div>
         </div>
@@ -7111,6 +7133,12 @@ function rCards(){
     const body=c.editing
       ?`<textarea class="cap-eta" id="eta-${c.id}" oninput="etaCC(${c.id})">${esc(c.text)}</textarea><div class="erow"><span class="echars" id="ech-${c.id}">${c.text.length} chars</span><button class="ecancel" onclick="cancelEdit(${c.id})">Cancel</button><button class="esave" onclick="saveEdit(${c.id})">Save → Final</button></div>`
       :`<div class="cap-text">${esc(c.text)}</div>`;
+    // BUG-2 hashtags: render hashtag list beneath caption text. Hidden while
+    // editing the caption (would be confusing). Hidden if empty.
+    const hashtags = Array.isArray(c.hashtags) ? c.hashtags : [];
+    const hashtagBlock = (!c.editing && hashtags.length > 0)
+      ? `<div class="cap-hashtags">${hashtags.map(h => `<span class="htag">${esc(h)}</span>`).join('')}</div>`
+      : '';
     const pb=(c.platforms.includes('All')?['Instagram','TikTok','Twitter / X']:c.platforms).map(p=>`<span class="bdg plat">${p}</span>`).join('');
     const segBadges = capSegList(c).map(n=>`<span class="bdg seg">${esc(n)}</span>`).join('');
     const dislikedBadge = c.disliked ? '<span class="bdg disliked">👎 teaching AI</span>' : '';
@@ -7118,7 +7146,11 @@ function rCards(){
     // or marked as "own" (so users can refine their pasted-in captions too)
     const showChips = !c.editing && !c.disliked && (c.generated || c.custom);
     const chipRow = showChips ? `<div class="chip-row" id="chips-${c.id}"><span class="chip-row-label">Edit:</span><button class="echip" onclick="refineC(${c.id},'shorter',this)" title="Tighten to 1-2 sentences"><span class="echip-icon">↘</span> Shorter</button><button class="echip" onclick="refineC(${c.id},'punchier',this)" title="Sharper hook, more attitude"><span class="echip-icon">✦</span> Punchier</button><button class="echip" onclick="refineC(${c.id},'addCta',this)" title="Add a call-to-action that fits"><span class="echip-icon">＋</span> Add CTA</button><button class="echip" onclick="refineC(${c.id},'moreLikeThis',this)" title="Generate a sibling caption in same flavor"><span class="echip-icon">≋</span> More like this</button><button class="echip" onclick="refineC(${c.id},'rewrite',this)" title="Full rewrite, same idea, different words"><span class="echip-icon">⤺</span> Rewrite</button><button class="echip" onclick="refineC(${c.id},'changeTone',this)" title="Different tonal angle"><span class="echip-icon">⊕</span> Change tone</button><button class="echip" onclick="refineC(${c.id},'lessSalesy',this)" title="Strip marketing language"><span class="echip-icon">⤓</span> Less salesy</button><button class="echip" onclick="refineC(${c.id},'tryAgain',this)" title="Fresh attempt, different result"><span class="echip-icon">↻</span> Try again</button></div>` : '';
-    return`<div class="cap-card ${cls}" id="card-${c.id}">${body}<div class="cap-meta">${segBadges}${pb}${c.generated?'<span class="bdg ai">AI</span>':''}${c.custom?'<span class="bdg own">yours</span>':''}${dislikedBadge}</div><div class="cap-actions"><button class="act" title="Copy this caption to your clipboard so you can paste it elsewhere." onclick="copy1(${c.id},this)">⎘ Copy</button><button class="act ${c.liked?'on-like':''}" title="Like — saves to your shortlist (Captions → Liked filter) AND teaches the AI to write more captions like this one in future generations." onclick="tLike(${c.id})">♥ Like</button><button class="act ${c.disliked?'on-dislike':''}" title="Dislike — teaches the AI to AVOID writing captions like this in future generations. The caption stays visible (tagged 👎) so you can compare against new ones. Click again to remove the dislike." onclick="tDislike(${c.id})">👎 Dislike</button><button class="act ${c.status==='wip'?'on-wip':''}" title="In Progress — flag this caption as needing edits before posting. Shows in the In Progress folder." onclick="setSt(${c.id},'wip')">⋯ In Progress</button><button class="act ${c.status==='final'?'on-final':''}" title="Final — mark as ready to post. Shows in the Final folder." onclick="setSt(${c.id},'final')">✓ Final</button><button class="act ${c.editing?'on-edit':''}" title="Edit — modify the caption text. Saving will mark it as Final." onclick="tEdit(${c.id})">✎ Edit</button><button class="act del" title="Trash — remove from your main list (does NOT teach the AI — use 👎 Dislike for that). Stays in Trash folder until you empty it." onclick="trashC(${c.id})">⌫ Trash</button></div>${chipRow}</div>`;
+    // BUG-2 hashtags: "Copy with hashtags" button only shows when caption has hashtags
+    const copyWithTagsBtn = (!c.editing && hashtags.length > 0)
+      ? `<button class="act" title="Copy caption text + hashtags merged into clipboard, ready to paste into your post." onclick="copyWithHashtags(${c.id},this)">⎘ Copy with hashtags</button>`
+      : '';
+    return`<div class="cap-card ${cls}" id="card-${c.id}">${body}${hashtagBlock}<div class="cap-meta">${segBadges}${pb}${c.generated?'<span class="bdg ai">AI</span>':''}${c.custom?'<span class="bdg own">yours</span>':''}${dislikedBadge}</div><div class="cap-actions"><button class="act" title="Copy this caption to your clipboard so you can paste it elsewhere." onclick="copy1(${c.id},this)">⎘ Copy</button>${copyWithTagsBtn}<button class="act ${c.liked?'on-like':''}" title="Like — saves to your shortlist (Captions → Liked filter) AND teaches the AI to write more captions like this one in future generations." onclick="tLike(${c.id})">♥ Like</button><button class="act ${c.disliked?'on-dislike':''}" title="Dislike — teaches the AI to AVOID writing captions like this in future generations. The caption stays visible (tagged 👎) so you can compare against new ones. Click again to remove the dislike." onclick="tDislike(${c.id})">👎 Dislike</button><button class="act ${c.status==='wip'?'on-wip':''}" title="In Progress — flag this caption as needing edits before posting. Shows in the In Progress folder." onclick="setSt(${c.id},'wip')">⋯ In Progress</button><button class="act ${c.status==='final'?'on-final':''}" title="Final — mark as ready to post. Shows in the Final folder." onclick="setSt(${c.id},'final')">✓ Final</button><button class="act ${c.editing?'on-edit':''}" title="Edit — modify the caption text. Saving will mark it as Final." onclick="tEdit(${c.id})">✎ Edit</button><button class="act del" title="Trash — remove from your main list (does NOT teach the AI — use 👎 Dislike for that). Stays in Trash folder until you empty it." onclick="trashC(${c.id})">⌫ Trash</button></div>${chipRow}</div>`;
   }).join('');
   const ed=list.find(c=>c.editing);
   if(ed)setTimeout(()=>{const ta=document.getElementById(`eta-${ed.id}`);if(ta){ta.focus();ta.selectionStart=ta.value.length;}},30);
@@ -7427,6 +7459,27 @@ function copy1(id,btn){
   const c=F(id);if(!c)return;
   navigator.clipboard.writeText(c.text).then(()=>{
     if(btn){const orig=btn.innerHTML;btn.innerHTML='✓';btn.classList.add('copy-flash');setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('copy-flash');},1200);}
+  }).catch(()=>{});
+}
+// BUG-2 hashtags: copy caption text + hashtags merged into clipboard.
+// Format: caption text, two blank lines, then hashtags space-separated.
+// Two blank lines is the standard "hide hashtags" trick on Instagram —
+// users who don't want hashtags visible can paste this and the hashtags
+// fall below the "more" fold on mobile.
+function copyWithHashtags(id, btn){
+  const c = F(id);
+  if(!c) return;
+  const hashtags = Array.isArray(c.hashtags) ? c.hashtags : [];
+  const merged = hashtags.length > 0
+    ? `${c.text}\n\n\n${hashtags.join(' ')}`
+    : c.text;
+  navigator.clipboard.writeText(merged).then(()=>{
+    if(btn){
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓ Copied with hashtags';
+      btn.classList.add('copy-flash');
+      setTimeout(()=>{btn.innerHTML = orig; btn.classList.remove('copy-flash');}, 1500);
+    }
   }).catch(()=>{});
 }
 function tEdit(id){
@@ -7752,7 +7805,7 @@ function renderPostImagePreview(){
           <div class="img-preview-name">${safeName}</div>
           <div class="img-preview-size">${sizeStr}</div>
         </div>
-        <button class="img-preview-remove" onclick="event.stopPropagation();clearPostImage()" aria-label="Remove image" type="button">✕</button>
+        <button class="img-preview-remove" aria-label="Remove image" type="button">✕</button>
       </div>
     `;
   }
@@ -7760,9 +7813,22 @@ function renderPostImagePreview(){
 
 // Wipe the postImage state and re-render the drop zone in its empty state.
 // Called: on remove button click, on validation failure, on successful generation.
+// NOTE: deliberately does NOT clear the error message. When a bad file is
+// uploaded, loadPostImage sets the error then calls this — wiping the error
+// here would defeat the purpose. The error is cleared at the START of
+// loadPostImage (when a new file is picked) and explicitly on remove-button-click.
 function clearPostImage(){
   postImage = null;
   // Reset the file input so picking the same file again triggers onchange
+  const fileInput = document.getElementById('postImgFile');
+  if(fileInput) fileInput.value = '';
+  renderPostImagePreview();
+}
+
+// Explicitly clear both image AND error. Use this on the ✕ button click
+// and after successful generation, where we want a fully clean state.
+function resetPostImageState(){
+  postImage = null;
   const fileInput = document.getElementById('postImgFile');
   if(fileInput) fileInput.value = '';
   const errEl = document.getElementById('postImgError');
@@ -7775,6 +7841,34 @@ function clearPostImage(){
 function handlePostImagePick(event){
   const file = event.target.files && event.target.files[0];
   loadPostImage(file);
+}
+
+// Smart click handler for the drop zone container. Two cases:
+// (1) No image loaded → click anywhere in the zone opens the file picker
+// (2) Image loaded → click should NOT re-open the picker (the user is hovering
+//     over the preview, possibly going for the ✕ button). Only the explicit
+//     "click to upload" empty state opens the picker.
+//
+// This replaces the buggy inline onclick that fired even when the user clicked
+// the remove button due to event bubbling weirdness with file input clicks.
+function handlePostImgDropClick(event){
+  // If an image is currently loaded, do nothing on background click.
+  // User must click ✕ to remove first, then click again to upload new.
+  // This prevents the file picker from popping up when they're trying to
+  // remove the existing image.
+  if(postImage){
+    // Check if the click was on the remove button specifically — if so,
+    // remove the image. Otherwise ignore the click entirely.
+    if(event.target.closest('.img-preview-remove')){
+      event.preventDefault();
+      event.stopPropagation();
+      resetPostImageState();
+    }
+    // Click on preview thumb/text/area does nothing while image loaded
+    return;
+  }
+  // No image yet — clicking anywhere in the zone opens the file picker
+  document.getElementById('postImgFile').click();
 }
 
 // Initialize drag-and-drop on the drop zone. Wire up dragenter/dragover/dragleave
@@ -7944,6 +8038,10 @@ async function doGen(){
         text: c.text,
         segments: segsForCaption,
         platforms: Array.isArray(c.platforms) && c.platforms.length ? c.platforms : ['All'],
+        // BUG-2 hashtags: each caption carries its own platform-appropriate hashtag set.
+        // Empty array fallback if worker didn't return any (graceful degrade for older
+        // worker responses or parse failures).
+        hashtags: Array.isArray(c.hashtags) ? c.hashtags : [],
         generated: true,
         custom: false,
         liked: false,
@@ -7975,7 +8073,8 @@ async function doGen(){
 
     // BUG-2B: clear the attached image after success so the next batch doesn't
     // accidentally reuse it. User uploads a fresh image per intended post.
-    clearPostImage();
+    // Use resetPostImageState (not clearPostImage) to also wipe any stale error.
+    resetPostImageState();
 
     st.className='smsg ok';
     st.textContent=`✓ Generated ${captions.length} captions. Switch to Captions tab to view.`;
