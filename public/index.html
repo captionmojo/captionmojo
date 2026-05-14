@@ -6159,22 +6159,28 @@ function launchApp(){
     const prev = loadFromStorage();
     const newName = (BP.name || '').trim().toLowerCase();
     const oldName = (prev && prev.BP && prev.BP.name ? prev.BP.name : '').trim().toLowerCase();
-    if(prev && oldName && newName && oldName !== newName){
-      // Different brand — nuke the previous brand's library so the studio
-      // doesn't show captions/segments/brain that were generated for the old
-      // identity. The new BP is already populated in memory and will be saved
-      // by load() → save() during launchApp below.
+    // Only wipe if previous data has actual content. Empty localStorage (no
+    // captions, no segments) means there's nothing to wipe — and wiping
+    // anyway destroys the in-memory segments that onboarding just built.
+    // This was the cause of the "no audience dimensions yet" bug.
+    const hasPrevContent = !!(prev && (
+      (Array.isArray(prev.caps) && prev.caps.length > 0) ||
+      (Array.isArray(prev.segments) && prev.segments.length > 0)
+    ));
+    console.log('[brand-change] check:', { oldName, newName, hasPrevContent, willWipe: !!(prev && oldName && newName && oldName !== newName && hasPrevContent) });
+    if(prev && oldName && newName && oldName !== newName && hasPrevContent){
+      // Different brand AND previous brand had real content — wipe it so
+      // the studio doesn't show captions/segments from the old identity.
       caps = [];
       nId = 0;
       segments = [];
       if(BP.brain) delete BP.brain;
-      // Wipe localStorage explicitly so load() doesn't restore the old caps
       try { localStorage.removeItem(STORAGE_KEY); } catch(_) {}
       console.log(`[brand-change] Cleared previous brand data: "${oldName}" → "${newName}"`);
     }
-  } catch(_) {
-    // If detection fails for any reason, fall through to normal launch.
-    // Worst case: old captions persist (current behavior, not worse).
+  } catch(e) {
+    console.warn('[brand-change] detection failed:', e);
+    // Fall through to normal launch.
   }
 
   // Note: showPage() below now handles the Spotify audio kill at every page
