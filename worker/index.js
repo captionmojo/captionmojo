@@ -301,12 +301,44 @@ function normalizeDocs(rawDocs) {
   return { docBlocks, textParts, totalBytes };
 }
 
+// ====== Post-image normalization (BUG-2B image upload) ======
+// Validates a single image attached to a generation request. Unlike normalizeDocs,
+// this is for the IMAGE THE USER WANTS TO CAPTION — not brand-context docs. This
+// image is sent to Anthropic vision regardless of brain state (brain digests text
+// docs, but an image to caption is per-request content).
+//
+// Returns: { block, error } — exactly one of these is set.
+//   block: Anthropic image content block ready to send
+//   error: a string explaining why the image was rejected (returned to client)
+function normalizePostImage(raw) {
+  if (!raw || typeof raw !== 'object') return { block: null, error: null }; // no image, no error
+  const content = typeof raw.content === 'string' ? raw.content : '';
+  if (!content) return { block: null, error: 'Post image has no content' };
+  const bytes = content.length;
+  if (bytes > MAX_IMG_B64_BYTES) {
+    return { block: null, error: `Image too large — max ${Math.round(MAX_IMG_B64_BYTES / 1024 / 1024)}MB after encoding` };
+  }
+  const mt = (raw.media_type && String(raw.media_type).startsWith('image/')) ? raw.media_type : 'image/jpeg';
+  // Validate it's a supported image media type
+  const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowed.includes(mt.toLowerCase())) {
+    return { block: null, error: `Unsupported image format. Use JPG, PNG, WebP, or GIF.` };
+  }
+  return {
+    block: {
+      type: 'image',
+      source: { type: 'base64', media_type: mt, data: content }
+    },
+    error: null
+  };
+}
+
 // ====== Caption generation prompt builder ======
 // When a Brain is present, we use it as the primary source of truth (tight, distilled).
 // When no Brain, we fall back to the raw brand profile fields.
 // The `platforms` array (passed from the per-request payload) is used to determine
 // which link-format rules apply to this specific batch — see PLATFORM_LINK_RULES.
-function buildSystemPrompt(bp, brain, platforms, selectedSegments) {
+function buildSystemPrompt(bp, brain, platforms, selectedSegments, hasPostImage) {
   const parts = [];
 
   // ============= OWNER NOTES — HIGHEST PRIORITY =============
@@ -394,6 +426,17 @@ function buildSystemPrompt(bp, brain, platforms, selectedSegments) {
     if (bp.goodEx) parts.push(`- Example captions they love (match this voice and energy):\n${bp.goodEx}`);
     if (bp.badEx) parts.push(`- Captions they hate (avoid this style entirely):\n${bp.badEx}`);
     if (bp.platRules) parts.push(`- Platform rules: ${bp.platRules}`);
+    parts.push('');
+  }
+
+  // ============= POST IMAGE INSTRUCTIONS (BUG-2B) =============
+  // When the user attaches an image to the request, tell the model to use it as
+  // the visual subject of the captions. Goes near the top so it has high priority.
+  if (hasPostImage) {
+    parts.push('=== IMAGE PROVIDED — VISUAL CONTEXT FOR THESE CAPTIONS ===');
+    parts.push('The user has attached an image they plan to post with these captions. Look at the image first. Every caption you write should fit what is visually shown — the subject, mood, setting, colors, action, or objects in the frame.');
+    parts.push('Do not describe the image literally ("a photo of a coffee cup"). Use the image as context to write captions that COMPLEMENT it — that say something the image alone can\'t. The image is the visual; the caption is the voice.');
+    parts.push('If specific details in the image conflict with the brand\'s usual content (e.g. a holiday-themed photo for a brand that doesn\'t usually do seasonal content), prioritize the image — the user clearly wants to post about this specific moment.');
     parts.push('');
   }
 
@@ -599,7 +642,12 @@ function parseSegmentsJson(text) {
 // with cache_control on the LAST one. The variable per-request content (segment,
 // quantity, direction) comes after and is NOT cached. This lets us reuse the
 // expensive brand-context portion across consecutive requests for ~10% of the cost.
-function buildUserContent({ docBlocks, textParts, pastedDocs, variablePart }) {
+//
+// BUG-2B addition: `postImageBlock` is the user-attached image for THIS request
+// (the photo they want captioned). It goes AFTER the cached brand context so it
+// doesn't break caching for future calls without an image. It's also the only
+// per-request image content — brand context images stay in textParts/docBlocks.
+function buildUserContent({ docBlocks, textParts, pastedDocs, postImageBlock, variablePart }) {
   const blocks = [];
   // 1. Document blocks (PDFs, images) — most expensive, go first
   for (const b of docBlocks) blocks.push(b);
@@ -615,7 +663,13 @@ function buildUserContent({ docBlocks, textParts, pastedDocs, variablePart }) {
     const lastIdx = blocks.length - 1;
     blocks[lastIdx] = { ...blocks[lastIdx], cache_control: { type: 'ephemeral' } };
   }
-  // 4. Variable per-request part — NOT cached
+  // 4. Post image (BUG-2B) — the user-attached photo for THIS specific generation.
+  // Placed AFTER the cache breakpoint so caching still works for requests
+  // without an image. This is the visual subject of the captions, not brand context.
+  if (postImageBlock) {
+    blocks.push(postImageBlock);
+  }
+  // 5. Variable per-request part — NOT cached
   blocks.push({ type: 'text', text: variablePart });
   return blocks;
 }
@@ -660,6 +714,16 @@ async function handleGenerate(request, env) {
   const direction = clipString(body.direction, 500);
   const pastedDocs = clipString(body.pastedDocs, MAX_PASTED_CHARS);
 
+  // ===== POST IMAGE (BUG-2B) =====
+  // The image attached to THIS specific generation request — the photo the user
+  // wants captions for. Independent of brand context. Validated server-side; if
+  // invalid, return a clear error rather than silently dropping it.
+  const postImageResult = normalizePostImage(body.postImage);
+  if (postImageResult.error) {
+    return jsonResp({ error: postImageResult.error }, 400);
+  }
+  const postImageBlock = postImageResult.block; // null if no image provided
+
   const safeBp = {
     name: clipString(bp.name, 200),
     what: clipString(bp.what, 1500),
@@ -695,8 +759,9 @@ async function handleGenerate(request, env) {
     ? { docBlocks: [], textParts: [] }
     : normalizeDocs(body.docs);
 
-  // Pass platforms into the prompt builder so it can apply platform-aware link rules.
-  const systemPrompt = buildSystemPrompt(safeBp, brain, platforms, selectedSegments);
+  // Pass platforms AND hasPostImage into the prompt builder so it can apply
+  // platform-aware link rules AND tell the model that a visual is attached.
+  const systemPrompt = buildSystemPrompt(safeBp, brain, platforms, selectedSegments, !!postImageBlock);
 
   // Build the segment-combination instruction. Multiple segments = mix them all simultaneously.
   // CRITICAL: proof points and references MUST align with selected dimensions, not just the
@@ -772,6 +837,7 @@ ${segmentLine}
 
 Target platform${platforms.length > 1 ? 's' : ''}: ${platforms.join(', ')}.
 ${direction ? `Specific direction: ${direction}` : ''}
+${postImageBlock ? '\nAn image is attached above. Each caption must fit what is visually shown in that image.' : ''}
 ${feedbackSection}
 
 Return only the JSON array.`;
@@ -781,6 +847,7 @@ Return only the JSON array.`;
     docBlocks,
     textParts,
     pastedDocs: brain ? '' : pastedDocs,
+    postImageBlock,
     variablePart
   });
 
@@ -820,7 +887,7 @@ Return only the JSON array.`;
     // Log token usage so we can verify caching is working. Cloudflare logs only.
     if (data.usage) {
       const u = data.usage;
-      console.log(`[gen] in=${u.input_tokens||0} out=${u.output_tokens||0} cache_create=${u.cache_creation_input_tokens||0} cache_read=${u.cache_read_input_tokens||0} fb_likes=${fbLikes.length} fb_dislikes=${fbDislikes.length} urls_stripped=${stripResult.urlsStripped} captions_modified=${stripResult.captionsModified}`);
+      console.log(`[gen] in=${u.input_tokens||0} out=${u.output_tokens||0} cache_create=${u.cache_creation_input_tokens||0} cache_read=${u.cache_read_input_tokens||0} fb_likes=${fbLikes.length} fb_dislikes=${fbDislikes.length} urls_stripped=${stripResult.urlsStripped} captions_modified=${stripResult.captionsModified} has_image=${!!postImageBlock}`);
     }
 
     if (!captions.length) {
@@ -928,10 +995,11 @@ async function handleRefine(request, env) {
 
   // Reuse the brand voice system prompt — same builder as /api/generate.
   // Segment context optional — single segment if provided, fallback to general.
+  // Refine doesn't accept post images (we're editing existing text), so pass false.
   const selectedSegments = segmentName
     ? [{ name: segmentName, category: 'General' }]
     : [{ name: 'General', category: 'General' }];
-  const systemPrompt = buildSystemPrompt(safeBp, brain, platforms, selectedSegments);
+  const systemPrompt = buildSystemPrompt(safeBp, brain, platforms, selectedSegments, false);
 
   // User message: original caption + action
   const userMessage = `Here is an existing on-brand caption:
@@ -1081,7 +1149,8 @@ Format: [{"category":"Genre","name":"Chill Lofi","desc":"Warm, mellow instrument
 
   const variablePart = `Brand profile:\n${profile}\n\nGenerate comprehensive multi-dimensional tag categories for this business. Return EVERY distinct tag the brand documents justify — do NOT consolidate or summarize. If the docs reference 17 playlists, return 17 separate genre tags. If 8 audience types, return 8 audience tags. Return only the JSON array.`;
 
-  const userContent = buildUserContent({ docBlocks, textParts, pastedDocs, variablePart });
+  // /api/segments has no post image (we're building tags from brand context, not a specific post)
+  const userContent = buildUserContent({ docBlocks, textParts, pastedDocs, postImageBlock: null, variablePart });
 
   try {
     const { response: apiResp, retriesAttempted, category } = await callAnthropicWithRetry(env, {
@@ -1333,7 +1402,8 @@ Return ONLY a single valid JSON object. No preamble, no markdown, no code fences
 
   const variablePart = `Onboarding form data:\n${profile}\n\nRead all attached documents and pasted content. Build the Brand Brain as a single JSON object. Be comprehensive on proof points, CTAs, and cultural references — extract every specific detail the docs justify.`;
 
-  const userContent = buildUserContent({ docBlocks, textParts, pastedDocs, variablePart });
+  // /api/brain has no post image — building brain from brand docs, no specific post yet
+  const userContent = buildUserContent({ docBlocks, textParts, pastedDocs, postImageBlock: null, variablePart });
 
   try {
     const { response: apiResp, retriesAttempted, category } = await callAnthropicWithRetry(env, {
