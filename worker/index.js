@@ -8,7 +8,7 @@
 const MODEL = 'claude-sonnet-4-6';
 const MAX_INPUT_CHARS = 12000;
 const MAX_QTY = 20;
-const MAX_OUTPUT_TOKENS_GEN = 2048;
+const MAX_OUTPUT_TOKENS_GEN = 3072;
 const MAX_OUTPUT_TOKENS_SEG = 6000;
 const MAX_PROFILE_CHARS = 8000;
 
@@ -494,9 +494,58 @@ function buildSystemPrompt(bp, brain, platforms, selectedSegments, hasPostImage)
   finalChecks.forEach(c => parts.push(c));
   parts.push('');
 
+  // ============= HASHTAG GENERATION (BUG-2 hashtags) =============
+  // Each caption gets a separate hashtags array. Count depends on the platform
+  // mix in this batch. For multi-platform ("All") batches we use the most-
+  // restrictive count so the hashtag set works on every selected platform
+  // without looking spammy on Twitter/LinkedIn.
+  //
+  // Counts based on platform best-practice research:
+  //   Instagram — 15 hashtags (sweet spot; max allowed is 30, but research shows
+  //                15 is optimal engagement)
+  //   TikTok — 5 hashtags (3-5 is best practice; more dilutes targeting)
+  //   Twitter / X — 2 hashtags (1-2 max; more reduces engagement)
+  //   Facebook — 5 hashtags (less hashtag-driven than IG; 3-5 works)
+  //   LinkedIn — 3 hashtags (3 is the professional sweet spot)
+  // For multi-platform: use most-restrictive count (lowest number in selection).
+  function hashtagCountForPlatforms(platforms) {
+    const list = Array.isArray(platforms) ? platforms : [];
+    const counts = {
+      'Instagram': 15,
+      'TikTok': 5,
+      'Twitter / X': 2,
+      'Facebook': 5,
+      'LinkedIn': 3
+    };
+    if (!list.length || list.includes('All')) {
+      // "All" or unset → most-restrictive (Twitter's 2)
+      return 2;
+    }
+    // Multi-platform → take the minimum count across selected platforms
+    const selected = list.map(p => counts[p]).filter(n => typeof n === 'number');
+    if (!selected.length) return 5; // safe default
+    return Math.min(...selected);
+  }
+  const hashtagCount = hashtagCountForPlatforms(platforms);
+
+  parts.push(`=== HASHTAG GENERATION — REQUIRED ON EVERY CAPTION ===`);
+  parts.push(`For each caption, generate exactly ${hashtagCount} hashtag${hashtagCount > 1 ? 's' : ''} that match the caption's content, brand voice, and platform conventions.`);
+  parts.push(``);
+  parts.push(`Hashtag rules:`);
+  parts.push(`- Must be relevant to THIS specific caption and the audience dimensions being targeted`);
+  parts.push(`- Mix specificity: ~1/3 broad (high reach, high competition), ~1/3 mid-tier (the sweet spot), ~1/3 niche (low competition but highly targeted to this brand)`);
+  parts.push(`- Use the brand's cultural references and proof points where they fit naturally`);
+  parts.push(`- No spaces, no special characters except the # prefix and underscores`);
+  parts.push(`- Lowercase recommended unless the brand's voice rules say otherwise`);
+  parts.push(`- NEVER reuse generic, dead hashtags like #love #instagood #photooftheday #follow — they kill credibility`);
+  parts.push(`- NEVER invent hashtags that mean nothing (e.g. "#brandvibesnow")`);
+  parts.push(`- Each hashtag is a single concept (#newmusic, not #new-music)`);
+  parts.push(``);
+
   // ============= OUTPUT FORMAT =============
   parts.push('Return ONLY a valid JSON array. No preamble, no markdown, no code fences.');
-  parts.push('Format: [{"text":"caption text here\\nwith a CTA","platforms":["Instagram"]}]');
+  parts.push(`Format: [{"text":"caption text here\\nwith a CTA","platforms":["Instagram"],"hashtags":["#tag1","#tag2"]}]`);
+  parts.push(`Each caption MUST include a "hashtags" array with exactly ${hashtagCount} hashtag${hashtagCount > 1 ? 's' : ''}. Each hashtag must start with #.`);
   parts.push('For platforms use: "Instagram", "TikTok", "Twitter / X", "Facebook", "LinkedIn", or ["All"].');
   return parts.join('\n');
 }
@@ -606,10 +655,28 @@ function parseCaptionsJson(text) {
     if (!Array.isArray(arr)) return [];
     return arr
       .filter(x => x && typeof x.text === 'string' && x.text.trim().length > 0)
-      .map(x => ({
-        text: String(x.text).slice(0, 2000),
-        platforms: Array.isArray(x.platforms) && x.platforms.length ? x.platforms.slice(0, 5).map(String) : ['All']
-      }));
+      .map(x => {
+        // Normalize hashtags: must be array of strings, each starting with #,
+        // no spaces, max 60 chars. If model returned without #, prepend it.
+        // If hashtags missing entirely, return empty array (graceful degrade).
+        let hashtags = [];
+        if (Array.isArray(x.hashtags)) {
+          hashtags = x.hashtags
+            .filter(h => typeof h === 'string' && h.trim().length > 0)
+            .map(h => {
+              let tag = h.trim().replace(/\s+/g, ''); // strip any whitespace
+              if (!tag.startsWith('#')) tag = '#' + tag;
+              return tag.slice(0, 60); // safety cap per tag
+            })
+            .filter(h => h.length > 1) // require at least one char after #
+            .slice(0, 30); // safety cap on total count
+        }
+        return {
+          text: String(x.text).slice(0, 2000),
+          platforms: Array.isArray(x.platforms) && x.platforms.length ? x.platforms.slice(0, 5).map(String) : ['All'],
+          hashtags
+        };
+      });
   } catch (e) {
     return [];
   }
@@ -887,7 +954,8 @@ Return only the JSON array.`;
     // Log token usage so we can verify caching is working. Cloudflare logs only.
     if (data.usage) {
       const u = data.usage;
-      console.log(`[gen] in=${u.input_tokens||0} out=${u.output_tokens||0} cache_create=${u.cache_creation_input_tokens||0} cache_read=${u.cache_read_input_tokens||0} fb_likes=${fbLikes.length} fb_dislikes=${fbDislikes.length} urls_stripped=${stripResult.urlsStripped} captions_modified=${stripResult.captionsModified} has_image=${!!postImageBlock}`);
+      const avgHashtags = captions.length ? Math.round(captions.reduce((sum, c) => sum + (c.hashtags?.length || 0), 0) / captions.length) : 0;
+      console.log(`[gen] in=${u.input_tokens||0} out=${u.output_tokens||0} cache_create=${u.cache_creation_input_tokens||0} cache_read=${u.cache_read_input_tokens||0} fb_likes=${fbLikes.length} fb_dislikes=${fbDislikes.length} urls_stripped=${stripResult.urlsStripped} captions_modified=${stripResult.captionsModified} has_image=${!!postImageBlock} avg_hashtags=${avgHashtags}`);
     }
 
     if (!captions.length) {
