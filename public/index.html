@@ -1828,6 +1828,190 @@ footer span{color:var(--mojo)}
   margin-top:14px;
 }
 .signup-wall-cc-note strong{color:var(--ink)}
+
+/* ====== TWO-PATH CONVERSION CARDS (signup wall + upgrade modal) ======
+   Two side-by-side tier cards: FREE (subdued) and PRO (highlighted).
+   On mobile they stack vertically. Used inside the existing signup-wall
+   overlay and the new upgrade-modal overlay. */
+.conv-card-wrap{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  text-align:left;
+  margin:20px 0 14px;
+}
+@media(max-width:560px){ .conv-card-wrap{ grid-template-columns:1fr; gap:10px; } }
+.conv-card{
+  border-radius:12px;
+  padding:18px 18px 22px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+.conv-card.pro{
+  background:linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+  border:2px solid var(--mojo);
+  box-shadow:0 4px 14px rgba(232,93,48,.10);
+}
+.conv-card-label{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.conv-card.pro .conv-card-label{
+  color:var(--mojo);
+  font-weight:700;
+}
+.conv-card-tag{
+  position:absolute;
+  top:-10px;
+  right:14px;
+  background:var(--mojo);
+  color:#fff;
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  padding:4px 10px;
+  border-radius:6px;
+  font-weight:700;
+}
+.conv-card-price{
+  font-family:var(--serif);
+  font-size:22px;
+  font-weight:600;
+  color:var(--ink);
+  margin-bottom:2px;
+  line-height:1.1;
+}
+.conv-card-price .small{
+  font-family:var(--sans);
+  font-size:12px;
+  font-weight:500;
+  color:var(--muted);
+}
+.conv-card-tagline{
+  font-family:var(--sans);
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:12px;
+}
+.conv-card-perks{
+  list-style:none;
+  padding:0;
+  margin:0 0 16px;
+  font-family:var(--sans);
+  font-size:13px;
+  line-height:1.55;
+  color:var(--ink);
+  flex:1;
+}
+.conv-card-perks li{
+  margin:0 0 6px;
+  padding-left:18px;
+  position:relative;
+}
+.conv-card-perks li:before{
+  content:'✓';
+  position:absolute;
+  left:0;
+  color:var(--green);
+  font-weight:700;
+}
+.conv-card.pro .conv-card-perks li:before{ color:var(--mojo); }
+.conv-card-perks li strong{ color:var(--ink); font-weight:600; }
+.conv-card-cta{
+  border:none;
+  border-radius:10px;
+  font-family:var(--sans);
+  font-size:14px;
+  font-weight:600;
+  padding:12px 16px;
+  cursor:pointer;
+  width:100%;
+  transition:all .15s var(--ease);
+}
+.conv-card.free .conv-card-cta{
+  background:var(--ink);
+  color:#fff;
+}
+.conv-card.free .conv-card-cta:hover{ background:#000; }
+.conv-card.pro .conv-card-cta{
+  background:var(--mojo);
+  color:#fff;
+}
+.conv-card.pro .conv-card-cta:hover{ background:var(--mojo-dark); }
+
+/* Upgrade modal — used when a signed-in free user hits 10 captions/day.
+   Same overlay pattern as .signup-wall but distinct so we can show both. */
+.upgrade-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(20,20,22,.65);
+  z-index:9998;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.upgrade-modal.show{display:flex}
+.upgrade-modal-card{
+  background:var(--card);
+  border-radius:16px;
+  width:100%;
+  max-width:640px;
+  padding:36px;
+  text-align:center;
+  box-shadow:0 16px 48px rgba(0,0,0,.16);
+  max-height:90vh;
+  overflow-y:auto;
+}
+.upgrade-modal-icon{
+  font-size:42px;
+  margin-bottom:14px;
+}
+.upgrade-modal-title{
+  font-family:var(--serif);
+  font-size:28px;
+  font-weight:600;
+  margin:0 0 10px;
+  color:var(--ink);
+}
+.upgrade-modal-text{
+  font-family:var(--sans);
+  font-size:14px;
+  color:var(--muted);
+  line-height:1.6;
+  margin:0 0 8px;
+}
+.upgrade-modal-text strong{ color:var(--ink); }
+.upgrade-modal-cc-note{
+  font-family:var(--sans);
+  font-size:12px;
+  color:var(--muted);
+  margin-top:14px;
+}
+.upgrade-modal-cc-note strong{color:var(--ink)}
+.upgrade-modal-dismiss{
+  position:absolute;
+  top:18px;
+  right:18px;
+  background:transparent;
+  border:none;
+  font-size:22px;
+  cursor:pointer;
+  color:var(--muted);
+  line-height:1;
+  padding:6px 10px;
+  border-radius:6px;
+}
+.upgrade-modal-dismiss:hover{ background:var(--surface); color:var(--ink); }
+.upgrade-modal-card{ position:relative; } /* anchor for the X button */
 /* ====== v4.2 LANDING CSS — scoped to .cm-v4 to prevent app collision ====== */
 .cm-v4 .landing{background:var(--bg)}
 .cm-v4 .landing-nav{
@@ -3815,7 +3999,7 @@ footer span{color:var(--mojo)}
        ============================================================================ -->
   <div class="soft-prompt" id="softPrompt">
     <div class="soft-prompt-text">
-      Like CaptionMojo? <strong>Sign up free</strong> to save your work and get 10 captions per day (vs 5 for guests).
+      Getting somewhere? <strong>Sign up free</strong> — keep your brand brain, save every caption, double your daily limit. Or jump to <strong>Pro</strong> for AI that learns and 500/day.
     </div>
     <button class="soft-prompt-cta" onclick="openAuthModal()">Sign up free</button>
     <button class="soft-prompt-dismiss" onclick="dismissSoftPrompt()" title="Dismiss">×</button>
@@ -4203,18 +4387,81 @@ footer span{color:var(--mojo)}
      Triggered by doGen() before the API call when anonymous count >= 5.
      ============================================================================ -->
 <div class="signup-wall" id="signupWall">
-  <div class="signup-wall-card">
+  <div class="signup-wall-card" style="max-width:640px">
     <div class="signup-wall-icon">✦</div>
-    <h2 class="signup-wall-title">You've used your free trial</h2>
-    <p class="signup-wall-text" id="signupWallText">You've generated 5 captions as a guest. Sign up free to keep going — no credit card, no commitment.</p>
-    <ul class="signup-wall-perks">
-      <li><span class="perk-check">✓</span> <strong>10 captions per day</strong> on the free plan</li>
-      <li><span class="perk-check">✓</span> <strong>Your work is saved</strong> across devices</li>
-      <li><span class="perk-check">✓</span> <strong>Your brand brain</strong> persists between sessions</li>
-      <li><span class="perk-check">✓</span> <strong>Upgrade anytime</strong> for unlimited tags + more captions</li>
-    </ul>
-    <button class="signup-wall-cta" onclick="openAuthModal()">Sign up free →</button>
-    <p class="signup-wall-cc-note"><strong>No credit card.</strong> We mean it.</p>
+    <h2 class="signup-wall-title">You're in. Now pick your speed.</h2>
+    <p class="signup-wall-text" id="signupWallText">5 captions in, your brand voice is locked in. Don't lose it.</p>
+    <div class="conv-card-wrap">
+      <div class="conv-card free">
+        <div class="conv-card-label">Free</div>
+        <div class="conv-card-price">$0<span class="small"> / mo</span></div>
+        <div class="conv-card-tagline">For testing the waters</div>
+        <ul class="conv-card-perks">
+          <li><strong>10 captions/day</strong></li>
+          <li>Save brand across devices</li>
+          <li>All audience dimensions</li>
+          <li>Brand brain persists</li>
+        </ul>
+        <button class="conv-card-cta" onclick="openAuthModal()">Sign up free</button>
+      </div>
+      <div class="conv-card pro">
+        <div class="conv-card-tag">Recommended</div>
+        <div class="conv-card-label">Pro</div>
+        <div class="conv-card-price">$29<span class="small"> / mo</span></div>
+        <div class="conv-card-tagline">For actually shipping</div>
+        <ul class="conv-card-perks">
+          <li><strong>500 captions/day</strong></li>
+          <li>AI learns from 👍 / 👎</li>
+          <li>Schedule to calendar</li>
+          <li>3 brand profiles</li>
+          <li>Quality scoring + export</li>
+          <li>Ad-free workspace</li>
+        </ul>
+        <button class="conv-card-cta" onclick="openAuthModal(); /* TODO: route to Pro signup */">Start with Pro →</button>
+      </div>
+    </div>
+    <p class="signup-wall-cc-note"><strong>No credit card</strong> on either plan. We mean it.</p>
+  </div>
+</div>
+
+<!-- Upgrade modal: shown when a signed-in FREE user hits the 10/day cap.
+     Same two-card layout but the FREE path is "you're already here" so we
+     emphasize Pro as the next step. -->
+<div class="upgrade-modal" id="upgradeModal">
+  <div class="upgrade-modal-card">
+    <button class="upgrade-modal-dismiss" onclick="hideUpgradeModal()" title="Close">×</button>
+    <div class="upgrade-modal-icon">✦</div>
+    <h2 class="upgrade-modal-title">You've outgrown free.</h2>
+    <p class="upgrade-modal-text" id="upgradeModalText">10 captions a day is for testing. You're past that — time to ship.</p>
+    <div class="conv-card-wrap">
+      <div class="conv-card free">
+        <div class="conv-card-label">Your current plan</div>
+        <div class="conv-card-price">Free<span class="small"> · 10/day</span></div>
+        <div class="conv-card-tagline">Comes back tomorrow at midnight UTC</div>
+        <ul class="conv-card-perks">
+          <li>You've hit today's cap</li>
+          <li>Resets at midnight UTC</li>
+          <li>Want to ship today? →</li>
+        </ul>
+        <button class="conv-card-cta" onclick="hideUpgradeModal()">Wait til tomorrow</button>
+      </div>
+      <div class="conv-card pro">
+        <div class="conv-card-tag">Recommended</div>
+        <div class="conv-card-label">Pro</div>
+        <div class="conv-card-price">$29<span class="small"> / mo</span></div>
+        <div class="conv-card-tagline">For actually shipping</div>
+        <ul class="conv-card-perks">
+          <li><strong>500 captions/day</strong></li>
+          <li>AI learns from 👍 / 👎</li>
+          <li>Schedule to calendar</li>
+          <li>3 brand profiles</li>
+          <li>Quality scoring + export</li>
+          <li>Ad-free workspace</li>
+        </ul>
+        <button class="conv-card-cta" onclick="upgradeToProClicked()">Start Pro · $29/mo →</button>
+      </div>
+    </div>
+    <p class="upgrade-modal-cc-note">Cancel anytime. No commitment. <strong>30-day money-back guarantee.</strong></p>
   </div>
 </div>
 
@@ -4808,9 +5055,14 @@ async function doLogout(){
 }
 
 function openUpgradeModal(){
-  // Placeholder — upgrade flow not built yet. Stripe integration is Stage 5.
-  alert('Upgrade flow coming soon. For now, you have free-tier access.');
+  // Close the user dropdown first, then show the real upgrade modal.
+  // The modal itself shows the two-path FREE/PRO layout with all the
+  // value props — same one shown when a user hits the daily cap, but
+  // here invoked from the dropdown for users who want to upgrade voluntarily.
   toggleUserDropdown();
+  // Pass current usage so the modal text reflects their real state.
+  const u = getUsage();
+  showUpgradePrompt(u.count, 0);
 }
 
 function copyReferralLink(){
@@ -4882,9 +5134,9 @@ function showSignupWall(currentCount, requestedQty){
     if(txt && typeof currentCount === 'number'){
       const remaining = Math.max(0, ANON_HARD_WALL - currentCount);
       if(requestedQty && remaining > 0){
-        txt.textContent = `You've used ${currentCount} of ${ANON_HARD_WALL} free captions today. You asked for ${requestedQty} more — that would push you over. Sign up free to keep going.`;
+        txt.innerHTML = `You've used <strong>${currentCount} of ${ANON_HARD_WALL}</strong> free captions. This batch of ${requestedQty} would push you over.`;
       } else {
-        txt.textContent = `You've used all ${ANON_HARD_WALL} free captions today. Sign up free to keep going — no credit card.`;
+        txt.innerHTML = `You've used all <strong>${ANON_HARD_WALL}</strong> free captions. Your brand voice is locked in — don't lose it.`;
       }
     }
     wall.classList.add('show');
@@ -4894,17 +5146,41 @@ function hideSignupWall(){
   const wall = document.getElementById('signupWall');
   if(wall) wall.classList.remove('show');
 }
-// Free-tier upgrade prompt — shown when a signed-in free user hits 10/day.
-// For now this just uses an alert; can be upgraded to a modal later.
+// Free-tier upgrade modal — shown when a signed-in free user hits the daily cap,
+// or invoked voluntarily from the "Upgrade plan" dropdown item.
 function showUpgradePrompt(currentCount, requestedQty){
-  const remaining = Math.max(0, DAILY_LIMIT_FREE - currentCount);
-  let msg;
-  if(remaining === 0){
-    msg = `You've used all ${DAILY_LIMIT_FREE} captions on the free plan today. Upgrade to Basic for more daily captions and additional features.`;
-  } else {
-    msg = `You're at ${currentCount}/${DAILY_LIMIT_FREE} captions today. This batch of ${requestedQty} would push you over. Try a smaller batch or upgrade to Basic for more daily captions.`;
+  const modal = document.getElementById('upgradeModal');
+  const txt = document.getElementById('upgradeModalText');
+  if(txt){
+    const remaining = Math.max(0, DAILY_LIMIT_FREE - currentCount);
+    if(!requestedQty){
+      // Voluntary invocation (from user menu) — no batch context
+      txt.innerHTML = `You're on the <strong>Free</strong> plan: ${DAILY_LIMIT_FREE} captions/day. Pro is for shipping at volume — 500/day, AI that learns, scheduling.`;
+    } else if(remaining === 0){
+      txt.innerHTML = `You've used all <strong>${DAILY_LIMIT_FREE}</strong> captions on the free plan today. Resets at midnight UTC — or unlock Pro and ship now.`;
+    } else {
+      txt.innerHTML = `You're at <strong>${currentCount} of ${DAILY_LIMIT_FREE}</strong>. This batch of ${requestedQty} would push you over. Smaller batch — or unlock Pro for 500/day.`;
+    }
   }
-  alert(msg);
+  if(modal) modal.classList.add('show');
+}
+function hideUpgradeModal(){
+  const modal = document.getElementById('upgradeModal');
+  if(modal) modal.classList.remove('show');
+}
+// Placeholder for Pro upgrade click. Stripe wiring is Stage 5 — for now we
+// route to the existing /pricing scroll or open a "coming soon" notice so
+// interested users self-identify and we can email them when it's live.
+function upgradeToProClicked(){
+  hideUpgradeModal();
+  // For tonight: just scroll to pricing on landing if visible, else alert.
+  // TODO: replace with Stripe Checkout once payment integration is live.
+  const pricingSection = document.getElementById('pricing');
+  if(pricingSection){
+    pricingSection.scrollIntoView({behavior:'smooth'});
+  } else {
+    alert("Pro is launching very soon — we'll notify you. Drop us a note at support if you want early access.");
+  }
 }
 
 // ============ STORAGE (browser localStorage) ============
