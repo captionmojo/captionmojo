@@ -4763,31 +4763,21 @@ document.addEventListener('click', (e) => {
 async function doLogout(){
   if(!sbClient) return;
   if(!confirm('Sign out of CaptionMojo?')) return;
-  // Defensive logout. signOut() with default 'global' scope makes a network
-  // call to revoke all sessions server-side. On flaky networks (VPN, private
-  // mode with strict tracking protection) that call can hang indefinitely
-  // and the await never resolves, leaving the user stuck. We race a 3-second
-  // timeout and fall back to a local-only signOut (clears localStorage but
-  // doesn't revoke server-side). Worst case: a stale refresh token sits on
-  // the server until it expires — acceptable for the rare network failure.
-  let signedOut = false;
+  // Logout is a LOCAL action. The session is a JWT stored in localStorage —
+  // if we delete it, the user is signed out from this device's perspective.
+  // We don't need the server to confirm. Previous implementations awaited
+  // sbClient.auth.signOut() but that call hangs indefinitely on flaky networks
+  // (VPN, private mode), leaving users stuck. Solution: do the local work
+  // synchronously, fire the SDK call as fire-and-forget for server-side
+  // session revocation, then reload.
+  //
+  // Worst case: a refresh token lingers on Supabase until natural expiry.
+  // That's an acceptable tradeoff vs. a logout button that doesn't work.
   try {
-    await Promise.race([
-      sbClient.auth.signOut(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-    ]);
-    signedOut = true;
-  } catch(e){
-    console.warn('[auth] global signOut failed or timed out, falling back to local:', e);
-    try {
-      await sbClient.auth.signOut({ scope: 'local' });
-      signedOut = true;
-    } catch(e2){
-      console.error('[auth] local signOut also failed:', e2);
-    }
-  }
-  // Belt-and-suspenders: nuke any Supabase auth tokens from localStorage
-  // directly, in case the SDK didn't clean up. Keys look like
+    // Fire-and-forget — best effort to revoke server-side. Don't await.
+    sbClient.auth.signOut().catch(e => console.warn('[auth] background signOut failed:', e));
+  } catch(_) {}
+  // Sweep Supabase auth tokens from localStorage directly. Keys look like
   // "sb-zvznagtajfzqdzjmrefm-auth-token". We sweep anything starting with sb-.
   try {
     const keysToRemove = [];
@@ -4797,13 +4787,12 @@ async function doLogout(){
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
   } catch(_) {}
-  // Force-clear in-memory app auth state so even if reload doesn't happen
-  // (e.g., browser blocks it), the UI flips to anonymous immediately.
+  // Force-clear in-memory app auth state.
   session = null;
   user = null;
   profile = null;
-  // Reload to reset all in-memory state cleanly. setTimeout gives the UI a
-  // tick to register before navigation.
+  // Reload to reset all in-memory state cleanly. setTimeout gives a tick
+  // for the cleanup above to register before navigation.
   setTimeout(() => location.reload(), 50);
 }
 
