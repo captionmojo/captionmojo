@@ -1462,6 +1462,69 @@ footer span{color:var(--mojo)}
 }
 @keyframes echip-spin{to{transform:rotate(360deg)}}
 .echip-icon{font-size:11px;opacity:.85}
+
+/* ========== CUSTOM AI INSTRUCTION INPUT ==========
+   When user clicks "✎ Custom..." chip, the chip row is replaced with an
+   input field + Send/Cancel. Inline, no modal — keeps the editing flow tight.
+   Visual: input + two small buttons in a row. Returns to chips on submit or cancel. */
+.custom-input-row{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  padding:6px 0;
+  width:100%;
+}
+.custom-input-row .custom-input-label{
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  margin-right:4px;
+  flex-shrink:0;
+}
+.custom-input-row input[type=text]{
+  flex:1;
+  min-width:0;
+  height:30px;
+  padding:0 10px;
+  border:1.5px solid var(--mojo);
+  border-radius:6px;
+  background:var(--surface);
+  font-size:13px;
+  font-family:var(--sans);
+  color:var(--ink);
+  outline:none;
+}
+.custom-input-row input[type=text]:focus{
+  border-color:var(--mojo);
+  box-shadow:0 0 0 3px var(--mojo-tint);
+}
+.custom-input-row .custom-send,
+.custom-input-row .custom-cancel{
+  height:30px;
+  padding:0 12px;
+  border:1px solid var(--border);
+  border-radius:6px;
+  font-size:11.5px;
+  font-weight:600;
+  cursor:pointer;
+  font-family:var(--sans);
+  transition:all .12s var(--ease);
+  flex-shrink:0;
+}
+.custom-input-row .custom-send{
+  background:var(--mojo);
+  color:#fff;
+  border-color:var(--mojo);
+}
+.custom-input-row .custom-send:hover{background:var(--mojo2);border-color:var(--mojo2)}
+.custom-input-row .custom-send:disabled{opacity:.5;cursor:not-allowed}
+.custom-input-row .custom-cancel{
+  background:var(--surface);
+  color:var(--ink2);
+}
+.custom-input-row .custom-cancel:hover{background:var(--surface2)}
 /* Card-level state when a refine is in flight — dim everything else */
 .cap-card.refining .cap-text{opacity:.55;transition:opacity .2s}
 .cap-card.refining .cap-actions{opacity:.35;pointer-events:none}
@@ -2332,6 +2395,7 @@ footer span{color:var(--mojo)}
   text-transform:uppercase;
 }
 .cm-v4 .tier-badge.free{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.cm-v4 .tier-badge.basic{background:var(--ink);color:#fff}
 .cm-v4 .tier-badge.pro{background:linear-gradient(135deg,var(--mojo),#FF8A4D);color:#fff}
 .cm-v4 .tier-badge.agency{background:linear-gradient(135deg,#0A0A0A,#2A2620);color:var(--gold)}
 
@@ -2361,6 +2425,16 @@ footer span{color:var(--mojo)}
   border-color:var(--mojo);
   box-shadow:0 10px 24px rgba(255,91,31,.15);
 }
+/* Basic feature variant — subtle ink treatment, sits between Free and Pro visually */
+.cm-v4 .feature.basic{
+  background:var(--surface);
+  border-color:var(--border2);
+}
+.cm-v4 .feature.basic:hover{
+  border-color:var(--ink);
+  box-shadow:0 8px 20px rgba(23,21,17,.08);
+}
+.cm-v4 .feature-tier-pill.basic{background:var(--ink);color:#fff}
 /* Agency feature variant — dark luxury */
 .cm-v4 .feature.agency{
   background:linear-gradient(135deg,#1A1815,#0A0A0A);
@@ -3442,6 +3516,46 @@ footer span{color:var(--mojo)}
           </div>
         </div>
 
+        <!-- BASIC TIER FEATURES (between Free foundation and Pro)
+             Visually subtle ink-accent treatment so it reads as the "serious but
+             affordable" middle option, not competing with Pro's orange spotlight
+             but more substantial than Free's neutral. -->
+        <div class="tier-section">
+          <div class="tier-section-header">
+            <div class="tier-section-title">For <em>consistent</em> creators — <em>$9/mo</em></div>
+            <span class="tier-badge basic">Basic · $9/mo</span>
+          </div>
+          <div class="features-grid cols-3">
+            <div class="feature basic">
+              <span class="feature-tier-pill basic">Basic</span>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <div class="feature-title"><em>5x</em> more captions</div>
+              <div class="feature-desc">50 captions a day instead of 10. Enough headroom for serious posters who run multiple platforms or want to A/B test variants without rationing.</div>
+              <div class="feature-tags"><span class="feature-tag">50/day</span><span class="feature-tag">No rationing</span></div>
+            </div>
+            <div class="feature basic">
+              <span class="feature-tier-pill basic">Basic</span>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+              </div>
+              <div class="feature-title">Combine <em>2 tags</em></div>
+              <div class="feature-desc">Hit two audience dimensions at once — "lofi heads" × "late-night listeners," or "yoga moms" × "wellness curious." Captions that thread the needle on real combos, not generic mass appeal.</div>
+              <div class="feature-tags"><span class="feature-tag">2-tag combo</span><span class="feature-tag">Sharper targeting</span></div>
+            </div>
+            <div class="feature basic">
+              <span class="feature-tier-pill basic">Basic</span>
+              <div class="feature-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="feature-title">Saved <em>generations</em></div>
+              <div class="feature-desc">Every batch you generate stays in your library forever. Search past captions, reuse the bangers, learn what worked. Free tier loses history at session end — Basic keeps the receipts.</div>
+              <div class="feature-tags"><span class="feature-tag">Persistent history</span><span class="feature-tag">Search past gens</span></div>
+            </div>
+          </div>
+        </div>
+
         <!-- PRO TIER FEATURES (middle, mojo orange treatment) -->
         <div class="tier-section">
           <div class="tier-section-header">
@@ -3823,7 +3937,7 @@ footer span{color:var(--mojo)}
             <div style="font-size:13px;color:var(--ink2);display:flex;gap:8px;line-height:1.5"><span style="color:var(--mojo);flex-shrink:0">→</span><span>Brand documents and product descriptions (available in Deep Setup)</span></div>
           </div>
         </div>
-        <div class="field"><label>A caption you love <span class="lh">(yours or an account you admire)</span></label><textarea id="q-ex" rows="5" placeholder="Paste a caption here that hits exactly the right note for your brand. It could be something you've posted, something from a brand you admire, or something you wrote but never published."></textarea><div class="field-hint">Have more than one? Paste them one per line. The AI reads all of them.</div></div>
+        <div class="field"><label>Paste 5-10 of your best recent captions <span class="lh">(this is how the AI learns your voice)</span></label><textarea id="q-ex" rows="8" placeholder="Paste captions you've actually posted (or from accounts you want to sound like). One per line. The more you paste, the more accurately the AI mirrors your tone, sentence structure, emoji habits, and how you write CTAs. This is the #1 thing that makes your captions sound like YOU, not generic AI."></textarea><div class="field-hint">Pro tip: grab the last 10 captions from your Instagram or TikTok. Even rough ones help — the AI learns patterns from volume.</div></div>
         <div class="field"><label>A caption you hate <span class="lh">(optional)</span></label><textarea id="q-bad" rows="3" placeholder="Paste a caption that feels completely wrong for your brand. This teaches the AI what NOT to do."></textarea></div>
       </div>
       <div class="ob-card" id="q5" style="display:none">
@@ -4151,7 +4265,7 @@ footer span{color:var(--mojo)}
        ============================================================================ -->
   <div class="soft-prompt" id="softPrompt">
     <div class="soft-prompt-text">
-      Getting somewhere? <strong>Sign up free</strong> — keep your brand brain, save every caption, double your daily limit. Or jump to <strong>Pro</strong> for AI that learns and 500/day.
+      Getting somewhere? <strong>Sign up free</strong> for 10/day + brand brain saved across devices. Or <strong>go Pro ($29/mo)</strong> — 500 captions/day, AI that learns your taste from 👍/👎, schedule to calendar, 3 brand profiles, quality scoring + CSV export, ad-free.
     </div>
     <button class="soft-prompt-cta" onclick="openAuthModal()">Sign up free</button>
     <button class="soft-prompt-dismiss" onclick="dismissSoftPrompt()" title="Dismiss">×</button>
@@ -7147,7 +7261,7 @@ function rCards(){
     // Edit chips — only show when not editing, not disliked, and caption was AI-generated
     // or marked as "own" (so users can refine their pasted-in captions too)
     const showChips = !c.editing && !c.disliked && (c.generated || c.custom);
-    const chipRow = showChips ? `<div class="chip-row" id="chips-${c.id}"><span class="chip-row-label">Edit:</span><button class="echip" onclick="refineC(${c.id},'shorter',this)" title="Tighten to 1-2 sentences"><span class="echip-icon">↘</span> Shorter</button><button class="echip" onclick="refineC(${c.id},'punchier',this)" title="Sharper hook, more attitude"><span class="echip-icon">✦</span> Punchier</button><button class="echip" onclick="refineC(${c.id},'addCta',this)" title="Add a call-to-action that fits"><span class="echip-icon">＋</span> Add CTA</button><button class="echip" onclick="refineC(${c.id},'moreLikeThis',this)" title="Generate a sibling caption in same flavor"><span class="echip-icon">≋</span> More like this</button><button class="echip" onclick="refineC(${c.id},'rewrite',this)" title="Full rewrite, same idea, different words"><span class="echip-icon">⤺</span> Rewrite</button><button class="echip" onclick="refineC(${c.id},'changeTone',this)" title="Different tonal angle"><span class="echip-icon">⊕</span> Change tone</button><button class="echip" onclick="refineC(${c.id},'lessSalesy',this)" title="Strip marketing language"><span class="echip-icon">⤓</span> Less salesy</button><button class="echip" onclick="refineC(${c.id},'tryAgain',this)" title="Fresh attempt, different result"><span class="echip-icon">↻</span> Try again</button></div>` : '';
+    const chipRow = showChips ? `<div class="chip-row" id="chips-${c.id}"><span class="chip-row-label">Edit:</span><button class="echip" onclick="refineC(${c.id},'shorter',this)" title="Tighten to 1-2 sentences"><span class="echip-icon">↘</span> Shorter</button><button class="echip" onclick="refineC(${c.id},'punchier',this)" title="Sharper hook, more attitude"><span class="echip-icon">✦</span> Punchier</button><button class="echip" onclick="refineC(${c.id},'addCta',this)" title="Add a call-to-action that fits"><span class="echip-icon">＋</span> Add CTA</button><button class="echip" onclick="refineC(${c.id},'moreLikeThis',this)" title="Generate a sibling caption in same flavor"><span class="echip-icon">≋</span> More like this</button><button class="echip" onclick="refineC(${c.id},'rewrite',this)" title="Full rewrite, same idea, different words"><span class="echip-icon">⤺</span> Rewrite</button><button class="echip" onclick="refineC(${c.id},'changeTone',this)" title="Different tonal angle"><span class="echip-icon">⊕</span> Change tone</button><button class="echip" onclick="refineC(${c.id},'lessSalesy',this)" title="Strip marketing language"><span class="echip-icon">⤓</span> Less salesy</button><button class="echip" onclick="refineC(${c.id},'tryAgain',this)" title="Fresh attempt, different result"><span class="echip-icon">↻</span> Try again</button><button class="echip" onclick="openCustomInput(${c.id})" title="Tell the AI exactly what to change in your own words"><span class="echip-icon">✎</span> Custom…</button></div>` : '';
     // BUG-2 hashtags: "Copy with hashtags" button only shows when caption has hashtags
     const copyWithTagsBtn = (!c.editing && hashtags.length > 0)
       ? `<button class="act" title="Copy caption text + hashtags merged into clipboard, ready to paste into your post." onclick="copyWithHashtags(${c.id},this)">⎘ Copy with hashtags</button>`
@@ -7501,6 +7615,68 @@ function etaCC(id){
   if(ta&&el)el.textContent=ta.value.length+' chars';
 }
 
+// ====== Custom AI instruction UI ======
+// User clicks "Custom..." chip → chip row is hidden and replaced with an
+// input field where they type any freeform instruction. Submitting sends it
+// to /api/refine as action='custom' with their text. Cancel restores the
+// chip row. Auto-focuses the input on open. Enter submits, Esc cancels.
+function openCustomInput(capId){
+  const chipRow = document.getElementById(`chips-${capId}`);
+  if(!chipRow) return;
+  // Stash the original chip HTML so we can restore on cancel
+  if(!chipRow.dataset.origHtml){
+    chipRow.dataset.origHtml = chipRow.innerHTML;
+  }
+  chipRow.innerHTML = `
+    <span class="custom-input-label">Tell AI:</span>
+    <input type="text" id="custom-input-${capId}" placeholder="e.g. make it more playful, mention fall vibes, shorten to one line…" maxlength="500" autocomplete="off">
+    <button class="custom-cancel" type="button" onclick="closeCustomInput(${capId})">Cancel</button>
+    <button class="custom-send" type="button" id="custom-send-${capId}" onclick="submitCustomInput(${capId})">Send →</button>
+  `;
+  // Focus the input and wire Enter/Esc
+  const input = document.getElementById(`custom-input-${capId}`);
+  if(input){
+    input.focus();
+    input.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        submitCustomInput(capId);
+      } else if(e.key === 'Escape'){
+        e.preventDefault();
+        closeCustomInput(capId);
+      }
+    });
+  }
+}
+
+function closeCustomInput(capId){
+  const chipRow = document.getElementById(`chips-${capId}`);
+  if(!chipRow) return;
+  // Restore original chips by re-rendering (catches any state changes)
+  rCards();
+}
+
+async function submitCustomInput(capId){
+  const input = document.getElementById(`custom-input-${capId}`);
+  if(!input) return;
+  const instruction = input.value.trim();
+  if(!instruction){
+    input.focus();
+    return;
+  }
+  const sendBtn = document.getElementById(`custom-send-${capId}`);
+  if(sendBtn){
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending…';
+  }
+  input.disabled = true;
+  // Reuse refineC with action='custom' and the instruction.
+  // We need a fake "chipBtn" for the loading-state code. Use the send button.
+  // But refineC modifies chipBtn appearance and calls rCards on success — so
+  // after the call, the chip row will be re-rendered fresh, no manual restore needed.
+  await refineC(capId, 'custom', sendBtn, instruction);
+}
+
 // ====== One-click edit chips: refineC ======
 // Called when a user clicks an edit chip (Shorter, Punchier, etc.) on a caption.
 // Sends the caption + action to /api/refine, then either:
@@ -7508,7 +7684,10 @@ function etaCC(id){
 //   - inserts a new sibling caption above (moreLikeThis)
 // Loading state on the clicked chip, disable siblings during request,
 // handle errors gracefully without losing the original.
-async function refineC(capId, action, chipBtn){
+//
+// For the 'custom' action, a 4th arg `customInstruction` carries the user's
+// freeform edit request (e.g. "make it about fall vibes"). Worker validates.
+async function refineC(capId, action, chipBtn, customInstruction){
   const c = F(capId);
   if(!c) return;
   if(!chipBtn) return;
@@ -7539,6 +7718,10 @@ async function refineC(capId, action, chipBtn){
     platforms: (c.platforms && c.platforms.length) ? c.platforms : ['All'],
     segmentName: primarySeg || ''
   };
+  // For custom action, attach the user's freeform instruction
+  if(action === 'custom' && customInstruction){
+    requestBody.customInstruction = customInstruction;
+  }
 
   try {
     const resp = await fetch('/api/refine', {
