@@ -6482,6 +6482,7 @@ let aSegSel = [];
 let capFilterSegs = [];
 
 function launchApp(){
+  console.log('[launch:1] entry. segments.length =', segments.length, 'BP.name =', BP.name);
   // ===== BRAND-CHANGE DETECTION =====
   // If the user is re-onboarding as a different brand than what's in storage
   // (e.g., tested as one company, now setting up another), clear out the stale
@@ -6517,6 +6518,7 @@ function launchApp(){
     console.warn('[brand-change] detection failed:', e);
     // Fall through to normal launch.
   }
+  console.log('[launch:2] post brand-change. segments.length =', segments.length);
 
   // Note: showPage() below now handles the Spotify audio kill at every page
   // transition (see killAllSpotifyAudio). This means brain-module audio gets
@@ -6524,8 +6526,10 @@ function launchApp(){
   // an explicit stopSpotifyEmbed call here anymore.
   document.getElementById('brandChip').textContent=BP.name||'My Brand';
   populateSegmentUI();
+  console.log('[launch:3] after populateSegmentUI. segments.length =', segments.length);
   showPage('page-app');
   load();
+  console.log('[launch:4] after load(). segments.length =', segments.length);
   // After load() completes the studio is rdy=true, which means save() will
   // actually write. Persist the current BP/segments now so a page refresh
   // immediately after onboarding doesn't lose the just-completed setup.
