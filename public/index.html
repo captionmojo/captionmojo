@@ -4315,6 +4315,272 @@ async function applySession(newSession){
     profile = null;
   }
   updateAuthUI();
+  // Sync local state with Supabase when auth state changes. Fires on initial
+  // page load (if a session was already present) and on every sign-in. Wrapped
+  // in try/catch — sync failures should never break auth itself.
+  if(user){
+    try { await syncOnAuth(); } catch(e){ console.error('[sync] on-auth failed:', e); }
+  }
+}
+
+// ============ LOCALSTORAGE ↔ SUPABASE SYNC ============
+// Last-write-wins model. On sign-in: if local has a brand profile, push to
+// server (covers anonymous-to-authenticated upgrade); if local is empty, pull
+// from server (covers returning user on a new device). On every save(): if
+// signed in, also push to server (debounced via the existing saveTO timer).
+//
+// Lock to prevent feedback loops between push and pull. When push() is
+// running, we don't want a concurrent pull() to read partial state.
+// When pull() is running, we don't want save() to overwrite with stale local.
+let syncInFlight = false;
+let lastPullAt = 0;
+
+// Returns true if we have any non-empty brand profile data locally.
+function hasLocalBrandData(){
+  if(BP && BP.name && BP.name.trim()) return true;
+  if(segments && segments.length) return true;
+  if(caps && caps.length) return true;
+  return false;
+}
+
+// Sync helper called after a successful sign-in (or page load with existing
+// session). Decides whether to push local→server or pull server→local based
+// on what data exists where. First version uses simple last-write-wins.
+async function syncOnAuth(){
+  if(!sbClient || !user) return;
+  if(syncInFlight) return;
+  syncInFlight = true;
+  try {
+    // Check if user has any brand_profiles on the server
+    const { data: serverBPs, error } = await sbClient
+      .from('brand_profiles')
+      .select('id, name, bp_json, brain_json, notes, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    if(error){ console.error('[sync] server check failed:', error); return; }
+
+    const hasServer = serverBPs && serverBPs.length > 0;
+    const hasLocal = hasLocalBrandData();
+
+    if(hasLocal && !hasServer){
+      // User just signed up, brought their anonymous work with them. Push it.
+      console.log('[sync] pushing local → server (first sign-in)');
+      await pushLocalToSupabase();
+    } else if(!hasLocal && hasServer){
+      // Returning user on a fresh device/browser. Pull their saved data.
+      console.log('[sync] pulling server → local (returning user)');
+      await pullSupabaseToLocal();
+    } else if(hasLocal && hasServer){
+      // Both have data. For v1, server wins (more authoritative). User's
+      // current-session local edits since last push will be lost; this is
+      // acceptable for now since save() pushes continuously when signed in.
+      console.log('[sync] both have data — pulling server (server wins)');
+      await pullSupabaseToLocal();
+    }
+    // else: neither has data, nothing to sync
+  } finally {
+    syncInFlight = false;
+  }
+}
+
+// Push current local BP, segments, caps to Supabase. Uses upsert by id so
+// re-pushing is idempotent. Creates a brand_profiles row if none exists,
+// updates if one does. Segments and captions get bulk-upserted.
+async function pushLocalToSupabase(){
+  if(!sbClient || !user) return;
+  try {
+    // 1. Upsert the brand profile
+    // We don't track BP.id locally yet, so look up by user_id + name. If a row
+    // with this user_id exists, update it; otherwise insert. For v1 we only
+    // support ONE brand profile per user (multi-brand is tier-gated later).
+    let bpId = null;
+    {
+      const { data: existing, error: lookupErr } = await sbClient
+        .from('brand_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1);
+      if(lookupErr){ console.error('[sync] BP lookup error:', lookupErr); return; }
+
+      const bpRow = {
+        user_id: user.id,
+        name: BP.name || 'My Brand',
+        bp_json: BP || {},
+        brain_json: BP.brain || null,
+        notes: BP.notes || '',
+        is_default: true,
+        updated_at: new Date().toISOString()
+      };
+
+      if(existing && existing.length > 0){
+        bpId = existing[0].id;
+        const { error: updErr } = await sbClient
+          .from('brand_profiles')
+          .update(bpRow)
+          .eq('id', bpId);
+        if(updErr){ console.error('[sync] BP update error:', updErr); return; }
+      } else {
+        const { data: inserted, error: insErr } = await sbClient
+          .from('brand_profiles')
+          .insert(bpRow)
+          .select('id')
+          .single();
+        if(insErr){ console.error('[sync] BP insert error:', insErr); return; }
+        bpId = inserted.id;
+      }
+    }
+    if(!bpId) return;
+
+    // 2. Replace segments (delete + bulk insert is simpler than diffing).
+    // Segments are small (<50 typically) so this is cheap.
+    {
+      const { error: delErr } = await sbClient
+        .from('segments')
+        .delete()
+        .eq('brand_profile_id', bpId);
+      if(delErr){ console.error('[sync] segments delete:', delErr); }
+      if(segments && segments.length > 0){
+        const rows = segments.map((s, i) => ({
+          brand_profile_id: bpId,
+          user_id: user.id,
+          name: String(s.name || ''),
+          category: s.category || 'General',
+          description: s.desc || '',
+          sort_order: i
+        }));
+        const { error: insErr } = await sbClient.from('segments').insert(rows);
+        if(insErr) console.error('[sync] segments insert:', insErr);
+      }
+    }
+
+    // 3. Replace captions. Same approach (delete-then-insert). Captions can
+    // be larger so we cap at most recent 200 to keep payloads sane. Anything
+    // older stays local-only — acceptable since we don't expect free users
+    // to have 200+ captions and Pro users will get proper diffing later.
+    {
+      const { error: delErr } = await sbClient
+        .from('captions')
+        .delete()
+        .eq('brand_profile_id', bpId);
+      if(delErr){ console.error('[sync] captions delete:', delErr); }
+      const capsToSync = (caps || []).slice(-200);
+      if(capsToSync.length > 0){
+        const rows = capsToSync.map(c => ({
+          user_id: user.id,
+          brand_profile_id: bpId,
+          text: c.text || '',
+          segments: Array.isArray(c.segments) ? c.segments : [],
+          platforms: Array.isArray(c.platforms) ? c.platforms : ['All'],
+          status: c.status || 'new',
+          liked: !!c.liked,
+          disliked: !!c.disliked,
+          source: c.source === 'user' ? 'user' : 'ai'
+        }));
+        const { error: insErr } = await sbClient.from('captions').insert(rows);
+        if(insErr) console.error('[sync] captions insert:', insErr);
+      }
+    }
+    console.log('[sync] push complete');
+  } catch(e){
+    console.error('[sync] push failed:', e);
+  }
+}
+
+// Pull from Supabase into local state. Hydrates BP, segments, caps from
+// the server, then triggers a save to localStorage so the new state persists.
+async function pullSupabaseToLocal(){
+  if(!sbClient || !user) return;
+  try {
+    // 1. Fetch the most recent brand profile
+    const { data: bps, error: bpErr } = await sbClient
+      .from('brand_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    if(bpErr){ console.error('[sync] BP fetch:', bpErr); return; }
+    if(!bps || bps.length === 0) return;
+    const serverBP = bps[0];
+
+    // Hydrate the in-memory BP. bp_json holds the full BP object as the
+    // frontend uses it; we merge it on top of defaults to be safe against
+    // schema drift (missing fields stay at their default values).
+    const incoming = serverBP.bp_json || {};
+    BP = {
+      ...BP,
+      ...incoming,
+      name: serverBP.name || incoming.name || BP.name || '',
+      brain: serverBP.brain_json || incoming.brain || null,
+      notes: serverBP.notes || incoming.notes || ''
+    };
+
+    // 2. Fetch segments
+    const { data: segs, error: segErr } = await sbClient
+      .from('segments')
+      .select('*')
+      .eq('brand_profile_id', serverBP.id)
+      .order('sort_order', { ascending: true });
+    if(segErr){ console.error('[sync] segments fetch:', segErr); }
+    else if(segs){
+      segments = segs.map(s => ({
+        name: s.name,
+        category: s.category || 'General',
+        desc: s.description || '',
+        on: true
+      }));
+    }
+
+    // 3. Fetch captions (most recent 200, descending by created)
+    const { data: caprows, error: capErr } = await sbClient
+      .from('captions')
+      .select('*')
+      .eq('brand_profile_id', serverBP.id)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if(capErr){ console.error('[sync] captions fetch:', capErr); }
+    else if(caprows){
+      caps = caprows.map((c, i) => ({
+        id: i,
+        text: c.text || '',
+        segments: Array.isArray(c.segments) ? c.segments : [],
+        platforms: Array.isArray(c.platforms) ? c.platforms : ['All'],
+        status: c.status || 'new',
+        liked: !!c.liked,
+        disliked: !!c.disliked,
+        source: c.source === 'user' ? 'user' : 'ai',
+        editing: false
+      }));
+      nId = caps.length;
+    }
+
+    // Persist the hydrated state to localStorage so subsequent reloads
+    // don't re-trigger a server pull. Bypass the rdy gate since we may be
+    // pulling before load() has finished — saveToStorage is safe to call
+    // directly. Update the UI bits that depend on BP.
+    saveToStorage({caps, nId, BP, segments});
+    lastPullAt = Date.now();
+
+    // Refresh UI if studio is currently visible
+    const brandChip = document.getElementById('brandChip');
+    if(brandChip) brandChip.textContent = BP.name || 'My Brand';
+    populateSegmentUI();
+    if(typeof render === 'function' && rdy) render();
+    console.log('[sync] pull complete');
+  } catch(e){
+    console.error('[sync] pull failed:', e);
+  }
+}
+
+// Light wrapper around the push for use inside the debounced save() flow.
+// Doesn't block save() — fire-and-forget with a console error on failure.
+function pushOnSave(){
+  if(!sbClient || !user) return;
+  // Skip if a full sync is in flight (push or pull)
+  if(syncInFlight) return;
+  // Skip if we JUST pulled — server state is fresher than local in that case
+  if(Date.now() - lastPullAt < 2000) return;
+  pushLocalToSupabase().catch(e => console.error('[sync] save-push failed:', e));
 }
 
 // Update the topbar UI based on whether user is logged in.
@@ -4437,14 +4703,48 @@ document.addEventListener('click', (e) => {
 async function doLogout(){
   if(!sbClient) return;
   if(!confirm('Sign out of CaptionMojo?')) return;
+  // Defensive logout. signOut() with default 'global' scope makes a network
+  // call to revoke all sessions server-side. On flaky networks (VPN, private
+  // mode with strict tracking protection) that call can hang indefinitely
+  // and the await never resolves, leaving the user stuck. We race a 3-second
+  // timeout and fall back to a local-only signOut (clears localStorage but
+  // doesn't revoke server-side). Worst case: a stale refresh token sits on
+  // the server until it expires — acceptable for the rare network failure.
+  let signedOut = false;
   try {
-    await sbClient.auth.signOut();
-    // applySession(null) will be triggered automatically via onAuthStateChange
-    location.reload();
+    await Promise.race([
+      sbClient.auth.signOut(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]);
+    signedOut = true;
   } catch(e){
-    console.error('[auth] logout failed:', e);
-    alert('Logout failed. Try refreshing the page.');
+    console.warn('[auth] global signOut failed or timed out, falling back to local:', e);
+    try {
+      await sbClient.auth.signOut({ scope: 'local' });
+      signedOut = true;
+    } catch(e2){
+      console.error('[auth] local signOut also failed:', e2);
+    }
   }
+  // Belt-and-suspenders: nuke any Supabase auth tokens from localStorage
+  // directly, in case the SDK didn't clean up. Keys look like
+  // "sb-zvznagtajfzqdzjmrefm-auth-token". We sweep anything starting with sb-.
+  try {
+    const keysToRemove = [];
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith('sb-')) keysToRemove.push(k);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch(_) {}
+  // Force-clear in-memory app auth state so even if reload doesn't happen
+  // (e.g., browser blocks it), the UI flips to anonymous immediately.
+  session = null;
+  user = null;
+  profile = null;
+  // Reload to reset all in-memory state cleanly. setTimeout gives the UI a
+  // tick to register before navigation.
+  setTimeout(() => location.reload(), 50);
 }
 
 function openUpgradeModal(){
@@ -4710,7 +5010,39 @@ function showPage(id){
     resetFooterPlayerToDefault();
   }
 }
-function goTracks(){showPage('page-tracks');}
+// goTracks routes the user to either the studio or the onboarding picker.
+// - Anonymous: always show the onboarding picker (page-tracks)
+// - Signed-in user with local brand data: launch into studio directly
+// - Signed-in user with no local data: try a one-shot Supabase pull; if the
+//   server has a brand profile, hydrate and launch. Otherwise show picker
+//   (covers brand-new signups who came in via Sign In before any onboarding).
+async function goTracks(){
+  // Anonymous flow: just show the onboarding picker
+  if(!user){
+    showPage('page-tracks');
+    return;
+  }
+  // Signed-in: prefer the studio when we have data
+  if(hasLocalBrandData()){
+    launchApp();
+    return;
+  }
+  // Signed-in but no local data — try pulling from Supabase before deciding.
+  // syncOnAuth normally handles this on sign-in, but in fresh-browser cases
+  // the user may click "My account" before sync completes (or sync may have
+  // hit an error). One-shot retry here covers that.
+  try {
+    await pullSupabaseToLocal();
+  } catch(e){
+    console.error('[goTracks] pull failed:', e);
+  }
+  if(hasLocalBrandData()){
+    launchApp();
+  } else {
+    // Genuinely no brand profile anywhere — send them to onboarding
+    showPage('page-tracks');
+  }
+}
 
 // ============ UI HELPERS ============
 function toggleWriteOwn(){
@@ -6036,6 +6368,10 @@ function save(){
   saveTO=setTimeout(()=>{
     const ok=saveToStorage({caps,nId,BP,segments});
     setSave(ok?'saved':'error',ok?'saved':'save failed');
+    // If signed in, also push to Supabase. Fire-and-forget; failures are
+    // logged but don't affect the local save status. pushOnSave is debounced
+    // by its own checks (skips if a sync is in flight or just pulled).
+    if(ok && user) pushOnSave();
   },500);
 }
 function load(){
