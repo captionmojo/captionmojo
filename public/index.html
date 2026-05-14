@@ -1094,22 +1094,27 @@ footer span{color:var(--mojo)}
 #v-fold{padding-bottom:0}
 
 /* ====== GEN MODE TABS — pill switcher for AI Generate / Write Your Own ======
-   Sits at the top of the Generate view. Two pill-shaped tabs in a rounded
-   container. Active tab gets the mojo orange fill + white text; inactive
-   stays transparent with muted text. Mobile keeps the same row layout —
-   tabs scale down via flex: 1 so they always fill the container width. */
+   Sits at the top of the Generate view. Compact pill-shaped tabs in a small
+   rounded container. Active tab gets the mojo orange fill + white text;
+   inactive stays transparent with muted text. Sized to fit content, NOT
+   full-width. Centered horizontally so the studio feels balanced. */
 .gen-tabs{
-  display:flex;
-  gap:6px;
-  margin:12px 12px 0;
+  display:inline-flex;
+  gap:4px;
+  margin:14px auto 0;
   padding:4px;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:999px;
+  width:auto;
+}
+.gen-tabs-wrap{
+  display:flex;
+  justify-content:center;
+  padding:0 12px;
 }
 .gen-tab{
-  flex:1;
-  padding:10px 16px;
+  padding:8px 18px;
   border:none;
   border-radius:999px;
   background:transparent;
@@ -1130,7 +1135,7 @@ footer span{color:var(--mojo)}
   color:#fff;
 }
 @media(max-width:560px){
-  .gen-tab{font-size:12px;padding:9px 12px}
+  .gen-tab{font-size:12px;padding:7px 14px}
 }
 
 .gen-block{
@@ -4079,9 +4084,11 @@ footer span{color:var(--mojo)}
          Replaces the old "Write Your Own" collapsible block. Two pill tabs at
          the top of the Generate view: clicking switches which gen-block shows.
          Default is AI Generate. State lives in window.genMode ('ai' | 'write'). -->
-    <div class="gen-tabs" role="tablist" aria-label="Caption generation mode">
-      <button class="gen-tab active" id="genTabAi" role="tab" aria-selected="true" onclick="switchGenMode('ai')">✦ AI Generate</button>
-      <button class="gen-tab" id="genTabWrite" role="tab" aria-selected="false" onclick="switchGenMode('write')">✎ Write your own</button>
+    <div class="gen-tabs-wrap">
+      <div class="gen-tabs" role="tablist" aria-label="Caption generation mode">
+        <button class="gen-tab active" id="genTabAi" role="tab" aria-selected="true" onclick="switchGenMode('ai')">✦ AI Generate</button>
+        <button class="gen-tab" id="genTabWrite" role="tab" aria-selected="false" onclick="switchGenMode('write')">✎ Write your own</button>
+      </div>
     </div>
     <div class="gen-block primary" id="aiGenBlock" style="margin-top:12px">
       <div class="gen-hdr"><div class="gen-dot"></div>AI Generate</div>
@@ -6587,47 +6594,35 @@ let aSegSel = [];
 let capFilterSegs = [];
 
 function launchApp(){
-  // ===== EMPTY-SEGMENTS GUARD (BUG-1 fix) =====
-  // If we reached launchApp with no segments in memory, something upstream
-  // failed silently: generateSegments() hit a timeout, the network call errored
-  // before catch could fire, or the user clicked "Enter Studio →" before the
-  // fetch resolved. Rather than land the user in an unusable studio with
-  // "no audience dimensions yet" and a blocked Generate button, fall back
-  // to generic segments so they can immediately start generating captions.
-  // The brand-aware fallback gives at least 5 categories tied to BP.industry
-  // and BP.what when those are present.
-  if(!segments || segments.length === 0){
-    console.warn('[launchApp] segments empty — applying fallback to prevent unusable studio');
-    segments = fallbackSegments();
-  }
-
   // ===== BRAND-CHANGE DETECTION =====
   // If the user is re-onboarding as a different brand than what's in storage
   // (e.g., tested as one company, now setting up another), clear out the stale
-  // captions, segments, and brain so the studio doesn't show old TD captions
-  // when the new brand is, say, a pizza shop. We detect "different brand" by
-  // comparing the just-completed BP.name to whatever brand name is currently
-  // saved in localStorage. If they don't match (case-insensitive, trimmed),
-  // we wipe everything before the studio loads its data.
+  // captions and brain so the studio doesn't show old TD captions when the
+  // new brand is, say, a pizza shop. We detect "different brand" by comparing
+  // the just-completed BP.name to whatever brand name is currently saved in
+  // localStorage. If they don't match (case-insensitive, trimmed), we wipe
+  // stale storage before the studio loads its data.
+  //
+  // CRITICAL: we do NOT wipe the in-memory `segments` array here. Those are
+  // the FRESH segments that generateSegments() just built for the NEW brand
+  // during onboarding. Wiping them would land the user in an empty studio.
+  // (This was BUG-1 — the entire "segments missing after onboarding" issue.)
   try {
     const prev = loadFromStorage();
     const newName = (BP.name || '').trim().toLowerCase();
     const oldName = (prev && prev.BP && prev.BP.name ? prev.BP.name : '').trim().toLowerCase();
-    // Only wipe if previous data has actual content. Empty localStorage (no
-    // captions, no segments) means there's nothing to wipe — and wiping
-    // anyway destroys the in-memory segments that onboarding just built.
-    // This was the cause of the "no audience dimensions yet" bug.
     const hasPrevContent = !!(prev && (
       (Array.isArray(prev.caps) && prev.caps.length > 0) ||
       (Array.isArray(prev.segments) && prev.segments.length > 0)
     ));
     console.log('[brand-change] check:', { oldName, newName, hasPrevContent, willWipe: !!(prev && oldName && newName && oldName !== newName && hasPrevContent) });
     if(prev && oldName && newName && oldName !== newName && hasPrevContent){
-      // Different brand AND previous brand had real content — wipe it so
-      // the studio doesn't show captions/segments from the old identity.
+      // Different brand AND previous brand had real content — wipe stale
+      // captions and storage so the studio doesn't show old data. Keep the
+      // in-memory `segments` array intact (those came from onboarding for
+      // the NEW brand).
       caps = [];
       nId = 0;
-      segments = [];
       if(BP.brain) delete BP.brain;
       try { localStorage.removeItem(STORAGE_KEY); } catch(_) {}
       console.log(`[brand-change] Cleared previous brand data: "${oldName}" → "${newName}"`);
@@ -6635,6 +6630,17 @@ function launchApp(){
   } catch(e) {
     console.warn('[brand-change] detection failed:', e);
     // Fall through to normal launch.
+  }
+
+  // ===== EMPTY-SEGMENTS GUARD (BUG-1 safety net) =====
+  // Defensive fallback: if segments are STILL empty at this point — either
+  // because generateSegments() failed silently in onboarding or some other
+  // path zeroed them — fall back to generic segments so the studio is never
+  // unusable. This now runs AFTER brand-change so it catches both the
+  // "API failed" and "wipe overshot" cases.
+  if(!segments || segments.length === 0){
+    console.warn('[launchApp] segments empty — applying fallback to prevent unusable studio');
+    segments = fallbackSegments();
   }
 
   // Note: showPage() below now handles the Spotify audio kill at every page
