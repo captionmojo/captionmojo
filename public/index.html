@@ -1972,7 +1972,26 @@ footer span{color:var(--mojo)}
   padding:36px;
   text-align:center;
   box-shadow:0 16px 48px rgba(0,0,0,.16);
+  position:relative; /* anchor for the X dismiss button */
 }
+/* Dismiss X button for the anonymous signup wall. Mirrors the upgrade modal's
+   dismiss so users have a consistent way to escape EITHER wall. Without this,
+   users who hit the hard wall (5 captions on anon tier) get trapped with no
+   way to close it short of refreshing the tab. */
+.signup-wall-dismiss{
+  position:absolute;
+  top:18px;
+  right:18px;
+  background:transparent;
+  border:none;
+  font-size:22px;
+  cursor:pointer;
+  color:var(--muted);
+  line-height:1;
+  padding:6px 10px;
+  border-radius:6px;
+}
+.signup-wall-dismiss:hover{ background:var(--surface2); color:var(--ink); }
 .signup-wall-icon{
   font-size:42px;
   margin-bottom:14px;
@@ -4682,6 +4701,7 @@ footer span{color:var(--mojo)}
      ============================================================================ -->
 <div class="signup-wall" id="signupWall">
   <div class="signup-wall-card" style="max-width:640px">
+    <button class="signup-wall-dismiss" onclick="hideSignupWall()" title="Close — come back tomorrow or sign up" type="button">×</button>
     <div class="signup-wall-icon">✦</div>
     <h2 class="signup-wall-title">You're in. Now pick your speed.</h2>
     <p class="signup-wall-text" id="signupWallText">5 captions in, your brand voice is locked in. Don't lose it.</p>
