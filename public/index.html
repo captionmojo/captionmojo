@@ -1139,33 +1139,70 @@ footer span{color:var(--mojo)}
   border-color:var(--red);
   color:#fff;
 }
-/* Add-segment input row at bottom */
-.seg-mgr-add{
-  display:flex;gap:8px;
-  padding:14px 0 4px;
+/* Add-segment area at bottom — vertical layout so the input gets full width */
+.seg-mgr-add-wrap{
+  padding:16px 14px 14px;
+  margin-top:14px;
   border-top:1px dashed var(--line);
-  margin-top:10px;
+  background:#faf9f7;
+  border-radius:8px;
 }
-.seg-mgr-add input{
-  flex:1;
+.seg-mgr-add-label{
+  font-family:var(--mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--muted);
+  margin-bottom:8px;
+  font-weight:500;
+}
+.seg-mgr-add-wrap input[type="text"]{
+  width:100%;
   font-family:var(--sans);
   font-size:14px;
-  padding:8px 12px;
+  padding:10px 12px;
   border:1px solid var(--line);
   border-radius:6px;
   background:#fff;
   outline:none;
+  box-sizing:border-box;
+  margin-bottom:10px;
 }
-.seg-mgr-add input:focus{border-color:var(--mojo)}
-.seg-mgr-add select{
+.seg-mgr-add-wrap input[type="text"]:focus{
+  border-color:var(--mojo);
+  box-shadow:0 0 0 3px var(--mojo-tint);
+}
+.seg-mgr-add-row2{
+  display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;
+}
+.seg-mgr-add-cat-label{
   font-family:var(--mono);
   font-size:12px;
+  color:var(--muted);
+  margin:0;
+}
+.seg-mgr-add-row2 select{
+  font-family:var(--sans);
+  font-size:13px;
   padding:8px 10px;
   border:1px solid var(--line);
   border-radius:6px;
   background:#fff;
   outline:none;
   cursor:pointer;
+  flex:1;min-width:140px;
+}
+.seg-mgr-add-row2 select:focus{border-color:var(--mojo)}
+.seg-mgr-add-row2 .btn{flex-shrink:0}
+.seg-mgr-add-error{
+  margin-top:10px;
+  padding:8px 12px;
+  background:rgba(220,38,38,.08);
+  border:1px solid rgba(220,38,38,.25);
+  border-radius:6px;
+  color:var(--red);
+  font-size:13px;
 }
 .seg-mgr-foot{
   display:flex;align-items:center;justify-content:flex-end;gap:10px;
@@ -7054,6 +7091,10 @@ function openSegMgr(){
   if(!backdrop) return;
   renderSegMgr();
   backdrop.classList.add('open');
+  // Reset modal body scroll to top so user sees the first category, not a
+  // mid-list scrolled state from a prior open.
+  const body = document.getElementById('segMgrBody');
+  if(body) body.scrollTop = 0;
   // Focus the add-input so the user can start typing a new segment immediately
   setTimeout(() => {
     const addInput = document.getElementById('segMgrAddInput');
@@ -7126,13 +7167,21 @@ function renderSegMgr(){
 
 // Helper: HTML for the add-segment row at the bottom of the modal body.
 // Optional catOpts parameter for category dropdown options; falls back to just "Custom".
+// Layout: input gets its own line (full width), then category + Add button on the next line.
+// This prevents the cramped look on narrower viewports and makes the input obviously
+// the primary action.
 function renderSegMgrAddRow(catOpts){
   const opts = catOpts || '<option value="Custom">Custom</option>';
   return `
-    <div class="seg-mgr-add">
-      <input type="text" id="segMgrAddInput" placeholder="Add a new dimension (e.g. Late-Night Listeners)" maxlength="60">
-      <select id="segMgrAddCat" title="Category for this new dimension">${opts}</select>
-      <button class="btn btn-mojo btn-md" onclick="segMgrAdd()">Add</button>
+    <div class="seg-mgr-add-wrap">
+      <div class="seg-mgr-add-label">Add a new dimension</div>
+      <input type="text" id="segMgrAddInput" placeholder="e.g. Late-Night Listeners, Crate-Diggers, Vinyl Heads…" maxlength="60">
+      <div class="seg-mgr-add-row2">
+        <label class="seg-mgr-add-cat-label">Category</label>
+        <select id="segMgrAddCat" title="Pick which category this new dimension belongs to">${opts}</select>
+        <button class="btn btn-mojo btn-md" onclick="segMgrAdd()">+ Add dimension</button>
+      </div>
+      <div class="seg-mgr-add-error" id="segMgrAddError" style="display:none"></div>
     </div>
   `;
 }
@@ -7144,6 +7193,20 @@ function wireSegMgrAddRow(){
   input.onkeydown = (e) => {
     if(e.key === 'Enter'){ e.preventDefault(); segMgrAdd(); }
   };
+  // Clear any error when the user starts typing
+  input.oninput = () => {
+    const err = document.getElementById('segMgrAddError');
+    if(err) err.style.display = 'none';
+  };
+}
+
+// Show error inline (replaces the silent-failure pattern of just returning)
+function segMgrShowAddError(msg){
+  const err = document.getElementById('segMgrAddError');
+  if(err){
+    err.textContent = msg;
+    err.style.display = 'block';
+  }
 }
 
 // ====== ADD ======
@@ -7153,11 +7216,18 @@ function segMgrAdd(){
   if(!input) return;
   const name = (input.value || '').trim();
   const cat = (catSel && catSel.value) ? catSel.value : 'Custom';
-  if(!name) return;
+  // Empty → visible error instead of silent fail (Cody hit this and thought button was broken)
+  if(!name){
+    segMgrShowAddError('Type a dimension name first.');
+    input.focus();
+    return;
+  }
   // Duplicate check (case-insensitive)
   const existing = segments.find(s => (s.name || '').toLowerCase() === name.toLowerCase());
   if(existing){
-    alert(`"${existing.name}" already exists. Pick a different name.`);
+    segMgrShowAddError(`"${existing.name}" already exists. Pick a different name.`);
+    input.focus();
+    input.select();
     return;
   }
   segments.push({ name: name, desc: 'Custom dimension.', category: cat, on: true });
