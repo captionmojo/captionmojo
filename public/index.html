@@ -5125,16 +5125,16 @@ footer span{color:var(--mojo)}
 
         <label class="ship-label">Time of day <span class="ship-optional">(optional)</span></label>
         <div class="ship-time-row">
-          <select id="shipTimeSlot" class="ship-input ship-time-slot">
+          <select id="shipTimeSlot" class="ship-input ship-time-slot" onchange="shipTimePick('slot')">
             <option value="">— Anytime —</option>
             <option value="morning">Morning</option>
             <option value="afternoon">Afternoon</option>
             <option value="evening">Evening</option>
             <option value="night">Late Night</option>
           </select>
-          <input type="time" id="shipTimeSpecific" class="ship-input ship-time-specific" placeholder="Specific time">
+          <input type="time" id="shipTimeSpecific" class="ship-input ship-time-specific" placeholder="Specific time" oninput="shipTimePick('specific')">
         </div>
-        <div class="ship-hint">Use either a rough slot or a specific time. Both work; pick what fits your planning style.</div>
+        <div class="ship-hint">Use either a rough slot or a specific time — picking one clears the other.</div>
 
         <label class="ship-label">Platforms <span class="ship-req">*</span></label>
         <div class="ship-platforms" id="shipPlatforms">
@@ -7640,8 +7640,16 @@ function openShipModal(capId){
 
   if(c.scheduled_for){
     dateInput.value = c.scheduled_for;
-    slotSel.value = c.scheduled_time_slot || '';
-    timeIn.value = c.scheduled_time || '';
+    // NOTE-17: slot and specific time are mutually exclusive. Legacy records (or
+    // records created before the mutual-exclusion wiring was added) might have
+    // both set. When that happens, specific time wins and we blank the slot.
+    if(c.scheduled_time){
+      slotSel.value = '';
+      timeIn.value = c.scheduled_time;
+    } else {
+      slotSel.value = c.scheduled_time_slot || '';
+      timeIn.value = '';
+    }
     mediaIn.value = c.scheduled_media || '';
   } else {
     // Default to today's date in local timezone (yyyy-mm-dd)
@@ -7672,6 +7680,20 @@ function closeShipModal(){
   const backdrop = document.getElementById('shipModalBackdrop');
   if(backdrop) backdrop.classList.remove('open');
   shipModalCapId = null;
+}
+
+// NOTE-17 fix: slot and specific time are mutually exclusive in the Ship modal.
+// Picking one auto-clears the other so the saved record only ever has one set.
+// Called from the markup via onchange (slot) and oninput (specific).
+function shipTimePick(which){
+  const slotSel = document.getElementById('shipTimeSlot');
+  const timeIn = document.getElementById('shipTimeSpecific');
+  if(!slotSel || !timeIn) return;
+  if(which === 'slot' && slotSel.value){
+    timeIn.value = '';
+  } else if(which === 'specific' && timeIn.value){
+    slotSel.value = '';
+  }
 }
 
 function saveShipModal(){
