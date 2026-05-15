@@ -916,10 +916,13 @@ footer span{color:var(--mojo)}
   background:var(--mojo-tint);
 }
 .notes-btn-icon{
+  /* Brain emoji 🧠 — size and line-height tuned to sit centered next to "Notes" label.
+     font-family/style settings are kept harmless (emojis ignore them on all major
+     platforms; they render via the OS color emoji font). */
   font-family:var(--serif);
   font-style:italic;
   font-weight:700;
-  font-size:13px;
+  font-size:14px;
   line-height:1;
 }
 .notes-btn-dot{
@@ -4254,7 +4257,7 @@ footer span{color:var(--mojo)}
       <div class="t-name">Caption<em>Mojo</em></div>
     </a>
     <div class="brand-chip" id="brandChip" title="Your active brand profile">My Brand</div>
-    <button class="notes-btn" id="notesBtn" onclick="openNotesModal()" title="Edit your brand's manual override notes. These rules override everything else and let you fix anything the AI got wrong about your brand."><span class="notes-btn-icon">N</span><span>Notes</span><span class="notes-btn-dot" id="notesBtnDot"></span></button>
+    <button class="notes-btn" id="notesBtn" onclick="openNotesModal()" title="Brand notes — quick rules that override the brain. Use these to fix anything the AI got wrong about your brand."><span class="notes-btn-icon">🧠</span><span>Notes</span><span class="notes-btn-dot" id="notesBtnDot"></span></button>
     <div class="usage-pill" id="usagePill" title="Free beta: limited generations per day. Resets at midnight UTC.">— / —</div>
     <div class="learning-pill" id="learningPill" title="The AI learns from your Like and Dislike feedback. Each time you generate, recent feedback is included so future captions match your taste more closely." style="display:none"><span class="learning-dot"></span><span id="learningLabel">learning</span></div>
     <div class="save-badge" title="All your data is saved automatically to your browser"><div class="save-dot" id="saveDot"></div><span id="saveLabel">loading</span></div>
