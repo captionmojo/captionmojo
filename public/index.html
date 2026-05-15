@@ -7281,8 +7281,17 @@ function segMgrStartRename(idx){
       input.replaceWith(nameEl);
       return;
     }
-    // Count captions that reference this segment so we can warn the user
-    const affectedCount = caps.filter(c => Array.isArray(c.segments) && c.segments.includes(currentName)).length;
+    // Count captions that reference this segment so we can warn the user.
+    // Captions may store segments as plain strings OR as objects {name, category};
+    // we check both shapes so the count is always accurate.
+    const affectedCount = caps.filter(c => {
+      if(!Array.isArray(c.segments)) return false;
+      return c.segments.some(s => {
+        if(typeof s === 'string') return s === currentName;
+        if(s && typeof s === 'object') return s.name === currentName;
+        return false;
+      });
+    }).length;
     if(affectedCount > 0){
       const ok = confirm(
         `Rename "${currentName}" → "${newName}"?\n\n` +
@@ -7298,19 +7307,28 @@ function segMgrStartRename(idx){
     }
     // Apply rename to the segments array
     segments[idx].name = newName;
-    // Cascade through caption records: replace old name with new name in each
-    // caption's `segments` array. Filter for active filter chips is also
-    // refreshed below via refreshAllSegPickers.
+    // Cascade through caption records: each caption's `segments` array may
+    // contain either plain strings OR objects of shape `{name, category}`.
+    // We have to handle BOTH shapes — this is the bug Cody hit in the first
+    // round of testing: the original code only handled string entries and
+    // silently skipped object entries, so rename appeared to fail.
     let changed = 0;
     caps.forEach(c => {
       if(!Array.isArray(c.segments)) return;
-      const i = c.segments.indexOf(currentName);
-      if(i >= 0){
-        c.segments[i] = newName;
-        changed++;
+      for(let i = 0; i < c.segments.length; i++){
+        const s = c.segments[i];
+        if(typeof s === 'string' && s === currentName){
+          c.segments[i] = newName;
+          changed++;
+        } else if(s && typeof s === 'object' && s.name === currentName){
+          // Mutate the object's name field; preserve category and any other props
+          s.name = newName;
+          changed++;
+        }
       }
     });
-    // If the selected-segment pickers reference the old name, swap to new
+    // If the selected-segment pickers reference the old name (these arrays
+    // always store plain strings), swap to new
     [gSegSel, aSegSel, capFilterSegs].forEach(arr => {
       const i = arr.indexOf(currentName);
       if(i >= 0) arr[i] = newName;
@@ -7344,8 +7362,19 @@ function segMgrDelete(idx){
   if(idx < 0 || idx >= segments.length) return;
   const seg = segments[idx];
   const segName = seg.name;
+  // Helper: does this caption reference the segment? Caption segments can be
+  // either plain strings OR objects of shape {name, category}, so we check both.
+  // (Same shape mismatch we fixed for rename.)
+  const referencesSeg = (c) => {
+    if(!Array.isArray(c.segments)) return false;
+    return c.segments.some(s => {
+      if(typeof s === 'string') return s === segName;
+      if(s && typeof s === 'object') return s.name === segName;
+      return false;
+    });
+  };
   // Count captions that reference this segment
-  const affectedCount = caps.filter(c => Array.isArray(c.segments) && c.segments.includes(segName)).length;
+  const affectedCount = caps.filter(referencesSeg).length;
 
   // Confirm with impact statement. Two flavors: with caption impact vs without.
   let msg;
@@ -7362,16 +7391,21 @@ function segMgrDelete(idx){
   // Remove from segments array
   segments.splice(idx, 1);
 
-  // Strip from all caption records
+  // Strip from all caption records. Match both shape variants — string entries
+  // get filtered by direct equality, object entries by name field.
   let stripped = 0;
   caps.forEach(c => {
     if(!Array.isArray(c.segments)) return;
     const before = c.segments.length;
-    c.segments = c.segments.filter(s => s !== segName);
+    c.segments = c.segments.filter(s => {
+      if(typeof s === 'string') return s !== segName;
+      if(s && typeof s === 'object') return s.name !== segName;
+      return true; // keep anything weird/unknown
+    });
     if(c.segments.length !== before) stripped++;
   });
 
-  // Strip from any active selection arrays
+  // Strip from any active selection arrays (these always contain plain strings)
   [gSegSel, aSegSel, capFilterSegs].forEach(arr => {
     const i = arr.indexOf(segName);
     if(i >= 0) arr.splice(i, 1);
