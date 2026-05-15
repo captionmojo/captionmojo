@@ -1242,6 +1242,439 @@ footer span{color:var(--mojo)}
   background:var(--mojo-tint);
 }
 
+/* ============================================================================
+   CALENDAR VIEW
+   ============================================================================ */
+#v-cal{padding-bottom:32px}
+.cal-hdr{
+  display:flex;flex-direction:column;gap:10px;
+  padding:18px 18px 14px;
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+  position:sticky;top:130px;z-index:5;
+}
+.cal-title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cal-title{
+  margin:0;font-family:var(--serif);font-style:italic;font-size:22px;
+  flex:1;min-width:140px;
+}
+.cal-nav-btn{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:6px;
+  width:30px;height:30px;
+  cursor:pointer;
+  font-size:18px;
+  line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text);
+  transition:all .12s ease;
+}
+.cal-nav-btn:hover{background:var(--mojo-tint);border-color:var(--mojo);color:var(--mojo)}
+.cal-today-btn{
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:5px 10px;
+  cursor:pointer;
+  font-family:var(--mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+  color:var(--muted);
+  transition:all .12s ease;
+}
+.cal-today-btn:hover{border-color:var(--mojo);color:var(--mojo)}
+.cal-mode-row{display:flex;gap:6px;flex-wrap:wrap}
+.cal-mode-btn{
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:6px 14px;
+  cursor:pointer;
+  font-family:var(--mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--muted);
+  transition:all .12s ease;
+}
+.cal-mode-btn:hover{border-color:var(--mojo);color:var(--mojo)}
+.cal-mode-btn.on{
+  background:var(--mojo);
+  border-color:var(--mojo);
+  color:#fff;
+}
+.cal-body{padding:14px 14px 32px}
+.cal-empty{
+  padding:48px 24px;
+  text-align:center;
+  color:var(--muted);
+}
+.cal-empty p{margin:0 0 8px;font-family:var(--serif);font-style:italic;font-size:18px}
+.cal-empty-hint{font-size:13px;color:var(--muted);font-family:var(--sans);font-style:normal !important}
+
+/* Day card (used in week and upcoming views) */
+.cal-day{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  margin-bottom:12px;
+  overflow:hidden;
+}
+.cal-day.today{
+  border-color:var(--mojo);
+  box-shadow:0 0 0 3px var(--mojo-tint);
+}
+.cal-day.past{opacity:0.65}
+.cal-day-hdr{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:10px 14px;
+  background:#faf9f7;
+  border-bottom:1px solid var(--line);
+}
+.cal-day-name{
+  font-family:var(--serif);
+  font-style:italic;
+  font-weight:600;
+  font-size:15px;
+  color:var(--text);
+}
+.cal-day-today-pill{
+  font-family:var(--mono);
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:0.6px;
+  background:var(--mojo);
+  color:#fff;
+  padding:2px 8px;
+  border-radius:999px;
+}
+.cal-day-count{
+  margin-left:auto;
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+}
+.cal-day-body{padding:10px 14px}
+.cal-day-empty{
+  padding:14px 4px;
+  color:var(--muted);
+  font-size:13px;
+  font-style:italic;
+  font-family:var(--serif);
+}
+
+/* Individual caption card inside a calendar day */
+.cal-cap{
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:12px;
+  background:#fff;
+  margin-bottom:10px;
+}
+.cal-cap:last-child{margin-bottom:0}
+.cal-cap.posted{background:#f5f5f5;opacity:0.85}
+.cal-cap-hdr{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.cal-cap-time{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  padding:2px 8px;
+  background:#faf9f7;
+  border-radius:999px;
+  border:1px solid var(--line);
+}
+.cal-cap-posted-pill{
+  font-family:var(--mono);
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:0.6px;
+  background:var(--green);
+  color:#fff;
+  padding:2px 8px;
+  border-radius:999px;
+}
+.cal-cap-text{
+  font-size:14px;
+  line-height:1.5;
+  color:var(--text);
+  white-space:pre-wrap;
+  margin-bottom:6px;
+}
+.cal-cap-hashtags{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:8px;
+  word-wrap:break-word;
+}
+.cal-cap-media{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:#faf9f7;
+  border:1px dashed var(--line);
+  border-radius:6px;
+  padding:8px 10px;
+  margin-bottom:10px;
+}
+.cal-cap-media-icon{font-size:14px}
+.cal-cap-media-text{
+  flex:1;
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--text);
+  word-break:break-all;
+  min-width:120px;
+}
+.cal-cap-acts{
+  display:flex;gap:6px;flex-wrap:wrap;
+  margin-top:8px;
+  padding-top:10px;
+  border-top:1px dashed var(--line);
+}
+
+/* Scheduled badge — appears on the Folders → Final caption cards too */
+.bdg.sched{
+  background:var(--mojo-tint);
+  color:var(--mojo);
+  font-family:var(--mono);
+  letter-spacing:0.3px;
+  border:1px solid var(--mojo);
+}
+
+/* "Ship to Calendar" button accent */
+.fact.mojo{
+  border-color:var(--mojo);
+  color:var(--mojo);
+}
+.fact.mojo:hover{
+  background:var(--mojo);
+  color:#fff;
+}
+
+/* ====================================================================
+   MONTH VIEW GRID
+   ==================================================================== */
+.cal-month-grid{
+  display:grid;
+  grid-template-columns:repeat(7, 1fr);
+  gap:4px;
+  background:var(--line);
+  border:1px solid var(--line);
+  border-radius:8px;
+  overflow:hidden;
+}
+.cal-month-dayhdr{
+  background:#faf9f7;
+  padding:8px 6px;
+  text-align:center;
+  font-family:var(--mono);
+  font-size:11px;
+  font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+}
+.cal-month-cell{
+  background:var(--surface);
+  min-height:90px;
+  padding:6px;
+  cursor:pointer;
+  display:flex;flex-direction:column;
+  transition:background .12s ease;
+}
+.cal-month-cell:hover{background:#fff}
+.cal-month-cell.other-month{opacity:0.4}
+.cal-month-cell.today{
+  background:var(--mojo-tint);
+  position:relative;
+}
+.cal-month-cell.today::after{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  border:2px solid var(--mojo);
+  pointer-events:none;
+}
+.cal-month-cell-num{
+  font-family:var(--serif);
+  font-weight:600;
+  font-size:13px;
+  margin-bottom:4px;
+}
+.cal-month-cell-count{
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--mojo);
+  margin-bottom:3px;
+  font-weight:600;
+}
+.cal-month-cell-snip{
+  font-size:10px;
+  color:var(--text);
+  line-height:1.3;
+  margin-bottom:2px;
+  background:#faf9f7;
+  padding:2px 4px;
+  border-radius:3px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.cal-month-cell-more{
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+/* ============================================================================
+   SHIP TO CALENDAR MODAL
+   ============================================================================ */
+.ship-modal-backdrop{
+  position:fixed;inset:0;z-index:140;
+  background:rgba(28,25,23,.55);
+  display:none;align-items:center;justify-content:center;
+  padding:20px;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.ship-modal-backdrop.open{display:flex}
+.ship-modal{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  width:100%;max-width:560px;
+  max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  overflow:hidden;
+  position:relative;
+}
+.ship-modal-close{
+  position:absolute;top:14px;right:14px;
+  width:30px;height:30px;
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted);
+  z-index:2;
+}
+.ship-modal-close:hover{background:#faf9f7;color:var(--text)}
+.ship-modal-hdr{
+  padding:20px 24px 14px;
+  border-bottom:1px solid var(--line);
+  padding-right:54px;
+}
+.ship-modal-hdr h2{
+  margin:0 0 6px;font-family:var(--serif);font-style:italic;font-size:22px;
+}
+.ship-modal-hdr p{
+  margin:0;font-size:13px;color:var(--muted);line-height:1.5;
+}
+.ship-modal-body{
+  flex:1;overflow-y:auto;
+  padding:18px 24px 4px;
+}
+.ship-preview{
+  background:#faf9f7;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:10px 14px;
+  margin-bottom:18px;
+}
+.ship-preview-label{
+  font-family:var(--mono);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+.ship-preview-text{
+  font-size:13px;
+  color:var(--text);
+  line-height:1.5;
+  white-space:pre-wrap;
+  max-height:80px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.ship-label{
+  display:block;
+  font-family:var(--mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--muted);
+  margin:0 0 6px;
+  font-weight:600;
+}
+.ship-req{color:var(--mojo);font-weight:600}
+.ship-optional{font-weight:400;text-transform:none;letter-spacing:0;font-style:italic;color:var(--muted)}
+.ship-input{
+  width:100%;
+  font-family:var(--sans);
+  font-size:14px;
+  padding:9px 12px;
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:#fff;
+  outline:none;
+  box-sizing:border-box;
+  margin-bottom:6px;
+}
+.ship-input:focus{
+  border-color:var(--mojo);
+  box-shadow:0 0 0 3px var(--mojo-tint);
+}
+.ship-time-row{display:flex;gap:8px;margin-bottom:6px}
+.ship-time-slot{flex:1;margin-bottom:0}
+.ship-time-specific{flex:1;margin-bottom:0}
+.ship-hint{
+  font-size:12px;
+  color:var(--muted);
+  font-style:italic;
+  margin-bottom:14px;
+}
+.ship-platforms{
+  display:flex;gap:8px;flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.ship-plat-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#fff;
+  font-size:13px;
+  cursor:pointer;
+  user-select:none;
+  transition:all .12s ease;
+}
+.ship-plat-chip:hover{border-color:var(--mojo)}
+.ship-plat-chip input{margin:0;cursor:pointer}
+.ship-plat-chip:has(input:checked){
+  background:var(--mojo-tint);
+  border-color:var(--mojo);
+  color:var(--mojo);
+  font-weight:500;
+}
+.ship-modal-foot{
+  display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  padding:14px 24px;
+  border-top:1px solid var(--line);
+  background:#faf9f7;
+}
+.ship-error{
+  margin-right:auto;
+  font-size:13px;
+  color:var(--red);
+  font-weight:500;
+}
+
 .stats-row{
   background:var(--surface);
   border-bottom:1px solid var(--border);
@@ -4507,6 +4940,7 @@ footer span{color:var(--mojo)}
     <button class="tnav on" title="Generate new captions with AI" onclick="showTab('gen',this)">✦ Generate</button>
     <button class="tnav" title="View all your generated captions" onclick="showTab('caps',this)">☰ Captions</button>
     <button class="tnav" title="Organize by status: Final, In Progress, Liked, Trash" onclick="showTab('fold',this)">▤ Folders</button>
+    <button class="tnav" title="Plan and ship your scheduled content" onclick="showTab('cal',this)">📅 Calendar</button>
   </div>
   <div class="view on" id="v-gen">
     <!-- ===== GEN MODE TABS — switch between AI Generate / Write your own =====
@@ -4634,6 +5068,84 @@ footer span{color:var(--mojo)}
       <button class="fact" title="Download all captions in this folder as a .csv spreadsheet (opens in Excel / Google Sheets)" onclick="doExportCsv()">↓ Export .csv</button>
       <button class="fact blue" title="Copy all captions in this folder to clipboard" onclick="doCopyAll()">⎘ Copy All</button>
       <button class="fact red" id="emptyTrashBtn" title="Permanently delete all trashed captions" onclick="emptyTrash()" style="display:none">Empty Trash</button>
+    </div>
+  </div>
+
+  <!-- ============================================================================
+       CALENDAR VIEW — production schedule for finalized captions
+       Captions get scheduled here via "Ship to Calendar" button on Final folder.
+       Week view default + Month toggle. Today's slot, upcoming slots, posted history.
+       ============================================================================ -->
+  <div class="view" id="v-cal" style="flex-direction:column">
+    <div class="cal-hdr">
+      <div class="cal-title-row">
+        <button class="cal-nav-btn" id="calPrevBtn" onclick="calNav(-1)" title="Previous">‹</button>
+        <h3 class="cal-title" id="calTitle">This week</h3>
+        <button class="cal-nav-btn" id="calNextBtn" onclick="calNav(1)" title="Next">›</button>
+        <button class="cal-today-btn" onclick="calGoToday()" title="Jump to today">Today</button>
+      </div>
+      <div class="cal-mode-row">
+        <button class="cal-mode-btn on" id="calModeWeek" onclick="calSetMode('week')">Week</button>
+        <button class="cal-mode-btn" id="calModeMonth" onclick="calSetMode('month')">Month</button>
+        <button class="cal-mode-btn" id="calModeUpcoming" onclick="calSetMode('upcoming')">Upcoming</button>
+        <button class="cal-mode-btn" id="calModePosted" onclick="calSetMode('posted')">Posted</button>
+      </div>
+    </div>
+    <div class="cal-body" id="calBody">
+      <!-- Filled by renderCalendar() -->
+    </div>
+  </div>
+
+  <!-- ============================================================================
+       SHIP TO CALENDAR MODAL — opens from Final folder cards
+       Picks date + platforms + optional time slot + optional media reference.
+       Saves to caption record (scheduled_for, scheduled_platforms, etc).
+       ============================================================================ -->
+  <div class="ship-modal-backdrop" id="shipModalBackdrop" onclick="if(event.target===this)closeShipModal()">
+    <div class="ship-modal" role="dialog" aria-labelledby="shipModalTitle">
+      <button class="ship-modal-close" onclick="closeShipModal()" title="Close">✕</button>
+      <div class="ship-modal-hdr">
+        <h2 id="shipModalTitle">Ship to Calendar</h2>
+        <p>Schedule this caption for a specific date and platforms. You'll see it in your calendar on posting day, ready to copy and ship.</p>
+      </div>
+      <div class="ship-modal-body">
+        <div class="ship-preview" id="shipPreview"></div>
+
+        <label class="ship-label">Post date <span class="ship-req">*</span></label>
+        <input type="date" id="shipDate" class="ship-input" required>
+
+        <label class="ship-label">Time of day <span class="ship-optional">(optional)</span></label>
+        <div class="ship-time-row">
+          <select id="shipTimeSlot" class="ship-input ship-time-slot">
+            <option value="">— Anytime —</option>
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening">Evening</option>
+            <option value="night">Late Night</option>
+          </select>
+          <input type="time" id="shipTimeSpecific" class="ship-input ship-time-specific" placeholder="Specific time">
+        </div>
+        <div class="ship-hint">Use either a rough slot or a specific time. Both work; pick what fits your planning style.</div>
+
+        <label class="ship-label">Platforms <span class="ship-req">*</span></label>
+        <div class="ship-platforms" id="shipPlatforms">
+          <label class="ship-plat-chip"><input type="checkbox" value="Instagram"> Instagram</label>
+          <label class="ship-plat-chip"><input type="checkbox" value="TikTok"> TikTok</label>
+          <label class="ship-plat-chip"><input type="checkbox" value="Twitter / X"> Twitter / X</label>
+          <label class="ship-plat-chip"><input type="checkbox" value="Facebook"> Facebook</label>
+          <label class="ship-plat-chip"><input type="checkbox" value="LinkedIn"> LinkedIn</label>
+        </div>
+        <div class="ship-hint">Same caption goes to all checked platforms on the same date.</div>
+
+        <label class="ship-label">Media reference <span class="ship-optional">(optional)</span></label>
+        <input type="text" id="shipMedia" class="ship-input" placeholder="e.g. IMG_4521.mov · Drive/TD-content/May">
+        <div class="ship-hint">Where's the photo/video stored? Filename, folder path, anything that helps you find it on posting day. We'll add real file upload later (deferred — see NOTE-13).</div>
+      </div>
+      <div class="ship-modal-foot">
+        <span class="ship-error" id="shipError" style="display:none"></span>
+        <button class="btn btn-soft btn-md" onclick="closeShipModal()">Cancel</button>
+        <button class="btn btn-mojo btn-md" onclick="saveShipModal()">📅 Schedule it</button>
+      </div>
     </div>
   </div>
 
@@ -7065,6 +7577,489 @@ function addSeg(track){
 }
 
 // ============================================================================
+// CALENDAR — production schedule
+// ============================================================================
+// Data model: each caption can carry these optional fields:
+//   - scheduled_for: 'YYYY-MM-DD' date string (presence = scheduled)
+//   - scheduled_platforms: array of platform strings ['Instagram', 'TikTok', ...]
+//   - scheduled_time_slot: 'morning' | 'afternoon' | 'evening' | 'night' | null
+//   - scheduled_time: 'HH:MM' specific time (optional, alternative to slot)
+//   - scheduled_media: optional string (filename, path, or freeform note)
+//   - status: 'posted' is added to the existing status enum when user marks posted
+//
+// State for the calendar view itself:
+//   - calMode: 'week' | 'month' | 'upcoming' | 'posted'
+//   - calCursor: a JS Date pointing at the "anchor" date (start of current week for week view, any day in month for month view)
+//   - shipModalCapId: which caption is currently open in the ship modal
+
+let calMode = 'week';
+let calCursor = new Date(); // today by default
+let shipModalCapId = null;
+
+// ============================================================================
+// SHIP TO CALENDAR MODAL
+// ============================================================================
+// Opens from the "📅 Ship to Calendar" button on Final folder cards.
+// User picks date + platforms + (optional) time slot + (optional) media ref,
+// hits Schedule, and the caption record gets the scheduled_* fields populated.
+
+function openShipModal(capId){
+  const c = F(capId);
+  if(!c) return;
+  shipModalCapId = capId;
+  const backdrop = document.getElementById('shipModalBackdrop');
+  if(!backdrop) return;
+
+  // Populate preview (first 120 chars of caption)
+  const preview = document.getElementById('shipPreview');
+  if(preview){
+    const snippet = c.text.length > 200 ? c.text.slice(0, 200) + '…' : c.text;
+    preview.innerHTML = `
+      <div class="ship-preview-label">CAPTION</div>
+      <div class="ship-preview-text">${esc(snippet)}</div>
+    `;
+  }
+
+  // Pre-fill values: if already scheduled, load existing; otherwise default to today
+  const dateInput = document.getElementById('shipDate');
+  const slotSel = document.getElementById('shipTimeSlot');
+  const timeIn = document.getElementById('shipTimeSpecific');
+  const mediaIn = document.getElementById('shipMedia');
+  const platsBox = document.getElementById('shipPlatforms');
+  const errorEl = document.getElementById('shipError');
+  if(errorEl){ errorEl.style.display = 'none'; errorEl.textContent = ''; }
+
+  if(c.scheduled_for){
+    dateInput.value = c.scheduled_for;
+    slotSel.value = c.scheduled_time_slot || '';
+    timeIn.value = c.scheduled_time || '';
+    mediaIn.value = c.scheduled_media || '';
+  } else {
+    // Default to today's date in local timezone (yyyy-mm-dd)
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth()+1).padStart(2,'0');
+    const d = String(today.getDate()).padStart(2,'0');
+    dateInput.value = `${y}-${m}-${d}`;
+    slotSel.value = '';
+    timeIn.value = '';
+    mediaIn.value = '';
+  }
+
+  // Reset/check platform boxes. If caption was already scheduled, pre-check existing platforms.
+  // If never scheduled, default check the caption's own platforms (carrying over from generation).
+  const checked = (c.scheduled_for && Array.isArray(c.scheduled_platforms))
+    ? c.scheduled_platforms
+    : (c.platforms.includes('All') ? ['Instagram','TikTok'] : c.platforms);
+  platsBox.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.checked = checked.includes(cb.value);
+  });
+
+  backdrop.classList.add('open');
+  setTimeout(() => dateInput.focus(), 60);
+}
+
+function closeShipModal(){
+  const backdrop = document.getElementById('shipModalBackdrop');
+  if(backdrop) backdrop.classList.remove('open');
+  shipModalCapId = null;
+}
+
+function saveShipModal(){
+  if(shipModalCapId == null) return;
+  const c = F(shipModalCapId);
+  if(!c){ closeShipModal(); return; }
+  const dateInput = document.getElementById('shipDate');
+  const slotSel = document.getElementById('shipTimeSlot');
+  const timeIn = document.getElementById('shipTimeSpecific');
+  const mediaIn = document.getElementById('shipMedia');
+  const platsBox = document.getElementById('shipPlatforms');
+  const errorEl = document.getElementById('shipError');
+
+  const dateVal = (dateInput.value || '').trim();
+  const slotVal = (slotSel.value || '').trim();
+  const timeVal = (timeIn.value || '').trim();
+  const mediaVal = (mediaIn.value || '').trim();
+  const platsChecked = Array.from(platsBox.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
+
+  // Validation
+  const showErr = (msg) => {
+    if(errorEl){ errorEl.textContent = msg; errorEl.style.display = 'inline'; }
+  };
+  if(!dateVal){ showErr('Pick a date.'); dateInput.focus(); return; }
+  if(!platsChecked.length){ showErr('Pick at least one platform.'); return; }
+
+  // Persist on caption record
+  c.scheduled_for = dateVal;
+  c.scheduled_platforms = platsChecked;
+  c.scheduled_time_slot = slotVal || null;
+  c.scheduled_time = timeVal || null;
+  c.scheduled_media = mediaVal || null;
+  // If caption wasn't Final yet, scheduling implicitly Finalizes it.
+  // (Per design decision: a scheduled caption is implicitly approved-to-post.)
+  if(c.status !== 'final' && c.status !== 'posted'){
+    c.status = 'final';
+  }
+  save();
+  closeShipModal();
+  // Refresh folder view so the SCHEDULED badge appears immediately
+  if(typeof rFolder === 'function') rFolder();
+  if(typeof rStats === 'function') rStats();
+}
+
+// ============================================================================
+// CALENDAR RENDERING
+// ============================================================================
+
+// Helper: format a Date as YYYY-MM-DD in local timezone
+function calFmtDate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+// Helper: get start-of-week (Sunday) for a date
+function calWeekStart(d){
+  const out = new Date(d);
+  out.setHours(0,0,0,0);
+  out.setDate(out.getDate() - out.getDay());
+  return out;
+}
+
+// Helper: pretty short date — "Sun, May 18"
+function calPrettyDate(d){
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+
+// Helper: month label "May 2026"
+function calMonthLabel(d){
+  return d.toLocaleDateString('en-US', { month:'long', year:'numeric' });
+}
+
+// Get all captions scheduled for a given date (string YYYY-MM-DD).
+// Excludes trash and posted (posted appear in "Posted" mode only).
+function calCapsForDate(dateStr, includePosted){
+  return caps.filter(c =>
+    c.scheduled_for === dateStr
+    && c.status !== 'trash'
+    && (includePosted || c.status !== 'posted')
+  );
+}
+
+// Get all scheduled+upcoming captions (today or future), sorted by date.
+function calUpcomingCaps(){
+  const today = calFmtDate(new Date());
+  return caps
+    .filter(c => c.scheduled_for && c.scheduled_for >= today && c.status !== 'trash' && c.status !== 'posted')
+    .sort((a,b) => a.scheduled_for.localeCompare(b.scheduled_for));
+}
+
+// Get all posted captions, sorted by date desc.
+function calPostedCaps(){
+  return caps
+    .filter(c => c.status === 'posted')
+    .sort((a,b) => (b.scheduled_for || '').localeCompare(a.scheduled_for || ''));
+}
+
+// Switch calendar mode (week/month/upcoming/posted)
+function calSetMode(mode){
+  calMode = mode;
+  document.querySelectorAll('.cal-mode-btn').forEach(b => b.classList.remove('on'));
+  const btn = document.getElementById('calMode' + mode.charAt(0).toUpperCase() + mode.slice(1));
+  if(btn) btn.classList.add('on');
+  renderCalendar();
+}
+
+// Navigation: -1 = prev, +1 = next (week or month depending on mode)
+function calNav(dir){
+  if(calMode === 'week'){
+    calCursor.setDate(calCursor.getDate() + (7 * dir));
+  } else if(calMode === 'month'){
+    calCursor.setMonth(calCursor.getMonth() + dir);
+  }
+  // upcoming/posted modes don't navigate
+  renderCalendar();
+}
+
+function calGoToday(){
+  calCursor = new Date();
+  renderCalendar();
+}
+
+// Render top-level: delegates to the appropriate mode renderer
+function renderCalendar(){
+  const body = document.getElementById('calBody');
+  if(!body) return;
+  const prevBtn = document.getElementById('calPrevBtn');
+  const nextBtn = document.getElementById('calNextBtn');
+  const todayBtn = document.querySelector('.cal-today-btn');
+  const navsVisible = (calMode === 'week' || calMode === 'month');
+  if(prevBtn) prevBtn.style.visibility = navsVisible ? 'visible' : 'hidden';
+  if(nextBtn) nextBtn.style.visibility = navsVisible ? 'visible' : 'hidden';
+  if(todayBtn) todayBtn.style.visibility = navsVisible ? 'visible' : 'hidden';
+
+  if(calMode === 'week') return renderCalendarWeek();
+  if(calMode === 'month') return renderCalendarMonth();
+  if(calMode === 'upcoming') return renderCalendarUpcoming();
+  if(calMode === 'posted') return renderCalendarPosted();
+}
+
+// Week view: 7 day cards stacked, each with its scheduled captions inline
+function renderCalendarWeek(){
+  const body = document.getElementById('calBody');
+  const titleEl = document.getElementById('calTitle');
+  const weekStart = calWeekStart(calCursor);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  if(titleEl){
+    const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
+    titleEl.textContent = sameMonth
+      ? `${weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${weekEnd.toLocaleDateString('en-US',{day:'numeric',year:'numeric'})}`
+      : `${weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${weekEnd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+  }
+  const todayStr = calFmtDate(new Date());
+  const html = [];
+  for(let i = 0; i < 7; i++){
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    const dateStr = calFmtDate(d);
+    const isToday = dateStr === todayStr;
+    const isPast = dateStr < todayStr;
+    const capsHere = calCapsForDate(dateStr, false);
+    html.push(`
+      <div class="cal-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}">
+        <div class="cal-day-hdr">
+          <span class="cal-day-name">${calPrettyDate(d)}</span>
+          ${isToday ? '<span class="cal-day-today-pill">TODAY</span>' : ''}
+          <span class="cal-day-count">${capsHere.length} ${capsHere.length === 1 ? 'post' : 'posts'}</span>
+        </div>
+        <div class="cal-day-body">
+          ${capsHere.length ? capsHere.map(c => renderCalCapCard(c)).join('') : '<div class="cal-day-empty">No posts scheduled</div>'}
+        </div>
+      </div>
+    `);
+  }
+  body.innerHTML = html.join('');
+}
+
+// Month view: grid of days, each with a small count + tooltip listing
+function renderCalendarMonth(){
+  const body = document.getElementById('calBody');
+  const titleEl = document.getElementById('calTitle');
+  const cur = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
+  if(titleEl) titleEl.textContent = calMonthLabel(cur);
+  const todayStr = calFmtDate(new Date());
+
+  // Compute grid: start on Sunday before the 1st, end on Saturday after the last day
+  const gridStart = new Date(cur);
+  gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+  const monthEnd = new Date(cur.getFullYear(), cur.getMonth()+1, 0);
+  const gridEnd = new Date(monthEnd);
+  gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()));
+
+  const cells = [];
+  const dayHeaders = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  cells.push(`<div class="cal-month-grid">${dayHeaders.map(h => `<div class="cal-month-dayhdr">${h}</div>`).join('')}`);
+
+  const iter = new Date(gridStart);
+  while(iter <= gridEnd){
+    const dateStr = calFmtDate(iter);
+    const isToday = dateStr === todayStr;
+    const isOtherMonth = iter.getMonth() !== cur.getMonth();
+    const capsHere = calCapsForDate(dateStr, false);
+    cells.push(`
+      <div class="cal-month-cell ${isToday ? 'today' : ''} ${isOtherMonth ? 'other-month' : ''}" onclick="calOpenDay('${dateStr}')">
+        <div class="cal-month-cell-num">${iter.getDate()}</div>
+        ${capsHere.length ? `<div class="cal-month-cell-count">${capsHere.length} post${capsHere.length === 1 ? '' : 's'}</div>` : ''}
+        ${capsHere.slice(0,2).map(c => `<div class="cal-month-cell-snip">${esc(c.text.slice(0,30))}${c.text.length>30?'…':''}</div>`).join('')}
+        ${capsHere.length > 2 ? `<div class="cal-month-cell-more">+ ${capsHere.length - 2} more</div>` : ''}
+      </div>
+    `);
+    iter.setDate(iter.getDate() + 1);
+  }
+  cells.push('</div>');
+  body.innerHTML = cells.join('');
+}
+
+// Click a day cell in month view → switch to week containing that day
+function calOpenDay(dateStr){
+  calCursor = new Date(dateStr + 'T00:00:00');
+  calMode = 'week';
+  document.querySelectorAll('.cal-mode-btn').forEach(b => b.classList.remove('on'));
+  const wbtn = document.getElementById('calModeWeek');
+  if(wbtn) wbtn.classList.add('on');
+  renderCalendar();
+}
+
+// Upcoming view: flat list of all scheduled+pending captions, sorted by date
+function renderCalendarUpcoming(){
+  const body = document.getElementById('calBody');
+  const titleEl = document.getElementById('calTitle');
+  if(titleEl) titleEl.textContent = 'Upcoming posts';
+  const items = calUpcomingCaps();
+  if(!items.length){
+    body.innerHTML = `
+      <div class="cal-empty">
+        <p>No upcoming posts scheduled.</p>
+        <p class="cal-empty-hint">Go to <strong>Folders → Final</strong> and click <strong>📅 Ship to Calendar</strong> on any caption to schedule it.</p>
+      </div>
+    `;
+    return;
+  }
+  // Group by date
+  const byDate = {};
+  items.forEach(c => {
+    if(!byDate[c.scheduled_for]) byDate[c.scheduled_for] = [];
+    byDate[c.scheduled_for].push(c);
+  });
+  const dates = Object.keys(byDate).sort();
+  const todayStr = calFmtDate(new Date());
+  const html = dates.map(dateStr => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const isToday = dateStr === todayStr;
+    return `
+      <div class="cal-day ${isToday ? 'today' : ''}">
+        <div class="cal-day-hdr">
+          <span class="cal-day-name">${calPrettyDate(d)}</span>
+          ${isToday ? '<span class="cal-day-today-pill">TODAY</span>' : ''}
+          <span class="cal-day-count">${byDate[dateStr].length} ${byDate[dateStr].length === 1 ? 'post' : 'posts'}</span>
+        </div>
+        <div class="cal-day-body">
+          ${byDate[dateStr].map(c => renderCalCapCard(c)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+  body.innerHTML = html;
+}
+
+// Posted view: history of what's been shipped
+function renderCalendarPosted(){
+  const body = document.getElementById('calBody');
+  const titleEl = document.getElementById('calTitle');
+  if(titleEl) titleEl.textContent = 'Posted history';
+  const items = calPostedCaps();
+  if(!items.length){
+    body.innerHTML = `
+      <div class="cal-empty">
+        <p>No posted captions yet.</p>
+        <p class="cal-empty-hint">After you ship a scheduled caption on socials, hit <strong>✓ Mark as Posted</strong> in the calendar slot to track it here.</p>
+      </div>
+    `;
+    return;
+  }
+  body.innerHTML = items.map(c => renderCalCapCard(c, true)).join('');
+}
+
+// Render a single caption card inside a calendar slot. Includes Copy, Download
+// (if media reference), Mark as Posted, and Edit Schedule actions.
+function renderCalCapCard(c, isPosted){
+  isPosted = isPosted || c.status === 'posted';
+  const platforms = (c.scheduled_platforms || []).map(p => `<span class="bdg plat" style="font-size:10px">${esc(p)}</span>`).join('');
+  const timeLabel = c.scheduled_time
+    ? `at ${c.scheduled_time}`
+    : (c.scheduled_time_slot ? c.scheduled_time_slot.charAt(0).toUpperCase() + c.scheduled_time_slot.slice(1) : '');
+  const timeBadge = timeLabel ? `<span class="cal-cap-time">${esc(timeLabel)}</span>` : '';
+  const mediaSection = c.scheduled_media
+    ? `<div class="cal-cap-media">
+         <span class="cal-cap-media-icon">📎</span>
+         <span class="cal-cap-media-text">${esc(c.scheduled_media)}</span>
+         <button class="fact" title="Try to download the file (works if it's a real URL, otherwise shows the reference)" onclick="downloadScheduledMedia(${c.id})">↓ Download</button>
+       </div>`
+    : '';
+  const hashtagsLine = (Array.isArray(c.hashtags) && c.hashtags.length)
+    ? `<div class="cal-cap-hashtags">${c.hashtags.map(esc).join(' ')}</div>`
+    : '';
+  return `
+    <div class="cal-cap ${isPosted ? 'posted' : ''}" data-cap-id="${c.id}">
+      <div class="cal-cap-hdr">
+        ${platforms}
+        ${timeBadge}
+        ${isPosted ? '<span class="cal-cap-posted-pill">✓ POSTED</span>' : ''}
+      </div>
+      <div class="cal-cap-text">${esc(c.text)}</div>
+      ${hashtagsLine}
+      ${mediaSection}
+      <div class="cal-cap-acts">
+        <button class="fact" title="Copy caption text + hashtags to clipboard, ready to paste into the social app" onclick="calCopyForPosting(${c.id},this)">⎘ Copy caption</button>
+        ${!isPosted ? `<button class="fact green" title="Mark this as posted on socials. Moves it out of upcoming, into Posted history." onclick="calMarkPosted(${c.id})">✓ Mark as Posted</button>` : ''}
+        ${!isPosted ? `<button class="fact" title="Change date, platforms, time, or media" onclick="openShipModal(${c.id})">✎ Edit</button>` : ''}
+        ${!isPosted ? `<button class="fact red" title="Remove from calendar (caption stays in your library)" onclick="calUnschedule(${c.id})">Unschedule</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// Copy caption text + hashtags merged, like the "Copy with hashtags" elsewhere
+function calCopyForPosting(id, btn){
+  const c = F(id);
+  if(!c) return;
+  let txt = c.text;
+  if(Array.isArray(c.hashtags) && c.hashtags.length){
+    txt = c.text + '\n\n\n' + c.hashtags.join(' ');
+  }
+  // Best-effort clipboard (Firefox private mode sometimes blocks; fall back to textarea)
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  };
+  try {
+    navigator.clipboard.writeText(txt).then(() => {
+      // Brief visual feedback on the button
+      const original = btn ? btn.innerHTML : null;
+      if(btn){ btn.innerHTML = '✓ Copied'; setTimeout(() => { btn.innerHTML = original; }, 1200); }
+    }).catch(fallback);
+  } catch(_) { fallback(); }
+}
+
+// "Download" the media. v1: if the reference looks like a URL, open it in a new tab.
+// Otherwise alert the user with the reference so they can find it themselves.
+// (Real file upload comes in NOTE-13.)
+function downloadScheduledMedia(id){
+  const c = F(id);
+  if(!c || !c.scheduled_media){ alert('No media attached to this caption.'); return; }
+  const ref = c.scheduled_media.trim();
+  // Looks like a URL? open it
+  if(/^https?:\/\//i.test(ref)){
+    window.open(ref, '_blank', 'noopener');
+    return;
+  }
+  // Otherwise just show the reference for the user to navigate to
+  alert(`Media reference:\n\n${ref}\n\nNavigate to this file in your storage to get the photo/video. (Real file upload coming in a future update.)`);
+}
+
+// Mark a scheduled caption as posted
+function calMarkPosted(id){
+  const c = F(id);
+  if(!c) return;
+  c.status = 'posted';
+  save();
+  renderCalendar();
+  if(typeof rFolder === 'function') rFolder();
+  if(typeof rStats === 'function') rStats();
+}
+
+// Remove the scheduling from a caption (caption stays in library)
+function calUnschedule(id){
+  const c = F(id);
+  if(!c) return;
+  if(!confirm(`Unschedule this caption?\n\n"${c.text.slice(0,80)}${c.text.length>80?'…':''}"\n\nThe caption stays in your Final folder; just the scheduling is removed.`)) return;
+  c.scheduled_for = null;
+  c.scheduled_platforms = null;
+  c.scheduled_time_slot = null;
+  c.scheduled_time = null;
+  c.scheduled_media = null;
+  save();
+  renderCalendar();
+  if(typeof rFolder === 'function') rFolder();
+}
+
+// ============================================================================
 // SEGMENT MANAGER MODAL
 // Allows the user to add, rename, or delete audience segments AFTER onboarding,
 // from the studio. The modal is triggered from "✎ Manage" links in both the
@@ -7815,6 +8810,7 @@ function showTab(n,btn){
   window.scrollTo({top:0,behavior:'instant'});
   if(n==='caps')rCards();
   if(n==='fold')rFolder();
+  if(n==='cal')renderCalendar();
 }
 function tPC(el){
   const g=el.closest('.pchips'),a=g.querySelector('.pchip:first-child');
@@ -7922,9 +8918,21 @@ function rFolder(){
   el.innerHTML=items.map(c=>{
     const isE=fEId===c.id;
     const pb=(c.platforms.includes('All')?['Instagram','TikTok','Twitter / X']:c.platforms).map(p=>`<span class="bdg plat" style="font-size:10px">${p}</span>`).join('');
+    // Show a "📅 SCHEDULED" badge if this caption has been shipped to calendar
+    const isScheduled = !!c.scheduled_for;
+    const isPosted = c.status === 'posted';
+    const schedBadge = isScheduled ? `<span class="bdg sched" style="font-size:10px" title="Scheduled for ${esc(c.scheduled_for)}${c.scheduled_time_slot ? ' · ' + esc(c.scheduled_time_slot) : ''}">${isPosted ? '✓ POSTED' : '📅 SCHEDULED ' + esc(c.scheduled_for)}</span>` : '';
+    // "Ship to Calendar" only appears in Final folder, not trash/liked/wip — Final means ready-to-deploy.
+    // If already scheduled, button becomes "✎ Edit schedule" to keep affordance but acknowledge state.
+    const showShipBtn = fTab === 'final' && !isTrash;
+    const shipBtn = showShipBtn
+      ? (isScheduled
+          ? `<button class="fact" title="Update the scheduled date / platforms / media for this caption" onclick="openShipModal(${c.id})">✎ Edit schedule</button>`
+          : `<button class="fact mojo" title="Schedule this caption to your calendar" onclick="openShipModal(${c.id})">📅 Ship to Calendar</button>`)
+      : '';
     const body=isE
       ?`<textarea class="fcard-eta" id="feta-${c.id}" oninput="fetaCC(${c.id})">${esc(c.text)}</textarea><div class="erow" style="margin-top:7px"><span class="echars" id="fech-${c.id}">${c.text.length} chars</span><button class="ecancel" onclick="fCE()">Cancel</button><button class="esave" onclick="fSE(${c.id})">Save</button></div>`
-      :`<div class="fcard-text">${esc(c.text)}</div><div class="fcard-meta">${capSegList(c).map(n=>`<span class="bdg seg" style="font-size:10px">${esc(n)}</span>`).join('')}${pb}</div><div class="fcard-acts">${isTrash?`<button class="fact blue" title="Restore caption back to your library" onclick="restore(${c.id})">↩ Restore</button><button class="fact red" title="Permanently delete this caption" onclick="permDel(${c.id})">Delete forever</button>`:`<button class="fact" title="Copy to clipboard" onclick="copy1(${c.id},this)">⎘ Copy</button><button class="fact" title="Edit caption text" onclick="fStartE(${c.id})">✎ Edit</button>${canP?`<button class="fact green" title="Move to Final" onclick="setSt(${c.id},'final')">→ Final</button>`:''}<button class="fact red" title="${fTab==='liked'?'Remove from Liked':'Remove from this folder'}" onclick="remF(${c.id})">${fTab==='liked'?'Unlike':'Remove'}</button>`}</div>`;
+      :`<div class="fcard-text">${esc(c.text)}</div><div class="fcard-meta">${capSegList(c).map(n=>`<span class="bdg seg" style="font-size:10px">${esc(n)}</span>`).join('')}${pb}${schedBadge}</div><div class="fcard-acts">${isTrash?`<button class="fact blue" title="Restore caption back to your library" onclick="restore(${c.id})">↩ Restore</button><button class="fact red" title="Permanently delete this caption" onclick="permDel(${c.id})">Delete forever</button>`:`<button class="fact" title="Copy to clipboard" onclick="copy1(${c.id},this)">⎘ Copy</button><button class="fact" title="Edit caption text" onclick="fStartE(${c.id})">✎ Edit</button>${canP?`<button class="fact green" title="Move to Final" onclick="setSt(${c.id},'final')">→ Final</button>`:''}${shipBtn}<button class="fact red" title="${fTab==='liked'?'Remove from Liked':'Remove from this folder'}" onclick="remF(${c.id})">${fTab==='liked'?'Unlike':'Remove'}</button>`}</div>`;
     return`<div class="fcard">${body}</div>`;
   }).join('');
   if(fEId!==null)setTimeout(()=>{const ta=document.getElementById(`feta-${fEId}`);if(ta){ta.focus();ta.selectionStart=ta.value.length;}},30);
