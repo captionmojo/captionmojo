@@ -4406,6 +4406,13 @@ footer span{color:var(--mojo)}
     <div class="filter-wrap"><div class="filter-lbl">Platform</div><div class="fscroll" id="pFilters"><button class="ftag pon" onclick="setPF('all',this)">All Platforms</button><button class="ftag" onclick="setPF('Instagram',this)">Instagram</button><button class="ftag" onclick="setPF('TikTok',this)">TikTok</button><button class="ftag" onclick="setPF('Twitter / X',this)">Twitter / X</button><button class="ftag" onclick="setPF('Facebook',this)">Facebook</button><button class="ftag" onclick="setPF('LinkedIn',this)">LinkedIn</button></div></div>
     <div class="finfo" id="fInfo"></div>
     <div class="clist" id="cList"></div>
+    <!-- Captions tab export bar — mirrors the Folders tab export bar. Exports
+         respect the currently active platform + segment filters so users get
+         exactly what they see on screen. -->
+    <div class="expbar">
+      <button class="fact" title="Download these captions as a .csv spreadsheet (opens in Excel / Google Sheets)" onclick="doExportCapsCsv()">↓ Export .csv</button>
+      <button class="fact blue" title="Copy all visible captions to clipboard" onclick="doCopyAllCaps()">⎘ Copy All</button>
+    </div>
   </div>
   <div class="view" id="v-fold" style="flex-direction:column">
     <div class="ftabs">
@@ -4417,6 +4424,7 @@ footer span{color:var(--mojo)}
     <div class="fbody"><div class="flist" id="fList"></div></div>
     <div class="expbar">
       <button class="fact" title="Download all captions in this folder as a .txt file" onclick="doExport()">↓ Export .txt</button>
+      <button class="fact" title="Download all captions in this folder as a .csv spreadsheet (opens in Excel / Google Sheets)" onclick="doExportCsv()">↓ Export .csv</button>
       <button class="fact blue" title="Copy all captions in this folder to clipboard" onclick="doCopyAll()">⎘ Copy All</button>
       <button class="fact red" id="emptyTrashBtn" title="Permanently delete all trashed captions" onclick="emptyTrash()" style="display:none">Empty Trash</button>
     </div>
@@ -7887,6 +7895,125 @@ function doExport(){
   a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
   a.download=`${(BP.name||'captions').toLowerCase().replace(/\s+/g,'-')}-${fTab}-${Date.now()}.txt`;
   a.click();
+}
+
+// ============ CSV EXPORT ============
+// Produces a spreadsheet-friendly CSV of the captions. Used by both:
+//   - Folders tab: exports current folder (Final / WIP / Liked / Trash)
+//   - Captions tab: exports the currently filtered view (respects platform + segment filters)
+// Format: RFC 4180 compliant — quoted fields, escaped double-quotes, CRLF line breaks.
+// Opens cleanly in Excel, Google Sheets, Numbers.
+
+// Convert a single value to a CSV-safe field. Wraps in quotes if it contains
+// commas, quotes, or newlines. Doubles any embedded quotes per RFC 4180.
+function csvField(v){
+  const s = (v == null) ? '' : String(v);
+  // Always quote — simpler and safer than conditional quoting, and handles
+  // weird edge cases (leading/trailing spaces, fields starting with =, etc.)
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+// Build a CSV string from an array of captions. One row per caption.
+// Columns chosen to match what users actually need for spreadsheet analysis:
+// caption text, platforms, segments, hashtags, status, AI vs custom, batch id.
+function buildCaptionsCsv(items, contextLabel){
+  // Header row
+  const headers = ['Caption','Platforms','Segments','Hashtags','Status','Source','BatchID'];
+  const rows = [headers.map(csvField).join(',')];
+
+  for(const c of items){
+    const platforms = (c.platforms||[]).includes('All') ? 'All' : (c.platforms||[]).join(', ');
+    const segments = capSegList(c).join(', ');
+    const hashtags = Array.isArray(c.hashtags) ? c.hashtags.join(' ') : '';
+    let status = 'none';
+    if(c.status === 'final') status = 'Final';
+    else if(c.status === 'wip') status = 'In Progress';
+    else if(c.status === 'trash') status = 'Trash';
+    else if(c.liked) status = 'Liked';
+    else if(c.disliked) status = 'Disliked';
+    const source = c.generated ? 'AI Generated' : (c.custom ? 'Custom' : 'Unknown');
+    const batchId = c.id != null ? String(c.id) : '';
+
+    rows.push([
+      csvField(c.text),
+      csvField(platforms),
+      csvField(segments),
+      csvField(hashtags),
+      csvField(status),
+      csvField(source),
+      csvField(batchId)
+    ].join(','));
+  }
+
+  // RFC 4180 line separator is CRLF
+  return rows.join('\r\n');
+}
+
+// Trigger a file download with the given CSV content + filename.
+// Uses Blob + URL.createObjectURL pattern that works on every major browser.
+function downloadCsv(csvContent, filename){
+  // BOM prefix (\uFEFF) tells Excel the file is UTF-8 — without it, accented
+  // characters and emoji can render wrong in Excel for Windows.
+  const blob = new Blob(['\uFEFF' + csvContent], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Clean up the object URL after a short delay (browsers handle this differently)
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+// Folders tab CSV export — exports current folder
+function doExportCsv(){
+  const items = gFolder();
+  if(!items.length){ alert('This folder is empty.'); return; }
+  const csv = buildCaptionsCsv(items, fTab);
+  const brandSlug = (BP.name||'captions').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  const dateStr = new Date().toISOString().split('T')[0];
+  downloadCsv(csv, `${brandSlug}-${fTab}-${dateStr}.csv`);
+}
+
+// Captions tab CSV export — exports currently filtered view (respects platform + segment filters)
+function doExportCapsCsv(){
+  // Mirror the filtering logic from rCards() so the export matches what
+  // the user sees on screen. Trash captions are always excluded.
+  let list = caps.filter(c => c.status !== 'trash');
+  if(pF !== 'all'){
+    list = list.filter(c => c.platforms.includes(pF) || c.platforms.includes('All'));
+  }
+  if(capFilterSegs.length){
+    list = list.filter(c => capFilterSegs.every(seg => capSegList(c).includes(seg)));
+  }
+  if(!list.length){ alert('No captions match the current filters. Adjust filters or generate some captions.'); return; }
+  const csv = buildCaptionsCsv(list, 'all');
+  const brandSlug = (BP.name||'captions').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filterTag = (pF !== 'all' || capFilterSegs.length) ? '-filtered' : '';
+  downloadCsv(csv, `${brandSlug}-captions${filterTag}-${dateStr}.csv`);
+}
+
+// Captions tab "Copy All" — copies the currently filtered view to clipboard
+function doCopyAllCaps(){
+  let list = caps.filter(c => c.status !== 'trash');
+  if(pF !== 'all'){
+    list = list.filter(c => c.platforms.includes(pF) || c.platforms.includes('All'));
+  }
+  if(capFilterSegs.length){
+    list = list.filter(c => capFilterSegs.every(seg => capSegList(c).includes(seg)));
+  }
+  if(!list.length){ alert('No captions match the current filters.'); return; }
+  const txt = list.map(c => c.text).join('\n\n---\n\n');
+  navigator.clipboard.writeText(txt).catch(()=>{
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
 }
 function doCopyAll(){
   const items=gFolder();
