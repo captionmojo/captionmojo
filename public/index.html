@@ -1038,6 +1038,173 @@ footer span{color:var(--mojo)}
 }
 .notes-saved-flash.show{display:inline}
 
+/* ============================================================================
+   SEGMENT MANAGER MODAL
+   Triggered by "✎ Manage" link in segment pickers. Lets user add, rename, and
+   delete audience segments. Reuses notes-modal backdrop styling for consistency.
+   ============================================================================ */
+.seg-mgr-backdrop{
+  position:fixed;inset:0;z-index:140;
+  background:rgba(28,25,23,.55);
+  display:none;align-items:center;justify-content:center;
+  padding:20px;backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.seg-mgr-backdrop.open{display:flex}
+.seg-mgr-modal{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  width:100%;max-width:640px;
+  max-height:88vh;display:flex;flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+  overflow:hidden;
+}
+.seg-mgr-hdr{
+  padding:20px 24px 14px;
+  border-bottom:1px solid var(--line);
+}
+.seg-mgr-hdr h2{
+  margin:0 0 6px;font-family:var(--serif);font-style:italic;font-size:22px;
+}
+.seg-mgr-hdr p{
+  margin:0;font-size:13px;color:var(--muted);line-height:1.5;
+}
+.seg-mgr-body{
+  flex:1;overflow-y:auto;
+  padding:16px 24px;
+}
+/* Each category group in the manager — matches studio picker visual rhythm */
+.seg-mgr-cat-group{margin-bottom:18px}
+.seg-mgr-cat-label{
+  font-family:var(--mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--muted);
+  margin-bottom:8px;
+  font-weight:500;
+}
+.seg-mgr-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--surface);
+  margin-bottom:6px;
+  transition:border-color .12s ease;
+}
+.seg-mgr-row:hover{border-color:#d6d3d1}
+.seg-mgr-row.editing{border-color:var(--mojo);background:var(--mojo-tint)}
+/* Name display (clickable to rename) */
+.seg-mgr-name{
+  flex:1;
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:15px;
+  cursor:text;
+  padding:4px 2px;
+  border-radius:4px;
+  line-height:1.3;
+}
+.seg-mgr-name:hover{background:rgba(0,0,0,.04)}
+/* Rename input replaces .seg-mgr-name when editing */
+.seg-mgr-name-input{
+  flex:1;
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:15px;
+  padding:4px 8px;
+  border:1px solid var(--mojo);
+  border-radius:6px;
+  background:#fff;
+  outline:none;
+}
+/* Per-row delete button — small X, only red on hover so it doesn't visually shout */
+.seg-mgr-del{
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--muted);
+  width:28px;height:28px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14px;
+  line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s ease;
+  flex-shrink:0;
+}
+.seg-mgr-del:hover{
+  background:var(--red);
+  border-color:var(--red);
+  color:#fff;
+}
+/* Add-segment input row at bottom */
+.seg-mgr-add{
+  display:flex;gap:8px;
+  padding:14px 0 4px;
+  border-top:1px dashed var(--line);
+  margin-top:10px;
+}
+.seg-mgr-add input{
+  flex:1;
+  font-family:var(--sans);
+  font-size:14px;
+  padding:8px 12px;
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:#fff;
+  outline:none;
+}
+.seg-mgr-add input:focus{border-color:var(--mojo)}
+.seg-mgr-add select{
+  font-family:var(--mono);
+  font-size:12px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:#fff;
+  outline:none;
+  cursor:pointer;
+}
+.seg-mgr-foot{
+  display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  padding:14px 24px;
+  border-top:1px solid var(--line);
+  background:#faf9f7;
+}
+.seg-mgr-count{
+  margin-right:auto;
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--muted);
+}
+/* Empty state when brand has zero segments */
+.seg-mgr-empty{
+  padding:24px 12px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+  font-style:italic;
+}
+/* Inline "✎ Manage" link in studio segment picker header area */
+.seg-manage-link{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  text-decoration:none;
+  cursor:pointer;
+  padding:2px 6px;
+  border-radius:4px;
+  transition:all .12s ease;
+  margin-left:8px;
+}
+.seg-manage-link:hover{
+  color:var(--mojo);
+  background:var(--mojo-tint);
+}
+
 .stats-row{
   background:var(--surface);
   border-bottom:1px solid var(--border);
@@ -4338,7 +4505,7 @@ footer span{color:var(--mojo)}
           <div class="img-error" id="postImgError" style="display:none"></div>
         </div>
         <div>
-          <label>Audience dimensions <span class="lh">(select one or more — they combine)</span></label>
+          <label>Audience dimensions <span class="lh">(select one or more — they combine)</span><a class="seg-manage-link" onclick="openSegMgr()" title="Add, rename, or delete audience dimensions">✎ Manage</a></label>
           <div class="seg-filter-wrap">
             <input type="text" class="seg-filter" id="gSegFilter" placeholder="Search tags…" oninput="filterSegPicker('gSeg', this.value)">
             <span class="seg-filter-clear" id="gSegFilterClear" onclick="clearSegFilter('gSeg')" style="display:none">✕</span>
@@ -4390,7 +4557,7 @@ footer span{color:var(--mojo)}
       <div class="gen-inner" id="writeOwnBody">
         <div><label>Caption</label><textarea id="aText" rows="3" placeholder="Write a caption here..." oninput="aCC()"></textarea><div class="cc-note" id="aNote">0 chars</div></div>
         <div><label>Platform</label><div class="pchips" id="aPlats"><button class="pchip on" onclick="tPC(this)">All</button><button class="pchip" onclick="tPC(this)">Instagram</button><button class="pchip" onclick="tPC(this)">TikTok</button><button class="pchip" onclick="tPC(this)">Twitter / X</button><button class="pchip" onclick="tPC(this)">Facebook</button><button class="pchip" onclick="tPC(this)">LinkedIn</button></div></div>
-        <div><label>Tag with dimensions <span class="lh">(optional, select any that apply)</span></label><div class="seg-picker" id="aSeg"></div></div>
+        <div><label>Tag with dimensions <span class="lh">(optional, select any that apply)</span><a class="seg-manage-link" onclick="openSegMgr()" title="Add, rename, or delete audience dimensions">✎ Manage</a></label><div class="seg-picker" id="aSeg"></div></div>
         <button class="btn btn-soft btn-md" onclick="doAdd()" style="width:100%">+ Add Caption</button>
       </div>
     </div>
@@ -4664,6 +4831,28 @@ footer span{color:var(--mojo)}
         <button class="btn btn-soft btn-md" onclick="closeNotesModal()">Cancel</button>
         <button class="btn btn-mojo btn-md" onclick="saveNotesModal()">Save notes</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================================
+     SEGMENT MANAGER MODAL — add / rename / delete audience segments
+     Triggered by "✎ Manage" link in both Generate and Write Your Own panels.
+     Mutates the `segments` array in place. Each change persists via save().
+     Confirms before destructive operations (delete, rename-with-impact).
+     ============================================================================ -->
+<div class="seg-mgr-backdrop" id="segMgrBackdrop" onclick="if(event.target===this)closeSegMgr()">
+  <div class="seg-mgr-modal" role="dialog" aria-labelledby="segMgrTitle">
+    <div class="seg-mgr-hdr">
+      <h2 id="segMgrTitle">Manage audience dimensions</h2>
+      <p>Add new dimensions, rename existing ones, or delete what you don't need. Changes save automatically and update everywhere — including any existing captions tagged with these dimensions.</p>
+    </div>
+    <div class="seg-mgr-body" id="segMgrBody">
+      <!-- Filled by renderSegMgr() -->
+    </div>
+    <div class="seg-mgr-foot">
+      <span class="seg-mgr-count" id="segMgrCount">0 dimensions</span>
+      <button class="btn btn-mojo btn-md" onclick="closeSegMgr()">Done</button>
     </div>
   </div>
 </div>
@@ -6836,6 +7025,317 @@ function addSeg(track){
   segments.push({name:val,desc:'Custom dimension.',category:'Custom',on:true});
   document.getElementById(inputId).value='';
   renderSegments(contId);
+}
+
+// ============================================================================
+// SEGMENT MANAGER MODAL
+// Allows the user to add, rename, or delete audience segments AFTER onboarding,
+// from the studio. The modal is triggered from "✎ Manage" links in both the
+// Generate and Write Your Own segment pickers.
+//
+// Rename strategy: CASCADE. When a segment is renamed, all caption records
+//   that reference the old name in their `segments` array get updated to the
+//   new name. This keeps filtering and display consistent. The user sees a
+//   confirm dialog showing the impact count if any captions are affected.
+//
+// Delete strategy: STRIP-FROM-CAPTIONS. When a segment is deleted, it's
+//   removed from each caption's `segments` array. Captions are not deleted
+//   themselves — they keep any OTHER segments they had. If a caption ends up
+//   with zero segments after the strip, that's fine; it still works in the UI
+//   (it just won't match any segment filter).
+//
+// Last-segment guard: We don't prevent deletion of the last segment. The user
+//   can wipe their segments and re-add. The Generate panel handles a zero-
+//   segment state gracefully (shows "No segments yet — add some below").
+// ============================================================================
+
+function openSegMgr(){
+  const backdrop = document.getElementById('segMgrBackdrop');
+  if(!backdrop) return;
+  renderSegMgr();
+  backdrop.classList.add('open');
+  // Focus the add-input so the user can start typing a new segment immediately
+  setTimeout(() => {
+    const addInput = document.getElementById('segMgrAddInput');
+    if(addInput) addInput.focus();
+  }, 80);
+}
+
+function closeSegMgr(){
+  const backdrop = document.getElementById('segMgrBackdrop');
+  if(backdrop) backdrop.classList.remove('open');
+}
+
+// Render the body of the segment manager. Groups segments by category,
+// preserving the order they appear in `segments`. Each row has a clickable
+// name (rename) and an X button (delete). Bottom has add-input + category
+// select.
+function renderSegMgr(){
+  const body = document.getElementById('segMgrBody');
+  const countEl = document.getElementById('segMgrCount');
+  if(!body) return;
+
+  // Update count badge
+  if(countEl) countEl.textContent = `${segments.length} dimension${segments.length===1?'':'s'}`;
+
+  // Empty state
+  if(!segments.length){
+    body.innerHTML = `
+      <div class="seg-mgr-empty">
+        No audience dimensions yet. Add your first one below.
+      </div>
+      ${renderSegMgrAddRow()}
+    `;
+    wireSegMgrAddRow();
+    return;
+  }
+
+  // Group by category, preserving order
+  const groups = {};
+  const order = [];
+  segments.forEach((s, i) => {
+    const cat = s.category || 'Custom';
+    if(!groups[cat]){ groups[cat] = []; order.push(cat); }
+    groups[cat].push({ s, i });
+  });
+
+  const groupHtml = order.map(cat => {
+    const rows = groups[cat].map(({s, i}) => `
+      <div class="seg-mgr-row" data-seg-idx="${i}">
+        <span class="seg-mgr-name" onclick="segMgrStartRename(${i})" title="Click to rename">${esc(s.name)}</span>
+        <button class="seg-mgr-del" onclick="segMgrDelete(${i})" title="Delete this dimension">✕</button>
+      </div>
+    `).join('');
+    return `
+      <div class="seg-mgr-cat-group">
+        <div class="seg-mgr-cat-label">${esc(cat)}</div>
+        ${rows}
+      </div>
+    `;
+  }).join('');
+
+  // Build category options for the add dropdown.
+  // Pre-populate with the existing categories so new segments can join any group.
+  // Default selected = 'Custom' which is the fallback for net-new segments.
+  const catOpts = ['Custom', ...order.filter(c => c !== 'Custom')]
+    .map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
+  body.innerHTML = groupHtml + renderSegMgrAddRow(catOpts);
+  wireSegMgrAddRow();
+}
+
+// Helper: HTML for the add-segment row at the bottom of the modal body.
+// Optional catOpts parameter for category dropdown options; falls back to just "Custom".
+function renderSegMgrAddRow(catOpts){
+  const opts = catOpts || '<option value="Custom">Custom</option>';
+  return `
+    <div class="seg-mgr-add">
+      <input type="text" id="segMgrAddInput" placeholder="Add a new dimension (e.g. Late-Night Listeners)" maxlength="60">
+      <select id="segMgrAddCat" title="Category for this new dimension">${opts}</select>
+      <button class="btn btn-mojo btn-md" onclick="segMgrAdd()">Add</button>
+    </div>
+  `;
+}
+
+// Wire keyboard: Enter in the add-input submits the new segment.
+function wireSegMgrAddRow(){
+  const input = document.getElementById('segMgrAddInput');
+  if(!input) return;
+  input.onkeydown = (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); segMgrAdd(); }
+  };
+}
+
+// ====== ADD ======
+function segMgrAdd(){
+  const input = document.getElementById('segMgrAddInput');
+  const catSel = document.getElementById('segMgrAddCat');
+  if(!input) return;
+  const name = (input.value || '').trim();
+  const cat = (catSel && catSel.value) ? catSel.value : 'Custom';
+  if(!name) return;
+  // Duplicate check (case-insensitive)
+  const existing = segments.find(s => (s.name || '').toLowerCase() === name.toLowerCase());
+  if(existing){
+    alert(`"${existing.name}" already exists. Pick a different name.`);
+    return;
+  }
+  segments.push({ name: name, desc: 'Custom dimension.', category: cat, on: true });
+  input.value = '';
+  // Persist + refresh all segment surfaces
+  save();
+  refreshAllSegPickers();
+  renderSegMgr();
+  // Restore focus to add input for fast multi-add
+  setTimeout(() => {
+    const i = document.getElementById('segMgrAddInput');
+    if(i) i.focus();
+  }, 40);
+}
+
+// ====== RENAME ======
+// Inline edit: replace the .seg-mgr-name span with an input. On blur or Enter,
+// save the new name. On Escape, cancel.
+function segMgrStartRename(idx){
+  const row = document.querySelector(`.seg-mgr-row[data-seg-idx="${idx}"]`);
+  if(!row) return;
+  const nameEl = row.querySelector('.seg-mgr-name');
+  if(!nameEl) return;
+  row.classList.add('editing');
+
+  const currentName = segments[idx].name;
+  const input = document.createElement('input');
+  input.className = 'seg-mgr-name-input';
+  input.type = 'text';
+  input.value = currentName;
+  input.maxLength = 60;
+
+  // Prevent the row's click handlers from interfering
+  input.onclick = (e) => e.stopPropagation();
+
+  let committed = false;
+  const commit = () => {
+    if(committed) return;
+    committed = true;
+    const newName = (input.value || '').trim();
+    row.classList.remove('editing');
+    // No change → just restore display
+    if(!newName || newName === currentName){
+      input.replaceWith(nameEl);
+      return;
+    }
+    // Duplicate check
+    const dup = segments.find((s, i) => i !== idx && (s.name || '').toLowerCase() === newName.toLowerCase());
+    if(dup){
+      alert(`"${dup.name}" already exists. Pick a different name.`);
+      input.replaceWith(nameEl);
+      return;
+    }
+    // Count captions that reference this segment so we can warn the user
+    const affectedCount = caps.filter(c => Array.isArray(c.segments) && c.segments.includes(currentName)).length;
+    if(affectedCount > 0){
+      const ok = confirm(
+        `Rename "${currentName}" → "${newName}"?\n\n` +
+        `This will update ${affectedCount} existing caption${affectedCount===1?'':'s'} ` +
+        `that reference${affectedCount===1?'s':''} this dimension. ` +
+        `\n\nThis can't be undone (you'd have to rename back).`
+      );
+      if(!ok){
+        // User cancelled — restore display
+        input.replaceWith(nameEl);
+        return;
+      }
+    }
+    // Apply rename to the segments array
+    segments[idx].name = newName;
+    // Cascade through caption records: replace old name with new name in each
+    // caption's `segments` array. Filter for active filter chips is also
+    // refreshed below via refreshAllSegPickers.
+    let changed = 0;
+    caps.forEach(c => {
+      if(!Array.isArray(c.segments)) return;
+      const i = c.segments.indexOf(currentName);
+      if(i >= 0){
+        c.segments[i] = newName;
+        changed++;
+      }
+    });
+    // If the selected-segment pickers reference the old name, swap to new
+    [gSegSel, aSegSel, capFilterSegs].forEach(arr => {
+      const i = arr.indexOf(currentName);
+      if(i >= 0) arr[i] = newName;
+    });
+    save();
+    refreshAllSegPickers();
+    renderSegMgr();
+    if(changed > 0){
+      // Quietly log; the confirm dialog already told them what was happening
+      console.log(`[segMgr] renamed "${currentName}" → "${newName}", updated ${changed} caption(s)`);
+    }
+  };
+
+  input.onblur = commit;
+  input.onkeydown = (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+    else if(e.key === 'Escape'){
+      committed = true;
+      row.classList.remove('editing');
+      input.replaceWith(nameEl);
+    }
+  };
+
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+// ====== DELETE ======
+function segMgrDelete(idx){
+  if(idx < 0 || idx >= segments.length) return;
+  const seg = segments[idx];
+  const segName = seg.name;
+  // Count captions that reference this segment
+  const affectedCount = caps.filter(c => Array.isArray(c.segments) && c.segments.includes(segName)).length;
+
+  // Confirm with impact statement. Two flavors: with caption impact vs without.
+  let msg;
+  if(affectedCount > 0){
+    msg = `Delete "${segName}"?\n\n` +
+          `${affectedCount} existing caption${affectedCount===1?'':'s'} reference${affectedCount===1?'s':''} this dimension. ` +
+          `They'll lose this tag but keep their other dimensions and stay in your library.\n\n` +
+          `This can't be undone.`;
+  } else {
+    msg = `Delete "${segName}"?\n\nNo captions reference this dimension, so nothing else changes.\n\nThis can't be undone.`;
+  }
+  if(!confirm(msg)) return;
+
+  // Remove from segments array
+  segments.splice(idx, 1);
+
+  // Strip from all caption records
+  let stripped = 0;
+  caps.forEach(c => {
+    if(!Array.isArray(c.segments)) return;
+    const before = c.segments.length;
+    c.segments = c.segments.filter(s => s !== segName);
+    if(c.segments.length !== before) stripped++;
+  });
+
+  // Strip from any active selection arrays
+  [gSegSel, aSegSel, capFilterSegs].forEach(arr => {
+    const i = arr.indexOf(segName);
+    if(i >= 0) arr.splice(i, 1);
+  });
+
+  save();
+  refreshAllSegPickers();
+  renderSegMgr();
+  console.log(`[segMgr] deleted "${segName}", stripped from ${stripped} caption(s)`);
+}
+
+// ====== REFRESH HELPER ======
+// After any add/rename/delete, refresh every UI surface that displays segments:
+// - Generate panel picker (gSeg)
+// - Write Your Own picker (aSeg)
+// - Captions tab segment filter chips
+// - Generate panel "Combining N dimensions" summary
+function refreshAllSegPickers(){
+  if(typeof renderSegPicker === 'function'){
+    renderSegPicker('gSeg', gSegSel, updateGenSegSummary);
+    renderSegPicker('aSeg', aSegSel, ()=>{});
+  }
+  if(typeof renderCapFilterChips === 'function'){
+    renderCapFilterChips();
+  }
+  if(typeof updateGenSegSummary === 'function'){
+    updateGenSegSummary();
+  }
+  // If a caption list is currently displayed, re-render so segment-name pills
+  // reflect any renames (and so any captions tagged with a deleted segment
+  // stop showing it in their per-caption segment chips).
+  if(typeof rCards === 'function'){
+    try { rCards(); } catch(e) { /* harmless if no list yet */ }
+  }
 }
 
 // ============ STUDIO ============
