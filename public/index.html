@@ -3641,9 +3641,9 @@ footer span{color:var(--mojo)}
               <div class="feature-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
               </div>
-              <div class="feature-title">500 captions <em>per day</em></div>
+              <div class="feature-title">250 captions <em>per day</em></div>
               <div class="feature-desc">Generate first, edit second, ship third. 500 daily is enough for a creator running multiple campaigns, an artist doing weekly releases, or a brand testing voice variations.</div>
-              <div class="feature-tags"><span class="feature-tag">500/day</span><span class="feature-tag">High volume</span></div>
+              <div class="feature-tags"><span class="feature-tag">250/day</span><span class="feature-tag">High volume</span></div>
             </div>
             <div class="feature pro">
               <span class="feature-tier-pill pro">Pro</span>
@@ -3824,7 +3824,7 @@ footer span{color:var(--mojo)}
               <li>Folders &amp; workflow (Final / WIP / Liked)</li>
               <li>Schedule to calendar</li>
               <li>Tell AI why feedback</li>
-              <li>500 captions/day, no ads</li>
+              <li>250 captions/day, no ads</li>
             </ul>
             <button class="price-cta" onclick="goTracks()">Go Pro →</button>
           </div>
@@ -4284,7 +4284,7 @@ footer span{color:var(--mojo)}
        ============================================================================ -->
   <div class="soft-prompt" id="softPrompt">
     <div class="soft-prompt-text">
-      Getting somewhere? <strong>Sign up free</strong> for 10/day + brand brain saved across devices. Or <strong>go Pro ($29/mo)</strong> — 500 captions/day, AI that learns your taste from 👍/👎, schedule to calendar, 3 brand profiles, quality scoring + CSV export, ad-free.
+      Getting somewhere? <strong>Sign up free</strong> for 10/day + brand brain saved across devices. Or <strong>go Pro ($29/mo)</strong> — 250 captions/day, AI that learns your taste from 👍/👎, schedule to calendar, 3 brand profiles, quality scoring + CSV export, ad-free.
     </div>
     <button class="soft-prompt-cta" onclick="openAuthModal()">Sign up free</button>
     <button class="soft-prompt-dismiss" onclick="dismissSoftPrompt()" title="Dismiss">×</button>
@@ -4744,7 +4744,7 @@ footer span{color:var(--mojo)}
         <div class="conv-card-price">$29<span class="small"> / mo</span></div>
         <div class="conv-card-tagline">For actually shipping</div>
         <ul class="conv-card-perks">
-          <li><strong>500 captions/day</strong></li>
+          <li><strong>250 captions/day</strong></li>
           <li>AI learns from 👍 / 👎</li>
           <li>Schedule to calendar</li>
           <li>3 brand profiles</li>
@@ -4797,7 +4797,7 @@ footer span{color:var(--mojo)}
         <div class="conv-card-price">$29<span class="small"> / mo</span></div>
         <div class="conv-card-tagline">For actually shipping</div>
         <ul class="conv-card-perks">
-          <li><strong>500 captions/day</strong></li>
+          <li><strong>250 captions/day</strong></li>
           <li>AI learns from 👍 / 👎</li>
           <li>Schedule to calendar</li>
           <li>3 brand profiles</li>
@@ -5501,11 +5501,11 @@ function showUpgradePrompt(currentCount, requestedQty){
     const remaining = Math.max(0, DAILY_LIMIT_FREE - currentCount);
     if(!requestedQty){
       // Voluntary invocation (from user menu) — no batch context
-      txt.innerHTML = `You're on the <strong>Free</strong> plan: ${DAILY_LIMIT_FREE} captions/day. Pro is for shipping at volume — 500/day, AI that learns, scheduling.`;
+      txt.innerHTML = `You're on the <strong>Free</strong> plan: ${DAILY_LIMIT_FREE} captions/day. Pro is for shipping at volume — 250/day, AI that learns, scheduling.`;
     } else if(remaining === 0){
       txt.innerHTML = `You've used all <strong>${DAILY_LIMIT_FREE}</strong> captions on the free plan today. Resets at midnight UTC — or unlock Pro and ship now.`;
     } else {
-      txt.innerHTML = `You're at <strong>${currentCount} of ${DAILY_LIMIT_FREE}</strong>. This batch of ${requestedQty} would push you over. Smaller batch — or unlock Pro for 500/day.`;
+      txt.innerHTML = `You're at <strong>${currentCount} of ${DAILY_LIMIT_FREE}</strong>. This batch of ${requestedQty} would push you over. Smaller batch — or unlock Pro for 250/day.`;
     }
   }
   if(modal) modal.classList.add('show');
