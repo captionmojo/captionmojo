@@ -810,6 +810,12 @@ footer span{color:var(--mojo)}
 }
 .seg-pchip:hover{border-color:var(--mojo);color:var(--ink)}
 .seg-pchip.on{border-color:var(--mojo);background:var(--mojo);color:#fff;font-weight:600}
+/* NOTE-15: user-added (custom) dimensions get a dotted underline so the user
+   can distinguish them from AI-generated ones. Underline color shifts on hover
+   and when selected so it stays visible against the mojo fill. */
+.seg-pchip.custom{text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
+.seg-pchip.custom:hover{text-decoration-color:var(--mojo)}
+.seg-pchip.custom.on{text-decoration-color:rgba(255,255,255,.7)}
 .seg-picker-empty{font-family:var(--mono);font-size:12px;color:var(--muted);padding:10px 0}
 .seg-summary{font-family:var(--mono);font-size:11px;color:var(--mojo);margin-top:8px;font-weight:500}
 
@@ -1108,6 +1114,9 @@ footer span{color:var(--mojo)}
   line-height:1.3;
 }
 .seg-mgr-name:hover{background:rgba(0,0,0,.04)}
+/* NOTE-15: user-added dimensions in the manager modal get the same dotted
+   underline treatment as their picker chips. Visible without being loud. */
+.seg-mgr-row.custom .seg-mgr-name{text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
 /* Rename input replaces .seg-mgr-name when editing */
 .seg-mgr-name-input{
   flex:1;
@@ -8202,12 +8211,18 @@ function renderSegMgr(){
   });
 
   const groupHtml = order.map(cat => {
-    const rows = groups[cat].map(({s, i}) => `
-      <div class="seg-mgr-row" data-seg-idx="${i}">
-        <span class="seg-mgr-name" onclick="segMgrStartRename(${i})" title="Click to rename">${esc(s.name)}</span>
+    const rows = groups[cat].map(({s, i}) => {
+      // NOTE-15: same discriminator as picker chips — desc === 'Custom dimension.'
+      // means the user added this themselves. We add a .custom class to the row
+      // so the dotted-underline CSS targets it.
+      const isCustom = s.desc === 'Custom dimension.';
+      return `
+      <div class="seg-mgr-row ${isCustom?'custom':''}" data-seg-idx="${i}">
+        <span class="seg-mgr-name" onclick="segMgrStartRename(${i})" title="${isCustom?'You added this dimension. Click to rename.':'Click to rename'}">${esc(s.name)}</span>
         <button class="seg-mgr-del" onclick="segMgrDelete(${i})" title="Delete this dimension">✕</button>
       </div>
-    `).join('');
+    `;
+    }).join('');
     return `
       <div class="seg-mgr-cat-group">
         <div class="seg-mgr-cat-label">${esc(cat)}</div>
@@ -8632,7 +8647,14 @@ function renderSegPicker(containerId, selectedArr, onChange){
     const countLabel = hasSelected ? `${selectedInCat.length} selected` : `${chips.length} option${chips.length===1?'':'s'}`;
     const chipsHtml = chips.map(s => {
       const isOn = selectedArr.includes(s.name);
-      return `<button type="button" class="seg-pchip ${isOn?'on':''}" data-seg="${esc(s.name)}" title="${esc(s.desc||'')}">${esc(s.name)}</button>`;
+      // NOTE-15: AI-generated segments have a real `desc` describing the audience.
+      // User-added segments are stamped with `desc: 'Custom dimension.'` in addSeg
+      // and segMgrAdd. We use that as the discriminator for the dotted-underline
+      // visual treatment, and we override the hover tooltip with something useful
+      // ("You added this") instead of repeating the same generic string everywhere.
+      const isCustom = s.desc === 'Custom dimension.';
+      const tip = isCustom ? 'You added this dimension.' : (s.desc || '');
+      return `<button type="button" class="seg-pchip ${isOn?'on':''} ${isCustom?'custom':''}" data-seg="${esc(s.name)}" title="${esc(tip)}">${esc(s.name)}</button>`;
     }).join('');
     // Selected preview (visible when category is COLLAPSED and has selections)
     const previewHtml = (!isOpen && hasSelected) ?
