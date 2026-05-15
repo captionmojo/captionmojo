@@ -8057,7 +8057,9 @@ function renderCalCapCard(c, isPosted){
       ${hashtagsLine}
       ${mediaSection}
       <div class="cal-cap-acts">
-        <button class="fact" title="Copy caption text + hashtags to clipboard, ready to paste into the social app" onclick="calCopyForPosting(${c.id},this)">⎘ Copy caption</button>
+        <button class="fact" title="Copy caption + hashtags merged (good for IG main caption, X, LinkedIn — anywhere hashtags go inline with the post)" onclick="calCopyForPosting(${c.id},this,'all')">⎘ Copy all</button>
+        <button class="fact" title="Copy just the caption text, no hashtags (useful when the platform wants hashtags in the first comment instead)" onclick="calCopyForPosting(${c.id},this,'caption')">⎘ Caption only</button>
+        ${(Array.isArray(c.hashtags) && c.hashtags.length) ? `<button class="fact" title="Copy hashtags only — paste these into the first comment on TikTok / IG when keeping the caption clean" onclick="calCopyForPosting(${c.id},this,'tags')">⎘ #tags only</button>` : ''}
         ${!isPosted ? `<button class="fact green" title="Mark this as posted on socials. Moves it out of upcoming, into Posted history." onclick="calMarkPosted(${c.id})">✓ Mark as Posted</button>` : ''}
         ${!isPosted ? `<button class="fact" title="Change date, platforms, time, or media" onclick="openShipModal(${c.id})">✎ Edit</button>` : ''}
         ${!isPosted ? `<button class="fact red" title="Remove from calendar (caption stays in your library)" onclick="calUnschedule(${c.id})">Unschedule</button>` : ''}
@@ -8066,13 +8068,28 @@ function renderCalCapCard(c, isPosted){
   `;
 }
 
-// Copy caption text + hashtags merged, like the "Copy with hashtags" elsewhere
-function calCopyForPosting(id, btn){
+// Copy from the calendar card. mode = 'all' | 'caption' | 'tags'.
+// 'all' merges caption + hashtags (the original behavior, useful for IG main
+// caption / X posts / LinkedIn). 'caption' is just the prose — useful when
+// the platform wants the caption in the post body and hashtags in the first
+// comment (TikTok, sometimes IG). 'tags' is hashtags-only for that first-comment
+// paste. Button is hidden in the UI when there are no hashtags.
+function calCopyForPosting(id, btn, mode){
   const c = F(id);
   if(!c) return;
-  let txt = c.text;
-  if(Array.isArray(c.hashtags) && c.hashtags.length){
-    txt = c.text + '\n\n\n' + c.hashtags.join(' ');
+  mode = mode || 'all';
+  let txt;
+  if(mode === 'caption'){
+    txt = c.text;
+  } else if(mode === 'tags'){
+    txt = (Array.isArray(c.hashtags) && c.hashtags.length) ? c.hashtags.join(' ') : '';
+    if(!txt) return; // nothing to copy; button shouldn't even be visible
+  } else {
+    // 'all' (default)
+    txt = c.text;
+    if(Array.isArray(c.hashtags) && c.hashtags.length){
+      txt = c.text + '\n\n\n' + c.hashtags.join(' ');
+    }
   }
   // Best-effort clipboard (Firefox private mode sometimes blocks; fall back to textarea)
   const fallback = () => {
