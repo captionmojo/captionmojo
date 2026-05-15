@@ -1488,6 +1488,8 @@ footer span{color:var(--mojo)}
 .cal-month-cell.today{
   background:var(--mojo-tint);
   position:relative;
+  box-shadow:0 2px 8px rgba(241,90,34,0.12);
+  z-index:1;
 }
 .cal-month-cell.today::after{
   content:'';
@@ -1495,6 +1497,13 @@ footer span{color:var(--mojo)}
   top:0;left:0;right:0;bottom:0;
   border:2px solid var(--mojo);
   pointer-events:none;
+}
+/* Today's date number is visually emphasized — larger, bolder, mojo-colored,
+   so the eye lands on it immediately when scanning the month grid. */
+.cal-month-cell.today .cal-month-cell-num{
+  color:var(--mojo);
+  font-size:16px;
+  font-weight:700;
 }
 .cal-month-cell-num{
   font-family:var(--serif);
@@ -7732,6 +7741,32 @@ function calPrettyDate(d){
   return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
 }
 
+// Helper: even shorter format for badges — "Fri May 15" (no comma).
+// Takes a YYYY-MM-DD string or a Date.  Used on scheduled-caption badges in the
+// Folders → Final view, and anywhere else we display a scheduled date inline.
+function calPrettyShortDate(dateOrStr){
+  const d = (typeof dateOrStr === 'string')
+    ? new Date(dateOrStr + 'T00:00:00')
+    : dateOrStr;
+  if(!d || isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+
+// Helper: format a 24-hour HH:MM string as 12-hour with AM/PM ("14:30" -> "2:30 PM").
+// Returns empty string if input is invalid/empty.
+function calPrettyTime(hhmm){
+  if(!hhmm || typeof hhmm !== 'string') return '';
+  const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return hhmm; // unknown format, return as-is
+  let hour = parseInt(m[1], 10);
+  const min = m[2];
+  if(isNaN(hour)) return hhmm;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  if(hour === 0) hour = 12;
+  return `${hour}:${min} ${ampm}`;
+}
+
 // Helper: month label "May 2026"
 function calMonthLabel(d){
   return d.toLocaleDateString('en-US', { month:'long', year:'numeric' });
@@ -7838,7 +7873,7 @@ function renderCalendarWeek(){
         <div class="cal-day-hdr">
           <span class="cal-day-name">${calPrettyDate(d)}</span>
           ${isToday ? '<span class="cal-day-today-pill">TODAY</span>' : ''}
-          <span class="cal-day-count">${capsHere.length} ${capsHere.length === 1 ? 'post' : 'posts'}</span>
+          ${capsHere.length ? `<span class="cal-day-count">${capsHere.length} ${capsHere.length === 1 ? 'post' : 'posts'}</span>` : ''}
         </div>
         <div class="cal-day-body">
           ${capsHere.length ? capsHere.map(c => renderCalCapCard(c)).join('') : '<div class="cal-day-empty">No posts scheduled</div>'}
@@ -7963,8 +7998,11 @@ function renderCalendarPosted(){
 function renderCalCapCard(c, isPosted){
   isPosted = isPosted || c.status === 'posted';
   const platforms = (c.scheduled_platforms || []).map(p => `<span class="bdg plat" style="font-size:10px">${esc(p)}</span>`).join('');
+  // Time label: prefer specific time over rough slot. Render 24h "14:30" as
+  // human "2:30 PM" via calPrettyTime — friendlier than digital-clock notation.
+  // Slot labels are capitalized inline ("morning" -> "Morning") for display.
   const timeLabel = c.scheduled_time
-    ? `at ${c.scheduled_time}`
+    ? `at ${calPrettyTime(c.scheduled_time)}`
     : (c.scheduled_time_slot ? c.scheduled_time_slot.charAt(0).toUpperCase() + c.scheduled_time_slot.slice(1) : '');
   const timeBadge = timeLabel ? `<span class="cal-cap-time">${esc(timeLabel)}</span>` : '';
   const mediaSection = c.scheduled_media
@@ -8924,10 +8962,15 @@ function rFolder(){
   el.innerHTML=items.map(c=>{
     const isE=fEId===c.id;
     const pb=(c.platforms.includes('All')?['Instagram','TikTok','Twitter / X']:c.platforms).map(p=>`<span class="bdg plat" style="font-size:10px">${p}</span>`).join('');
-    // Show a "📅 SCHEDULED" badge if this caption has been shipped to calendar
+    // Show a "📅 SCHEDULED" badge if this caption has been shipped to calendar.
+    // Format the date in a friendly way ("Fri May 15") instead of raw "2026-05-15"
+    // so the user can scan their final folder and see what's scheduled when.
     const isScheduled = !!c.scheduled_for;
     const isPosted = c.status === 'posted';
-    const schedBadge = isScheduled ? `<span class="bdg sched" style="font-size:10px" title="Scheduled for ${esc(c.scheduled_for)}${c.scheduled_time_slot ? ' · ' + esc(c.scheduled_time_slot) : ''}">${isPosted ? '✓ POSTED' : '📅 SCHEDULED ' + esc(c.scheduled_for)}</span>` : '';
+    const friendlyDate = isScheduled ? calPrettyShortDate(c.scheduled_for) : '';
+    const schedBadge = isScheduled
+      ? `<span class="bdg sched" style="font-size:10px" title="Scheduled for ${esc(c.scheduled_for)}${c.scheduled_time_slot ? ' · ' + esc(c.scheduled_time_slot) : ''}">${isPosted ? '✓ POSTED' : '📅 ' + esc(friendlyDate)}</span>`
+      : '';
     // "Ship to Calendar" only appears in Final folder, not trash/liked/wip — Final means ready-to-deploy.
     // If already scheduled, button becomes "✎ Edit schedule" to keep affordance but acknowledge state.
     const showShipBtn = fTab === 'final' && !isTrash;
