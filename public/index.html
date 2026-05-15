@@ -7813,10 +7813,16 @@ function renderCalendarWeek(){
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
   if(titleEl){
+    // Format: "May 10 – 16, 2026" when same month, "Apr 27 – May 3, 2026" when crossing months.
+    // The earlier version used {day:'numeric', year:'numeric'} for the end-date which produced
+    // weird locale-dependent output like "2026 (day: 16)". Format month + day for both, year at the end.
     const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
-    titleEl.textContent = sameMonth
-      ? `${weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${weekEnd.toLocaleDateString('en-US',{day:'numeric',year:'numeric'})}`
-      : `${weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${weekEnd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+    const startStr = weekStart.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    const endStr = sameMonth
+      ? weekEnd.getDate()
+      : weekEnd.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    const yearStr = weekEnd.getFullYear();
+    titleEl.textContent = `${startStr} – ${endStr}, ${yearStr}`;
   }
   const todayStr = calFmtDate(new Date());
   const html = [];
