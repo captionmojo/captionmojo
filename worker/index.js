@@ -1496,9 +1496,18 @@ CRITICAL RULES FOR EXTRACTION:
 - Extract example captions from the docs verbatim if any exist that are obviously gold.
 - If something isn't in the docs, infer it from the industry and brand description — but flag your inference is interpretive.
 
+SCREENSHOT HANDLING (NOTE-6 — IMPORTANT):
+Some of the images attached may be SCREENSHOTS OF SOCIAL MEDIA POSTS (Instagram, TikTok, Twitter/X, LinkedIn, Facebook). When you encounter these:
+- READ THE CAPTION TEXT visible in the screenshot — this is the most valuable signal in the entire brain. The user's own past captions ARE the ground truth for their voice.
+- Treat every extracted caption as if it were placed in the "exampleCaptions" / "goodEx" pool. Reverse-engineer voice rules from them per STEP B above (lowercase pattern? emoji use? hashtag use? CTA pattern? sentence length? punctuation style?).
+- If the post shows engagement numbers (likes, comments, shares), MENTION the highest-performing captions in the exampleCaptions field with a note like "(high-engagement example)". Don't try to compute statistics — just flag standouts.
+- If the post shows visible hashtags, note common patterns: do they use 30 hashtags? 3? Branded ones? Generic ones?
+- If you can identify the platform from the UI chrome (IG vs TikTok vs LinkedIn), note this in the post — captions on LinkedIn read differently than IG, and the user's actual platform mix is useful context.
+- If multiple screenshots show the SAME pattern (e.g., every caption ends with "link in bio"), upgrade that to a HARD voice rule in voiceRules.
+
 Return ONLY a single valid JSON object. No preamble, no markdown, no code fences. Use the keys above exactly.`;
 
-  const variablePart = `Onboarding form data:\n${profile}\n\nRead all attached documents and pasted content. Build the Brand Brain as a single JSON object. Be comprehensive on proof points, CTAs, and cultural references — extract every specific detail the docs justify.`;
+  const variablePart = `Onboarding form data:\n${profile}\n\nRead all attached documents and pasted content. If any attached images are SCREENSHOTS OF SOCIAL POSTS, extract the caption text from them and treat each one as a high-value example of the brand's voice. Build the Brand Brain as a single JSON object. Be comprehensive on proof points, CTAs, and cultural references — extract every specific detail the docs justify.`;
 
   // /api/brain has no post image — building brain from brand docs, no specific post yet
   const userContent = buildUserContent({ docBlocks, textParts, pastedDocs, postImageBlock: null, variablePart });
