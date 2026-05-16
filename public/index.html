@@ -3503,6 +3503,30 @@ footer span{color:var(--mojo)}
   color:var(--td-yellow);
   font-weight:500;
 }
+/* NOTE-22: When wrapped in a button (the "press play." trigger), keep the em
+   looking identical to a regular em but add cursor + subtle hover underline
+   so users know it's clickable. Reset default button chrome. */
+.cm-td-brain .td-brain-quote button.td-press-play-btn{
+  background:none;
+  border:none;
+  padding:0;
+  margin:0;
+  font:inherit;
+  color:inherit;
+  cursor:pointer;
+}
+.cm-td-brain .td-brain-quote button.td-press-play-btn em{
+  text-decoration:underline;
+  text-decoration-color:transparent;
+  text-decoration-thickness:1.5px;
+  text-underline-offset:3px;
+  transition:text-decoration-color .15s ease;
+}
+.cm-td-brain .td-brain-quote button.td-press-play-btn:hover em,
+.cm-td-brain .td-brain-quote button.td-press-play-btn:focus-visible em{
+  text-decoration-color:var(--td-yellow);
+  outline:none;
+}
 /* Meta line — playlist count + play action. Lowercase mono in muted cream,
    with yellow underlined links. */
 .cm-td-brain .td-brain-meta{
@@ -4061,6 +4085,22 @@ footer span{color:var(--mojo)}
   display:none; /* shown only when #page-app is active — see selector below */
   align-items:center;justify-content:center;
   transition:transform .18s var(--ease), box-shadow .18s var(--ease);
+  padding:0;
+}
+/* The "?" glyph inside the FAB. Serif italic for brand consistency with the
+   "Mojo" header and the avatar in the chat panel. Optical adjustment: the ?
+   character has visual weight at the bottom, so a small negative margin
+   recenters it inside the circle. */
+.mojo-fab-q{
+  font-family:var(--serif);
+  font-style:italic;
+  font-weight:500;
+  font-size:30px;
+  line-height:1;
+  color:#fff;
+  display:inline-block;
+  transform:translateY(-1px);
+  letter-spacing:0;
 }
 #page-app.on .mojo-fab{display:flex}
 .mojo-fab:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(255,91,31,.42), 0 4px 8px rgba(0,0,0,.14)}
@@ -4886,7 +4926,7 @@ footer span{color:var(--mojo)}
             <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
             <span class="td-brain-kicker">radio · while you wait</span>
           </div>
-          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <em>press play.</em></div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <button type="button" class="td-press-play-btn" onclick="tdBrainToggle('quick')" aria-label="Open playlist picker"><em>press play.</em></button></div>
           <div class="td-brain-meta">
             18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-quick" onclick="tdBrainToggle('quick')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
           </div>
@@ -5004,7 +5044,7 @@ footer span{color:var(--mojo)}
             <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
             <span class="td-brain-kicker">radio · while you wait</span>
           </div>
-          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <em>press play.</em></div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <button type="button" class="td-press-play-btn" onclick="tdBrainToggle('deep')" aria-label="Open playlist picker"><em>press play.</em></button></div>
           <div class="td-brain-meta">
             18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-deep" onclick="tdBrainToggle('deep')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
           </div>
@@ -5121,7 +5161,7 @@ footer span{color:var(--mojo)}
             <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
             <span class="td-brain-kicker">radio · while you wait</span>
           </div>
-          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <em>press play.</em></div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <button type="button" class="td-press-play-btn" onclick="tdBrainToggle('fast')" aria-label="Open playlist picker"><em>press play.</em></button></div>
           <div class="td-brain-meta">
             18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-fast" onclick="tdBrainToggle('fast')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
           </div>
@@ -5432,7 +5472,7 @@ footer span{color:var(--mojo)}
        Mojo can/can't do.
   -->
   <div class="mojo-backdrop" id="mojoBackdrop" onclick="mojoClose()"></div>
-  <button class="mojo-fab" id="mojoFab" type="button" title="Ask Mojo for help" onclick="mojoToggle()">✨</button>
+  <button class="mojo-fab" id="mojoFab" type="button" title="Ask Mojo for help" onclick="mojoToggle()"><span class="mojo-fab-q">?</span></button>
   <div class="mojo-panel" id="mojoPanel" role="dialog" aria-labelledby="mojoHdrName" aria-hidden="true">
     <div class="mojo-hdr">
       <div class="mojo-hdr-avatar">m</div>
