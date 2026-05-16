@@ -4034,6 +4034,261 @@ footer span{color:var(--mojo)}
   .cm-td-footer .tdf-panel-hook{font-size:12px;margin-bottom:4px}
 }
 
+/* ============================================================================
+   MOJO CHAT (NOTE-18) — in-app help assistant
+   ============================================================================
+   Floating ✨ button bottom-right inside the studio. Click → slide-in side
+   panel from the right with message list + input. Fresh chat per page reload
+   (no localStorage persistence in v1). Mojo is a helpful teammate, not a
+   support agent — answers app questions, doesn't write captions for you.
+*/
+
+/* Floating launcher button — bottom-right of studio, above the TD footer */
+.mojo-fab{
+  position:fixed;
+  right:20px;
+  bottom:80px; /* sits above the 60px TD footer with a little breathing room */
+  z-index:1100;
+  width:56px;height:56px;
+  border-radius:50%;
+  background:var(--mojo);
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  font-size:22px;
+  font-family:var(--sans);
+  box-shadow:0 8px 22px rgba(255,91,31,.32), 0 2px 6px rgba(0,0,0,.12);
+  display:none; /* shown only when #page-app is active — see selector below */
+  align-items:center;justify-content:center;
+  transition:transform .18s var(--ease), box-shadow .18s var(--ease);
+}
+#page-app.on .mojo-fab{display:flex}
+.mojo-fab:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(255,91,31,.42), 0 4px 8px rgba(0,0,0,.14)}
+.mojo-fab:active{transform:translateY(0)}
+.mojo-fab.open{transform:rotate(45deg)} /* spins to ✕ feeling when panel is open */
+
+/* The slide-in chat panel — fixed right edge, full height */
+.mojo-panel{
+  position:fixed;
+  top:0;right:0;
+  width:420px;
+  height:100vh;
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  box-shadow:-12px 0 32px rgba(0,0,0,.08);
+  z-index:1099;
+  display:flex;flex-direction:column;
+  transform:translateX(105%);
+  transition:transform .28s var(--ease);
+  font-family:var(--sans);
+}
+.mojo-panel.open{transform:translateX(0)}
+
+/* Header bar at the top of the panel */
+.mojo-hdr{
+  padding:18px 20px 14px;
+  border-bottom:1px solid var(--line, var(--border));
+  background:var(--mojo-tint);
+  display:flex;align-items:center;gap:10px;
+}
+.mojo-hdr-avatar{
+  width:34px;height:34px;
+  border-radius:50%;
+  background:var(--mojo);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:18px;
+  font-weight:600;
+  letter-spacing:-.5px;
+  flex-shrink:0;
+}
+.mojo-hdr-text{flex:1;min-width:0}
+.mojo-hdr-name{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:18px;
+  color:var(--ink);
+  line-height:1.1;
+  margin-bottom:2px;
+}
+.mojo-hdr-tag{
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:var(--mojo);
+  letter-spacing:.4px;
+  text-transform:uppercase;
+}
+.mojo-close{
+  background:transparent;border:none;cursor:pointer;
+  font-size:22px;color:var(--ink2);
+  width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:6px;
+  transition:background .12s ease;
+}
+.mojo-close:hover{background:rgba(0,0,0,.05)}
+
+/* Scrollable message list */
+.mojo-msgs{
+  flex:1;
+  overflow-y:auto;
+  padding:16px 18px;
+  display:flex;flex-direction:column;gap:12px;
+  background:var(--bg);
+}
+.mojo-msg{
+  max-width:88%;
+  padding:10px 14px;
+  border-radius:14px;
+  font-size:14px;
+  line-height:1.5;
+  font-family:var(--sans);
+  color:var(--ink);
+  white-space:pre-wrap;
+  word-wrap:break-word;
+}
+.mojo-msg.user{
+  align-self:flex-end;
+  background:var(--mojo);
+  color:#fff;
+  border-bottom-right-radius:4px;
+}
+.mojo-msg.bot{
+  align-self:flex-start;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-bottom-left-radius:4px;
+}
+.mojo-msg.error{
+  align-self:flex-start;
+  background:#fff1ec;
+  border:1px solid #ff8866;
+  color:#a32a00;
+  font-style:italic;
+}
+
+/* Typing / thinking indicator — three dots */
+.mojo-typing{
+  align-self:flex-start;
+  padding:12px 16px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;
+  border-bottom-left-radius:4px;
+  display:flex;gap:5px;align-items:center;
+}
+.mojo-typing span{
+  display:inline-block;
+  width:7px;height:7px;
+  background:var(--muted);
+  border-radius:50%;
+  animation:mojoTypingBlink 1.2s infinite;
+}
+.mojo-typing span:nth-child(2){animation-delay:.2s}
+.mojo-typing span:nth-child(3){animation-delay:.4s}
+@keyframes mojoTypingBlink{
+  0%,80%,100%{opacity:.3;transform:translateY(0)}
+  40%{opacity:1;transform:translateY(-3px)}
+}
+
+/* Empty state — shown before any messages */
+.mojo-empty{
+  padding:24px 4px;
+  text-align:center;
+  color:var(--ink2);
+}
+.mojo-empty-h{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:20px;
+  color:var(--ink);
+  margin-bottom:8px;
+}
+.mojo-empty-p{
+  font-size:13.5px;
+  line-height:1.55;
+  color:var(--ink2);
+  margin-bottom:18px;
+  padding:0 12px;
+}
+.mojo-suggestions{
+  display:flex;flex-direction:column;gap:8px;
+  padding:0 8px;
+}
+.mojo-sugg{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 14px;
+  font-size:13px;
+  font-family:var(--sans);
+  color:var(--ink);
+  cursor:pointer;
+  text-align:left;
+  transition:border-color .12s ease, background .12s ease;
+}
+.mojo-sugg:hover{border-color:var(--mojo);background:var(--mojo-tint)}
+
+/* Input area at the bottom */
+.mojo-input-row{
+  padding:14px 16px 18px;
+  border-top:1px solid var(--line, var(--border));
+  background:var(--surface);
+  display:flex;gap:8px;align-items:flex-end;
+}
+.mojo-input{
+  flex:1;
+  font-family:var(--sans);
+  font-size:14px;
+  padding:10px 12px;
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  background:#fff;
+  color:var(--ink);
+  resize:none;
+  min-height:42px;
+  max-height:120px;
+  outline:none;
+  transition:border-color .12s ease;
+  line-height:1.4;
+}
+.mojo-input:focus{border-color:var(--mojo)}
+.mojo-input::placeholder{color:var(--muted)}
+.mojo-send{
+  background:var(--mojo);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  width:44px;height:44px;
+  cursor:pointer;
+  font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .12s ease, transform .12s ease;
+  flex-shrink:0;
+}
+.mojo-send:hover:not(:disabled){background:#e54e1a;transform:translateY(-1px)}
+.mojo-send:disabled{background:var(--muted);cursor:not-allowed;opacity:.6}
+
+/* Backdrop — clicking outside the panel closes it */
+.mojo-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.32);
+  z-index:1098;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .24s var(--ease);
+}
+.mojo-backdrop.open{opacity:1;pointer-events:auto}
+
+/* Mobile / narrow viewport — chat panel goes full-width */
+@media (max-width:680px){
+  .mojo-panel{width:100%}
+  .mojo-fab{right:14px;bottom:74px;width:50px;height:50px;font-size:20px}
+}
+
 </style>
 </head>
 <body>
@@ -5164,6 +5419,40 @@ footer span{color:var(--mojo)}
         <button class="btn btn-soft btn-md" onclick="closeShipModal()">Cancel</button>
         <button class="btn btn-mojo btn-md" onclick="saveShipModal()">📅 Schedule it</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ====== MOJO HELP CHAT (NOTE-18) ============================================
+       Floating ✨ button bottom-right opens a slide-in side panel. Mojo is the
+       in-app help assistant — answers "how do I X" and "where is Y" questions
+       about CaptionMojo. Powered by Claude via /api/chat worker endpoint.
+       Visibility: tied to #page-app.on (only shows in the studio, not on
+       onboarding screens or the public landing). Conversation is in-memory
+       only (fresh on reload) — see system prompt in worker/index.js for what
+       Mojo can/can't do.
+  -->
+  <div class="mojo-backdrop" id="mojoBackdrop" onclick="mojoClose()"></div>
+  <button class="mojo-fab" id="mojoFab" type="button" title="Ask Mojo for help" onclick="mojoToggle()">✨</button>
+  <div class="mojo-panel" id="mojoPanel" role="dialog" aria-labelledby="mojoHdrName" aria-hidden="true">
+    <div class="mojo-hdr">
+      <div class="mojo-hdr-avatar">m</div>
+      <div class="mojo-hdr-text">
+        <div class="mojo-hdr-name" id="mojoHdrName">Mojo</div>
+        <div class="mojo-hdr-tag">your captionmojo guide</div>
+      </div>
+      <button class="mojo-close" type="button" onclick="mojoClose()" title="Close" aria-label="Close chat">✕</button>
+    </div>
+    <div class="mojo-msgs" id="mojoMsgs">
+      <!-- Filled by mojoRender(). Starts with an empty state + suggestions. -->
+    </div>
+    <div class="mojo-input-row">
+      <textarea
+        class="mojo-input"
+        id="mojoInput"
+        rows="1"
+        placeholder="Ask Mojo anything about the app…"
+        maxlength="4000"></textarea>
+      <button class="mojo-send" type="button" id="mojoSend" onclick="mojoSend()" title="Send (Enter)">↑</button>
     </div>
   </div>
 
@@ -10160,6 +10449,200 @@ updateUsagePill();
 // NOTE: this runs AFTER the Supabase library has loaded from CDN (loaded
 // in <head> via a script tag before this file's script tag).
 initSupabase().catch(e => console.error('[auth] init failed:', e));
+
+// ============================================================================
+// MOJO HELP CHAT (NOTE-18) — frontend wiring
+// ============================================================================
+// Manages the in-memory conversation, talks to /api/chat, renders messages.
+// History is fresh on each page load (no localStorage by design). Mojo is
+// the support chatbot, NOT the caption generator — see worker MOJO_SYSTEM_PROMPT.
+//
+// State: just an array of {role, content} objects in memory.
+// UI: backdrop + panel slide-in pattern, same as ship modal philosophically.
+
+let mojoHistory = []; // [{role: 'user'|'assistant', content: string}, ...]
+let mojoBusy = false; // true while waiting for /api/chat response — blocks new sends
+let mojoOpen = false;
+
+// Suggested starter questions for the empty state. Tuned to common confusions
+// from real testing — see NOTES-DEFERRED.md NOTE-18 for the discovery story.
+const MOJO_STARTERS = [
+  "Where do I schedule a post for later?",
+  "How do I add a custom audience segment?",
+  "What's the difference between Liked and Final?",
+  "How do I make captions shorter?"
+];
+
+function mojoOpenPanel(){
+  if(mojoOpen) return;
+  mojoOpen = true;
+  const panel = document.getElementById('mojoPanel');
+  const backdrop = document.getElementById('mojoBackdrop');
+  const fab = document.getElementById('mojoFab');
+  if(panel) { panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false'); }
+  if(backdrop) backdrop.classList.add('open');
+  if(fab) fab.classList.add('open');
+  // Focus the input after the slide-in animation lands
+  setTimeout(() => {
+    const inp = document.getElementById('mojoInput');
+    if(inp) inp.focus();
+  }, 280);
+  mojoRender();
+}
+
+function mojoClose(){
+  if(!mojoOpen) return;
+  mojoOpen = false;
+  const panel = document.getElementById('mojoPanel');
+  const backdrop = document.getElementById('mojoBackdrop');
+  const fab = document.getElementById('mojoFab');
+  if(panel) { panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true'); }
+  if(backdrop) backdrop.classList.remove('open');
+  if(fab) fab.classList.remove('open');
+}
+
+function mojoToggle(){
+  if(mojoOpen) mojoClose();
+  else mojoOpenPanel();
+}
+
+// Render the full message list. Called on every state change. Cheap enough —
+// help chats don't get long enough to warrant DOM diffing.
+function mojoRender(){
+  const box = document.getElementById('mojoMsgs');
+  if(!box) return;
+
+  // Empty state — no messages yet
+  if(mojoHistory.length === 0){
+    box.innerHTML = `
+      <div class="mojo-empty">
+        <div class="mojo-empty-h">hey, I'm Mojo</div>
+        <div class="mojo-empty-p">I can help you find stuff in CaptionMojo and explain how things work. Ask me anything about the app.</div>
+        <div class="mojo-suggestions">
+          ${MOJO_STARTERS.map(q => `<button class="mojo-sugg" type="button" onclick="mojoUseSuggestion('${q.replace(/'/g, "\\'")}')">${esc(q)}</button>`).join('')}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Render each message as a bubble
+  let html = '';
+  for(const m of mojoHistory){
+    const cls = m.role === 'user' ? 'user' : (m.role === 'error' ? 'error' : 'bot');
+    html += `<div class="mojo-msg ${cls}">${esc(m.content)}</div>`;
+  }
+  // Append typing indicator if we're waiting on a reply
+  if(mojoBusy){
+    html += `<div class="mojo-typing"><span></span><span></span><span></span></div>`;
+  }
+  box.innerHTML = html;
+  // Scroll to bottom so new content is always visible
+  box.scrollTop = box.scrollHeight;
+}
+
+// Send the current input as a user message and fire off /api/chat
+async function mojoSend(){
+  if(mojoBusy) return; // don't allow double-sends while a request is in flight
+  const inp = document.getElementById('mojoInput');
+  if(!inp) return;
+  const text = inp.value.trim();
+  if(!text) return;
+
+  // Optimistically add the user message to the history and clear input
+  mojoHistory.push({ role: 'user', content: text });
+  inp.value = '';
+  mojoAutoResize();
+  mojoBusy = true;
+  const sendBtn = document.getElementById('mojoSend');
+  if(sendBtn) sendBtn.disabled = true;
+  mojoRender();
+
+  // Build the payload — send just role+content, drop any 'error' entries
+  // (those are local UI markers, not real history)
+  const payload = {
+    messages: mojoHistory
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role, content: m.content }))
+  };
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok){
+      let errMsg = "Something glitched. Try again in a moment.";
+      try {
+        const errBody = await res.json();
+        if(errBody && errBody.error) errMsg = errBody.error;
+      } catch(_){}
+      mojoHistory.push({ role: 'error', content: errMsg });
+    } else {
+      const data = await res.json();
+      const reply = (data && typeof data.reply === 'string') ? data.reply : '';
+      if(reply){
+        mojoHistory.push({ role: 'assistant', content: reply });
+      } else {
+        mojoHistory.push({ role: 'error', content: "I didn't get a response back. Try again?" });
+      }
+    }
+  } catch(e){
+    console.error('[mojo] network error:', e);
+    mojoHistory.push({ role: 'error', content: "Couldn't reach the server. Check your connection?" });
+  } finally {
+    mojoBusy = false;
+    if(sendBtn) sendBtn.disabled = false;
+    mojoRender();
+    // Refocus the input so the user can keep typing
+    const i = document.getElementById('mojoInput');
+    if(i) i.focus();
+  }
+}
+
+// Click a suggestion chip → send it as the user message
+function mojoUseSuggestion(q){
+  if(mojoBusy) return;
+  const inp = document.getElementById('mojoInput');
+  if(inp){ inp.value = q; mojoAutoResize(); }
+  mojoSend();
+}
+
+// Auto-grow the textarea up to its max-height as the user types
+function mojoAutoResize(){
+  const inp = document.getElementById('mojoInput');
+  if(!inp) return;
+  inp.style.height = 'auto';
+  inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
+}
+
+// Wire up keyboard: Enter sends, Shift+Enter adds a newline
+function mojoWireKeyboard(){
+  const inp = document.getElementById('mojoInput');
+  if(!inp) return;
+  inp.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      mojoSend();
+    }
+  });
+  inp.addEventListener('input', mojoAutoResize);
+  // ESC closes the panel from anywhere when it's open
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && mojoOpen){
+      mojoClose();
+    }
+  });
+}
+
+// Init on DOM ready. If DOMContentLoaded has already fired (which it has by
+// the time this script runs at the end of body), just run immediately.
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', mojoWireKeyboard);
+} else {
+  mojoWireKeyboard();
+}
 </script>
 </body>
 </html>
