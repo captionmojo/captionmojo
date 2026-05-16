@@ -22,7 +22,7 @@
   --border2:#B8AC91;
   --ink:#171511;
   --ink2:#3A352B;
-  --muted:#8B8268;
+  --muted:#6A6452;
   --mojo:#FF5B1F;
   --mojo2:#E84A0F;
   --mojo-soft:#FFE8DC;
@@ -5640,7 +5640,7 @@ footer span{color:var(--mojo)}
         <div class="track deep" style="border-color:var(--mojo);box-shadow:var(--sh-mojo);order:1">
           <div class="track-badge" style="background:var(--mojo);color:var(--surface)">🎯 Recommended</div>
           <h3>Drop your brand docs</h3>
-          <p>Upload PDFs, Word docs, screenshots, past captions — anything that captures your brand. The AI reads everything and writes captions that genuinely sound like you.</p>
+          <p>Upload screenshots of your best posts, PDFs, past captions — anything that captures your brand. The AI reads everything (even caption text from screenshots) and writes captions that genuinely sound like you.</p>
           <ul>
             <li>Drop your existing brand docs</li>
             <li>Pick your industry</li>
@@ -5818,16 +5818,17 @@ footer span{color:var(--mojo)}
       </div>
       <div class="ob-card" id="d6" style="display:none">
         <h2>Drop your brand docs</h2>
-        <p class="ob-hint">This is where the AI goes from good to exceptional. Drop in anything that captures your brand — brand guides, past captions, About pages, product info, customer messages, screenshots of decks, mood boards.</p>
-        <div class="field"><label>Upload documents <span class="lh">(PDF, DOCX, TXT, Markdown, PNG/JPG)</span></label>
+        <p class="ob-hint"><strong>Screenshots of your best Instagram, TikTok, or LinkedIn posts work great here.</strong> The AI reads the caption text directly from your screenshots and learns your voice from real examples. Also accepts brand guides, past captions, About pages, decks, product info, customer messages.</p>
+        <div class="field"><label>Upload documents <span class="lh">(Screenshots, PDF, DOCX, TXT, Markdown)</span></label>
           <div class="upload-zone" onclick="document.getElementById('d-files').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');handleFiles({files:event.dataTransfer.files,value:''},'d-flist')">
             <input type="file" id="d-files" multiple accept=".pdf,.docx,.txt,.md,.markdown,.png,.jpg,.jpeg,.webp,.gif" onchange="handleFiles(this,'d-flist')">
             <div style="font-size:40px;margin-bottom:12px;font-family:var(--serif);font-style:italic;color:var(--mojo)">+</div>
-            <div style="font-size:14px;color:var(--ink2)"><strong style="color:var(--mojo)">Click to upload</strong> or drag and drop<br><span style="font-size:12px;color:var(--muted)">PDF · DOCX · TXT · Markdown · PNG · JPG · Max 10MB per file · Up to 5 files</span></div>
+            <div style="font-size:14px;color:var(--ink2)"><strong style="color:var(--mojo)">Click to upload</strong> or drag and drop<br><span style="font-size:12px;color:var(--muted)">Screenshots · PDF · DOCX · TXT · Markdown · Max 10MB per file · Up to 5 files</span></div>
           </div>
           <div class="file-list" id="d-flist"></div>
           <div class="doc-budget" id="d-budget">≈ 0 tokens of brand context</div>
           <div class="doc-budget-track"><div class="doc-budget-bar" id="d-budget-bar" style="width:0%"></div></div>
+          <div class="field-hint" style="margin-top:8px;font-size:12px;color:var(--mojo);font-family:var(--sans);font-weight:500">💡 Tip: 3-5 screenshots of your best-performing posts teach the AI more than any description.</div>
         </div>
         <div class="field"><label>Or paste brand content directly <span class="lh">(optional)</span></label><textarea id="d-paste" rows="6" oninput="updateDocBudget()" placeholder="Paste anything here that captures your brand — existing captions, about page text, product descriptions, email newsletters, brand guidelines, customer reviews, anything.&#10;&#10;The more you give the AI, the more accurate every caption will be."></textarea></div>
       </div>
@@ -5906,16 +5907,17 @@ footer span{color:var(--mojo)}
       <!-- Step 1: Drop your brand docs -->
       <div class="ob-card" id="f1">
         <h2>Drop your brand docs</h2>
-        <p class="ob-hint">Anything that captures your brand — brand guides, past captions, About pages, decks, screenshots, product info. The AI reads it all and builds your captioning brain. The more you give, the better the output.</p>
-        <div class="field"><label>Upload documents <span class="lh">(PDF, DOCX, TXT, Markdown, PNG/JPG)</span></label>
+        <p class="ob-hint"><strong>Screenshots of your best posts work great.</strong> The AI reads caption text from your screenshots and learns your voice. Also accepts brand guides, past captions, About pages, decks, product info — the more you give, the better the output.</p>
+        <div class="field"><label>Upload documents <span class="lh">(Screenshots, PDF, DOCX, TXT, Markdown)</span></label>
           <div class="upload-zone" onclick="document.getElementById('f-files').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');handleFiles({files:event.dataTransfer.files,value:''},'f-flist')">
             <input type="file" id="f-files" multiple accept=".pdf,.docx,.txt,.md,.markdown,.png,.jpg,.jpeg,.webp,.gif" onchange="handleFiles(this,'f-flist')">
             <div style="font-size:40px;margin-bottom:12px;font-family:var(--serif);font-style:italic;color:var(--mojo)">+</div>
-            <div style="font-size:14px;color:var(--ink2)"><strong style="color:var(--mojo)">Click to upload</strong> or drag and drop<br><span style="font-size:12px;color:var(--muted)">PDF · DOCX · TXT · Markdown · PNG · JPG · Max 10MB per file · Up to 5 files</span></div>
+            <div style="font-size:14px;color:var(--ink2)"><strong style="color:var(--mojo)">Click to upload</strong> or drag and drop<br><span style="font-size:12px;color:var(--muted)">Screenshots · PDF · DOCX · TXT · Markdown · Max 10MB per file · Up to 5 files</span></div>
           </div>
           <div class="file-list" id="f-flist"></div>
           <div class="doc-budget" id="f-budget">≈ 0 tokens of brand context</div>
           <div class="doc-budget-track"><div class="doc-budget-bar" id="f-budget-bar" style="width:0%"></div></div>
+          <div class="field-hint" style="margin-top:8px;font-size:12px;color:var(--mojo);font-family:var(--sans);font-weight:500">💡 Tip: 3-5 screenshots of your best posts teach the AI more than any description.</div>
         </div>
         <div class="field"><label>Or paste brand content directly <span class="lh">(optional)</span></label><textarea id="f-paste" rows="6" oninput="updateDocBudgetF()" placeholder="Paste anything here that captures your brand — existing captions, about page text, product descriptions, email newsletters, brand guidelines, customer reviews, anything.&#10;&#10;The more you give the AI, the more accurate every caption will be."></textarea></div>
       </div>
@@ -9443,9 +9445,9 @@ async function buildBrain(track){
 const ONBOARDING_REASSURANCE = {
   // Used while building the brand brain (Deep Setup with docs)
   brain: [
-    { primary: 'Reading your brand documents…', trust: 'No credit card required.' },
+    { primary: 'Reading your brand documents and screenshots…', trust: 'No credit card required.' },
+    { primary: 'Extracting caption text from your screenshots…', trust: 'Your captions stay yours. We don\'t train AI on them.' },
     { primary: 'Distilling your voice and references…', trust: 'You\'ll get 10 free captions a month — no commitment.' },
-    { primary: 'Extracting proof points and brand pillars…', trust: 'Cancel anytime. We won\'t even ask for a card to start.' },
     { primary: 'Almost there — this takes about 30 seconds…', trust: 'No demo call. No waiting for sales. You\'re minutes from your first captions.' },
   ],
   // Used while building audience segments (both Quick and Deep)
