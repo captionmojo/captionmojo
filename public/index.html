@@ -4059,7 +4059,318 @@ footer span{color:var(--mojo)}
 }
 
 /* ============================================================================
-   MOJO CHAT (NOTE-18) — in-app help assistant
+   BULK SCHEDULE (NOTE-21/A — bulk ship from Final folder)
+   ============================================================================
+   When "☐ Select" is clicked in the Final folder's action row, the folder
+   enters bulk-select mode: checkboxes appear on cards, and a sticky action
+   bar at the bottom of the folder view shows "N selected · [Bulk Ship] [Cancel]".
+   The user picks captions, then opens the Bulk Schedule modal — a start date
+   + cadence (Every day / Every other day / Weekdays only / All same day) +
+   platforms. Already-scheduled captions are auto-deselected with a count note.
+*/
+
+/* The "Select" toggle button in the expbar — same visual family as other facts */
+.bulk-select-toggle{
+  /* inherits .fact styling; selected state shown via .on */
+}
+.bulk-select-toggle.on{
+  background:var(--mojo-tint);
+  color:var(--mojo);
+  border-color:var(--mojo);
+  font-weight:600;
+}
+
+/* Checkbox on each card while in bulk-select mode. Sits in the top-right of
+   the card. Click anywhere on the card to toggle (handled in JS). */
+.fcard.bulk-mode{
+  cursor:pointer;
+  position:relative;
+  transition:background .12s ease, border-color .12s ease;
+}
+.fcard.bulk-mode:hover{
+  background:var(--mojo-tint);
+  border-color:var(--mojo);
+}
+.fcard.bulk-mode.selected{
+  background:var(--mojo-tint);
+  border-color:var(--mojo);
+  box-shadow:0 0 0 1px var(--mojo);
+}
+/* Disabled state for cards that can't be bulk-shipped (already scheduled) */
+.fcard.bulk-mode.disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.fcard.bulk-mode.disabled:hover{
+  background:var(--surface);
+  border-color:var(--border);
+}
+.fcard-bulk-check{
+  position:absolute;
+  top:10px;right:10px;
+  width:22px;height:22px;
+  border:1.5px solid var(--border);
+  border-radius:6px;
+  background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  color:transparent;
+  font-weight:700;
+  pointer-events:none;
+  transition:all .12s ease;
+}
+.fcard.bulk-mode.selected .fcard-bulk-check{
+  background:var(--mojo);
+  border-color:var(--mojo);
+  color:#fff;
+}
+.fcard.bulk-mode.disabled .fcard-bulk-check{
+  background:#f0eee5;
+  border-color:#d6cfb5;
+  color:#aaa49a;
+}
+.fcard.bulk-mode.disabled .fcard-bulk-check::after{
+  content:'📅';
+  font-size:11px;
+}
+/* When bulk-mode is on, the per-card action buttons become decorative — we
+   hide them so the user focuses on selection. Edit-text mode is the exception:
+   if someone happens to be mid-edit, we exit bulk mode rather than fight them. */
+.fcard.bulk-mode .fcard-acts{display:none}
+
+/* Sticky action bar at the bottom of the folder view when in bulk mode.
+   Shows N selected + the bulk-ship button + cancel. */
+.bulk-bar{
+  position:sticky;
+  bottom:0;
+  background:var(--surface);
+  border-top:1.5px solid var(--mojo);
+  padding:14px 18px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 -8px 20px rgba(0,0,0,.06);
+  z-index:10;
+}
+.bulk-bar-count{
+  font-family:var(--sans);
+  font-size:14px;
+  color:var(--ink);
+  font-weight:500;
+}
+.bulk-bar-already{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  margin-left:4px;
+}
+.bulk-bar-spacer{flex:1}
+.bulk-bar .fact{font-size:13px}
+
+/* ====== BULK SHIP MODAL ====== */
+.bulk-modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:1050;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .22s var(--ease);
+  display:flex;align-items:flex-start;justify-content:center;
+  overflow-y:auto;
+  padding:40px 20px;
+}
+.bulk-modal-backdrop.open{opacity:1;pointer-events:auto}
+.bulk-modal{
+  background:var(--surface);
+  border-radius:14px;
+  width:100%;
+  max-width:580px;
+  padding:0;
+  border:1px solid var(--border);
+  box-shadow:0 24px 60px rgba(0,0,0,.18);
+  position:relative;
+  transform:translateY(-12px);
+  transition:transform .22s var(--ease);
+  font-family:var(--sans);
+}
+.bulk-modal-backdrop.open .bulk-modal{transform:translateY(0)}
+.bulk-modal-close{
+  position:absolute;
+  top:14px;right:14px;
+  background:transparent;border:none;cursor:pointer;
+  font-size:20px;color:var(--ink2);
+  width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:6px;
+}
+.bulk-modal-close:hover{background:rgba(0,0,0,.05)}
+.bulk-modal-hdr{
+  padding:22px 26px 16px;
+  border-bottom:1px solid var(--line, var(--border));
+}
+.bulk-modal-hdr h2{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:24px;
+  margin:0 0 6px;
+  color:var(--ink);
+  font-weight:500;
+}
+.bulk-modal-hdr p{
+  font-family:var(--sans);
+  font-size:13.5px;
+  color:var(--ink2);
+  margin:0;
+  line-height:1.5;
+}
+.bulk-modal-body{padding:18px 26px 8px}
+.bulk-modal-foot{
+  padding:14px 26px 22px;
+  display:flex;justify-content:flex-end;align-items:center;gap:10px;
+  border-top:1px solid var(--line, var(--border));
+}
+.bulk-label{
+  display:block;
+  font-family:var(--mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  color:var(--muted);
+  margin:14px 0 6px;
+}
+.bulk-label:first-child{margin-top:0}
+.bulk-input{
+  width:100%;
+  padding:9px 12px;
+  border:1.5px solid var(--border);
+  border-radius:8px;
+  background:#fff;
+  font-family:var(--sans);
+  font-size:14px;
+  color:var(--ink);
+  outline:none;
+  transition:border-color .12s ease;
+}
+.bulk-input:focus{border-color:var(--mojo)}
+.bulk-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bulk-platforms{
+  display:flex;flex-wrap:wrap;gap:6px;
+}
+.bulk-plat-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;
+  border:1.5px solid var(--border);
+  border-radius:100px;
+  background:#fff;
+  font-size:12.5px;
+  font-family:var(--sans);
+  color:var(--ink2);
+  cursor:pointer;
+  user-select:none;
+  transition:border-color .12s ease, background .12s ease, color .12s ease;
+}
+.bulk-plat-chip input{cursor:pointer}
+.bulk-plat-chip:has(input:checked){
+  background:var(--mojo-tint);
+  border-color:var(--mojo);
+  color:var(--mojo);
+  font-weight:500;
+}
+.bulk-preview{
+  background:var(--bg);
+  border-radius:8px;
+  padding:10px;
+  max-height:220px;
+  overflow-y:auto;
+  display:flex;flex-direction:column;gap:5px;
+}
+.bulk-preview-row{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 9px;
+  background:var(--surface);
+  border-radius:6px;
+  border:1px solid var(--line, var(--border));
+}
+.bulk-preview-date{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--mojo);
+  font-weight:600;
+  min-width:85px;
+  flex-shrink:0;
+}
+.bulk-preview-text{
+  font-family:var(--sans);
+  font-size:13px;
+  color:var(--ink2);
+  flex:1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.bulk-error{
+  color:#a32a00;
+  font-family:var(--sans);
+  font-size:13px;
+  margin-right:auto;
+}
+.bulk-hint{
+  font-family:var(--sans);
+  font-size:12px;
+  color:var(--muted);
+  margin-top:6px;
+  line-height:1.4;
+}
+
+/* Undo toast — appears after a successful bulk-ship commit, bottom-center,
+   fades after 8 seconds. Click "Undo" to revert. */
+.bulk-undo-toast{
+  position:fixed;
+  bottom:96px; /* above the TD footer */
+  left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--ink);
+  color:#fff;
+  padding:12px 18px;
+  border-radius:12px;
+  display:flex;align-items:center;gap:14px;
+  font-family:var(--sans);
+  font-size:14px;
+  box-shadow:0 14px 30px rgba(0,0,0,.28);
+  z-index:1090;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .24s var(--ease), transform .24s var(--ease);
+  max-width:90vw;
+}
+.bulk-undo-toast.show{
+  opacity:1;
+  pointer-events:auto;
+  transform:translateX(-50%) translateY(0);
+}
+.bulk-undo-toast-msg{color:#fff}
+.bulk-undo-toast-btn{
+  background:transparent;
+  border:1px solid rgba(255,255,255,.4);
+  color:#fff;
+  padding:5px 12px;
+  border-radius:6px;
+  font-family:var(--sans);
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  transition:background .15s ease, border-color .15s ease;
+}
+.bulk-undo-toast-btn:hover{
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.7);
+}
+.bulk-undo-toast-close{
+  background:transparent;border:none;color:rgba(255,255,255,.6);cursor:pointer;
+  font-size:18px;line-height:1;padding:0 4px;
+}
+.bulk-undo-toast-close:hover{color:#fff}
+
+
    ============================================================================
    Floating ✨ button bottom-right inside the studio. Click → slide-in side
    panel from the right with message list + input. Fresh chat per page reload
@@ -5376,10 +5687,21 @@ footer span{color:var(--mojo)}
       <button class="ftab" title="Discarded — restore or delete forever" onclick="setFT('trash',this)">⌫ Trash</button>
     </div>
     <div class="fbody"><div class="flist" id="fList"></div></div>
+    <!-- Bulk-select sticky action bar — only shown when bulkSelectMode is true.
+         Sits inside #v-fold so it appears at the bottom of the folder view. -->
+    <div class="bulk-bar" id="bulkBar" style="display:none">
+      <span class="bulk-bar-count" id="bulkBarCount">0 selected</span>
+      <span class="bulk-bar-already" id="bulkBarAlready"></span>
+      <span class="bulk-bar-spacer"></span>
+      <button class="fact" id="bulkSelectAllBtn" onclick="toggleSelectAll()" title="Select / deselect all eligible captions (keyboard: Cmd/Ctrl+A)">Select all</button>
+      <button class="fact" onclick="exitBulkMode()" title="Exit bulk-select mode (keyboard: Esc)">Cancel</button>
+      <button class="fact mojo" id="bulkShipBtn" onclick="openBulkModal()" disabled>📅 Bulk Ship</button>
+    </div>
     <div class="expbar">
       <button class="fact" title="Download all captions in this folder as a .txt file" onclick="doExport()">↓ Export .txt</button>
       <button class="fact" title="Download all captions in this folder as a .csv spreadsheet (opens in Excel / Google Sheets)" onclick="doExportCsv()">↓ Export .csv</button>
       <button class="fact blue" title="Copy all captions in this folder to clipboard" onclick="doCopyAll()">⎘ Copy All</button>
+      <button class="fact bulk-select-toggle" id="bulkSelectBtn" title="Select multiple captions to schedule them all at once" onclick="toggleBulkMode()" style="display:none">☐ Select</button>
       <button class="fact red" id="emptyTrashBtn" title="Permanently delete all trashed captions" onclick="emptyTrash()" style="display:none">Empty Trash</button>
     </div>
   </div>
@@ -5460,6 +5782,67 @@ footer span{color:var(--mojo)}
         <button class="btn btn-mojo btn-md" onclick="saveShipModal()">📅 Schedule it</button>
       </div>
     </div>
+  </div>
+
+  <!-- ====== BULK SCHEDULE MODAL ============================================
+       Opens when the user has selected 1+ Final captions and clicks "Bulk Ship".
+       User picks: start date, cadence (every day / every other day / weekdays
+       only / all same day), platforms. Preview shows the computed schedule.
+       Hitting Schedule writes scheduled_for + scheduled_platforms to each cap.
+       Already-scheduled captions are filtered out before this modal opens.
+  -->
+  <div class="bulk-modal-backdrop" id="bulkModalBackdrop" onclick="if(event.target===this)closeBulkModal()">
+    <div class="bulk-modal" role="dialog" aria-labelledby="bulkModalTitle">
+      <button class="bulk-modal-close" onclick="closeBulkModal()" title="Close" aria-label="Close">✕</button>
+      <div class="bulk-modal-hdr">
+        <h2 id="bulkModalTitle">Bulk Schedule</h2>
+        <p id="bulkModalSubtitle">Pick a start date and cadence. We'll lay these captions out across your calendar.</p>
+      </div>
+      <div class="bulk-modal-body">
+        <div class="bulk-row-2">
+          <div>
+            <label class="bulk-label">Start date</label>
+            <input type="date" id="bulkStartDate" class="bulk-input">
+          </div>
+          <div>
+            <label class="bulk-label">Cadence</label>
+            <select id="bulkCadence" class="bulk-input" onchange="bulkRecomputePreview()">
+              <option value="daily">Every day</option>
+              <option value="every-other">Every other day</option>
+              <option value="weekdays">Weekdays only (Mon–Fri)</option>
+              <option value="same-day">All on same day</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="bulk-label">Platforms (apply to all)</label>
+        <div class="bulk-platforms" id="bulkPlatforms">
+          <label class="bulk-plat-chip"><input type="checkbox" value="Instagram" checked> Instagram</label>
+          <label class="bulk-plat-chip"><input type="checkbox" value="TikTok" checked> TikTok</label>
+          <label class="bulk-plat-chip"><input type="checkbox" value="Twitter / X"> Twitter / X</label>
+          <label class="bulk-plat-chip"><input type="checkbox" value="Facebook"> Facebook</label>
+          <label class="bulk-plat-chip"><input type="checkbox" value="LinkedIn"> LinkedIn</label>
+        </div>
+
+        <label class="bulk-label">Schedule preview</label>
+        <div class="bulk-preview" id="bulkPreview"></div>
+        <div class="bulk-hint" id="bulkPreviewHint"></div>
+      </div>
+      <div class="bulk-modal-foot">
+        <span class="bulk-error" id="bulkError" style="display:none"></span>
+        <button class="btn btn-soft btn-md" onclick="closeBulkModal()">Cancel</button>
+        <button class="btn btn-mojo btn-md" onclick="commitBulkSchedule()" id="bulkCommitBtn">📅 Schedule all</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Undo toast — appears for ~8s after a successful bulk-ship commit.
+       Captures the pre-bulk state of the affected captions so "Undo" can
+       revert them. -->
+  <div class="bulk-undo-toast" id="bulkUndoToast">
+    <span class="bulk-undo-toast-msg" id="bulkUndoMsg">Scheduled 3 captions</span>
+    <button class="bulk-undo-toast-btn" id="bulkUndoBtn" onclick="bulkUndoCommit()">Undo</button>
+    <button class="bulk-undo-toast-close" onclick="bulkDismissUndoToast()" aria-label="Dismiss">✕</button>
   </div>
 
   <!-- ====== MOJO HELP CHAT (NOTE-18) ============================================
@@ -9344,8 +9727,23 @@ function rFolder(){
   const labels={final:'final copy',wip:'work in progress',liked:'liked captions',trash:'trashed captions'};
   const icons={final:'✓',wip:'⋯',liked:'♥',trash:'⌫'};
   document.getElementById('emptyTrashBtn').style.display=isTrash?'':'none';
+  // NOTE-21/A: Bulk-select button is ONLY available on the Final tab. Other tabs
+  // can't ship to calendar so multi-select makes no sense there. The button is
+  // also hidden if there are 0 final captions (no point selecting nothing).
+  const bulkBtn = document.getElementById('bulkSelectBtn');
+  if(bulkBtn){
+    const showBulk = fTab === 'final' && items.length > 0;
+    bulkBtn.style.display = showBulk ? '' : 'none';
+  }
+  // If user switched away from Final while in bulk mode, exit bulk mode quietly
+  if(bulkSelectMode && fTab !== 'final'){
+    exitBulkMode(true); // quiet exit, no re-render (we're about to render below)
+  }
   if(!items.length){
     el.innerHTML=`<div class="fempty"><div class="fempty-icon">${icons[fTab]}</div>No ${labels[fTab]} yet.${isTrash?'<br>Captions you discard will appear here.':'<br>Use ♥ ⋯ ✓ on captions<br>to organize them here.'}</div>`;
+    // Hide bulk bar if it was open
+    const bb = document.getElementById('bulkBar');
+    if(bb) bb.style.display = 'none';
     return;
   }
   const canP=fTab==='wip';
@@ -9369,12 +9767,391 @@ function rFolder(){
           ? `<button class="fact" title="Update the scheduled date / platforms / media for this caption" onclick="openShipModal(${c.id})">✎ Edit schedule</button>`
           : `<button class="fact mojo" title="Schedule this caption to your calendar" onclick="openShipModal(${c.id})">📅 Ship to Calendar</button>`)
       : '';
+    // NOTE-21/A: Bulk-select mode wrapper. When active, card gets clickable to
+    // toggle selection. Already-scheduled captions are marked disabled — can't
+    // be re-scheduled via bulk (use Edit schedule individually for those).
+    const inBulk = bulkSelectMode && fTab === 'final';
+    const bulkClasses = inBulk
+      ? (isScheduled ? ' bulk-mode disabled' : (bulkSelectedIds.has(c.id) ? ' bulk-mode selected' : ' bulk-mode'))
+      : '';
+    const bulkCheck = inBulk ? `<div class="fcard-bulk-check"${isScheduled ? '' : ''}>${isScheduled ? '' : '✓'}</div>` : '';
+    // Don't attach the bulk-toggle click handler while a caption is being edited
+    // (it would interfere with textarea interaction). Edit + bulk-mode at the
+    // same time is rare but the guard is cheap.
+    const bulkClickAttr = (inBulk && !isScheduled && !isE) ? ` onclick="toggleBulkSelect(${c.id})"` : '';
     const body=isE
       ?`<textarea class="fcard-eta" id="feta-${c.id}" oninput="fetaCC(${c.id})">${esc(c.text)}</textarea><div class="erow" style="margin-top:7px"><span class="echars" id="fech-${c.id}">${c.text.length} chars</span><button class="ecancel" onclick="fCE()">Cancel</button><button class="esave" onclick="fSE(${c.id})">Save</button></div>`
-      :`<div class="fcard-text">${esc(c.text)}</div><div class="fcard-meta">${capSegList(c).map(n=>`<span class="bdg seg" style="font-size:10px">${esc(n)}</span>`).join('')}${pb}${schedBadge}</div><div class="fcard-acts">${isTrash?`<button class="fact blue" title="Restore caption back to your library" onclick="restore(${c.id})">↩ Restore</button><button class="fact red" title="Permanently delete this caption" onclick="permDel(${c.id})">Delete forever</button>`:`<button class="fact" title="Copy to clipboard" onclick="copy1(${c.id},this)">⎘ Copy</button><button class="fact" title="Edit caption text" onclick="fStartE(${c.id})">✎ Edit</button>${canP?`<button class="fact green" title="Move to Final" onclick="setSt(${c.id},'final')">→ Final</button>`:''}${shipBtn}<button class="fact red" title="${fTab==='liked'?'Remove from Liked':'Remove from this folder'}" onclick="remF(${c.id})">${fTab==='liked'?'Unlike':'Remove'}</button>`}</div>`;
-    return`<div class="fcard">${body}</div>`;
+      :`${bulkCheck}<div class="fcard-text">${esc(c.text)}</div><div class="fcard-meta">${capSegList(c).map(n=>`<span class="bdg seg" style="font-size:10px">${esc(n)}</span>`).join('')}${pb}${schedBadge}</div><div class="fcard-acts">${isTrash?`<button class="fact blue" title="Restore caption back to your library" onclick="restore(${c.id})">↩ Restore</button><button class="fact red" title="Permanently delete this caption" onclick="permDel(${c.id})">Delete forever</button>`:`<button class="fact" title="Copy to clipboard" onclick="copy1(${c.id},this)">⎘ Copy</button><button class="fact" title="Edit caption text" onclick="fStartE(${c.id})">✎ Edit</button>${canP?`<button class="fact green" title="Move to Final" onclick="setSt(${c.id},'final')">→ Final</button>`:''}${shipBtn}<button class="fact red" title="${fTab==='liked'?'Remove from Liked':'Remove from this folder'}" onclick="remF(${c.id})">${fTab==='liked'?'Unlike':'Remove'}</button>`}</div>`;
+    return`<div class="fcard${bulkClasses}"${bulkClickAttr}>${body}</div>`;
   }).join('');
   if(fEId!==null)setTimeout(()=>{const ta=document.getElementById(`feta-${fEId}`);if(ta){ta.focus();ta.selectionStart=ta.value.length;}},30);
+  // Update bulk-bar visibility + count
+  updateBulkBar();
+}
+
+// ============================================================================
+// BULK SCHEDULE (NOTE-21/A) — multi-select + bulk-ship from Final folder
+// ============================================================================
+// State: bulkSelectMode is a flag; bulkSelectedIds is a Set of caption IDs.
+// Already-scheduled captions can't be bulk-shipped (they're shown disabled in
+// the UI; their IDs never enter bulkSelectedIds).
+let bulkSelectMode = false;
+let bulkSelectedIds = new Set();
+
+// Undo state — captures pre-bulk caption state so we can revert.
+// bulkUndoSnapshot is an array of {id, prevState} objects, or null when no
+// recent bulk-ship is undoable.
+let bulkUndoSnapshot = null;
+let bulkUndoTimer = null;
+const BULK_UNDO_TIMEOUT_MS = 10000; // 10s window to hit Undo
+
+// Toggle bulk-select mode on/off. Called by the "Select" button in the expbar.
+function toggleBulkMode(){
+  if(bulkSelectMode){
+    exitBulkMode();
+  } else {
+    enterBulkMode();
+  }
+}
+
+function enterBulkMode(){
+  // Bulk mode only makes sense on the Final tab — guard against weird state
+  if(fTab !== 'final') return;
+  bulkSelectMode = true;
+  bulkSelectedIds.clear();
+  // Highlight the "Select" toggle button
+  const btn = document.getElementById('bulkSelectBtn');
+  if(btn){ btn.classList.add('on'); btn.innerHTML = '✕ Cancel select'; }
+  rFolder();
+}
+
+// quiet=true means we're being called from rFolder during a tab switch — don't
+// re-render or we recurse.
+function exitBulkMode(quiet){
+  bulkSelectMode = false;
+  bulkSelectedIds.clear();
+  const btn = document.getElementById('bulkSelectBtn');
+  if(btn){ btn.classList.remove('on'); btn.innerHTML = '☐ Select'; }
+  if(!quiet) rFolder();
+}
+
+// Click handler on each bulk-mode card. Already-scheduled captions get
+// onclick="" so this won't fire for them — but we double-check anyway.
+function toggleBulkSelect(id){
+  const c = F(id);
+  if(!c || c.scheduled_for) return;
+  if(bulkSelectedIds.has(id)){
+    bulkSelectedIds.delete(id);
+  } else {
+    bulkSelectedIds.add(id);
+  }
+  rFolder();
+}
+
+// Select-all / deselect-all toggle. Selects every eligible (unscheduled) Final
+// caption. If everything is already selected, deselects everything instead.
+function toggleSelectAll(){
+  if(!bulkSelectMode || fTab !== 'final') return;
+  const eligible = caps.filter(c => c.status === 'final' && !c.scheduled_for);
+  if(!eligible.length) return;
+  // If everything eligible is already selected, deselect all instead
+  const allSelected = eligible.every(c => bulkSelectedIds.has(c.id));
+  if(allSelected){
+    bulkSelectedIds.clear();
+  } else {
+    eligible.forEach(c => bulkSelectedIds.add(c.id));
+  }
+  rFolder();
+}
+
+// Refresh the sticky bottom action bar (count + ship button enabled/disabled).
+// Also surfaces the already-scheduled count as context.
+function updateBulkBar(){
+  const bar = document.getElementById('bulkBar');
+  if(!bar) return;
+  if(!bulkSelectMode){
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  const count = bulkSelectedIds.size;
+  const finalCaps = caps.filter(c => c.status === 'final');
+  const alreadyScheduled = finalCaps.filter(c => c.scheduled_for).length;
+  const eligible = finalCaps.filter(c => !c.scheduled_for);
+  const cntEl = document.getElementById('bulkBarCount');
+  const alreadyEl = document.getElementById('bulkBarAlready');
+  const shipBtn = document.getElementById('bulkShipBtn');
+  const selAllBtn = document.getElementById('bulkSelectAllBtn');
+  if(cntEl) cntEl.textContent = `${count} selected`;
+  if(alreadyEl){
+    alreadyEl.textContent = alreadyScheduled > 0
+      ? `· ${alreadyScheduled} already scheduled (skipped)`
+      : '';
+  }
+  if(shipBtn) shipBtn.disabled = (count === 0);
+  // Select-all button: hide if nothing eligible, otherwise toggle label based
+  // on whether everything's already selected
+  if(selAllBtn){
+    if(!eligible.length){
+      selAllBtn.style.display = 'none';
+    } else {
+      selAllBtn.style.display = '';
+      const allSelected = eligible.length > 0 && eligible.every(c => bulkSelectedIds.has(c.id));
+      selAllBtn.textContent = allSelected ? 'Deselect all' : 'Select all';
+    }
+  }
+}
+
+// ===== KEYBOARD SHORTCUTS =====
+// Esc cancels bulk mode. Cmd/Ctrl+A selects all (when in bulk mode and the
+// active element isn't a text input — we don't want to steal Cmd+A from
+// people editing captions or typing in Mojo chat).
+document.addEventListener('keydown', (e) => {
+  // Esc closes bulk mode if active. Don't fight a modal — Ship modal and Bulk
+  // modal close on their own ESC handlers (Mojo too); we only fire if no
+  // modals are open.
+  if(e.key === 'Escape' && bulkSelectMode){
+    const bulkOpen = document.getElementById('bulkModalBackdrop');
+    const shipOpen = document.getElementById('shipModalBackdrop');
+    const segOpen = document.getElementById('segMgrBackdrop');
+    const notesOpen = document.getElementById('notesModalBackdrop');
+    const anyModalOpen = (bulkOpen && bulkOpen.classList.contains('open'))
+      || (shipOpen && shipOpen.classList.contains('open'))
+      || (segOpen && segOpen.classList.contains('open'))
+      || (notesOpen && notesOpen.classList.contains('open'));
+    if(!anyModalOpen){
+      e.preventDefault();
+      exitBulkMode();
+    }
+  }
+  // Cmd/Ctrl+A selects all (only when in bulk mode and user isn't typing)
+  if((e.metaKey || e.ctrlKey) && e.key === 'a' && bulkSelectMode){
+    const t = e.target;
+    const isTyping = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    if(!isTyping){
+      e.preventDefault();
+      toggleSelectAll();
+    }
+  }
+});
+
+// ===== BULK SCHEDULE MODAL =====
+function openBulkModal(){
+  if(bulkSelectedIds.size === 0) return;
+  const backdrop = document.getElementById('bulkModalBackdrop');
+  if(!backdrop) return;
+  // Default start date to today (local TZ)
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const d = String(today.getDate()).padStart(2, '0');
+  const dateIn = document.getElementById('bulkStartDate');
+  if(dateIn) dateIn.value = `${y}-${m}-${d}`;
+  // Reset cadence to 'daily'
+  const cad = document.getElementById('bulkCadence');
+  if(cad) cad.value = 'daily';
+  // Reset error state
+  const err = document.getElementById('bulkError');
+  if(err){ err.style.display = 'none'; err.textContent = ''; }
+  // Update subtitle to reflect count
+  const sub = document.getElementById('bulkModalSubtitle');
+  if(sub){
+    const n = bulkSelectedIds.size;
+    sub.textContent = `Scheduling ${n} caption${n === 1 ? '' : 's'}. Pick a start date and cadence — we'll lay them out across your calendar.`;
+  }
+  // Wire date input to refresh preview when it changes
+  if(dateIn){
+    dateIn.onchange = bulkRecomputePreview;
+  }
+  backdrop.classList.add('open');
+  bulkRecomputePreview();
+  setTimeout(() => { if(dateIn) dateIn.focus(); }, 60);
+}
+
+function closeBulkModal(){
+  const backdrop = document.getElementById('bulkModalBackdrop');
+  if(backdrop) backdrop.classList.remove('open');
+}
+
+// Compute the date sequence for the current cadence + start date + N selected
+// captions. Returns an array of YYYY-MM-DD strings, same length as selected count.
+function bulkComputeDates(startDateStr, cadence, count){
+  if(!startDateStr || !count) return [];
+  // Parse YYYY-MM-DD into a local Date — avoiding new Date(str) which interprets
+  // as UTC and shifts the day in westerly timezones.
+  const [yy, mm, dd] = startDateStr.split('-').map(Number);
+  const dates = [];
+  let cur = new Date(yy, mm - 1, dd);
+  for(let i = 0; i < count; i++){
+    // Skip-forward for weekday-only mode if we're sitting on a weekend
+    if(cadence === 'weekdays'){
+      while(cur.getDay() === 0 || cur.getDay() === 6){
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, '0');
+    const d = String(cur.getDate()).padStart(2, '0');
+    dates.push(`${y}-${m}-${d}`);
+    // Advance for next iteration based on cadence
+    if(cadence === 'daily'){
+      cur.setDate(cur.getDate() + 1);
+    } else if(cadence === 'every-other'){
+      cur.setDate(cur.getDate() + 2);
+    } else if(cadence === 'weekdays'){
+      cur.setDate(cur.getDate() + 1);
+    }
+    // 'same-day' → don't advance; all captions get the same date
+  }
+  return dates;
+}
+
+// Re-render the preview list whenever start date / cadence changes
+function bulkRecomputePreview(){
+  const dateIn = document.getElementById('bulkStartDate');
+  const cad = document.getElementById('bulkCadence');
+  const previewEl = document.getElementById('bulkPreview');
+  const hintEl = document.getElementById('bulkPreviewHint');
+  if(!dateIn || !cad || !previewEl) return;
+  const startDate = dateIn.value;
+  const cadence = cad.value;
+  const ids = Array.from(bulkSelectedIds);
+  const dates = bulkComputeDates(startDate, cadence, ids.length);
+  if(!ids.length || !dates.length){
+    previewEl.innerHTML = '<div style="padding:14px;font-family:var(--mono);font-size:12px;color:var(--muted)">Pick a start date to see the schedule.</div>';
+    if(hintEl) hintEl.textContent = '';
+    return;
+  }
+  // Build preview rows — order matches selection order (insertion order in Set)
+  let html = '';
+  ids.forEach((id, i) => {
+    const c = F(id);
+    if(!c) return;
+    const dateStr = dates[i];
+    const friendly = calPrettyShortDate(dateStr);
+    const snippet = c.text.length > 80 ? c.text.slice(0, 80) + '…' : c.text;
+    html += `
+      <div class="bulk-preview-row">
+        <div class="bulk-preview-date">${esc(friendly)}</div>
+        <div class="bulk-preview-text">${esc(snippet)}</div>
+      </div>
+    `;
+  });
+  previewEl.innerHTML = html;
+  if(hintEl){
+    if(cadence === 'same-day'){
+      hintEl.textContent = `All ${ids.length} captions will be scheduled for ${calPrettyShortDate(dates[0])}.`;
+    } else {
+      const lastDate = dates[dates.length - 1];
+      hintEl.textContent = `${ids.length} posts from ${calPrettyShortDate(dates[0])} to ${calPrettyShortDate(lastDate)}.`;
+    }
+  }
+}
+
+// Commit: write scheduled_for + scheduled_platforms onto each selected caption.
+// Captures pre-bulk state into bulkUndoSnapshot so the user has 10s to undo.
+function commitBulkSchedule(){
+  const dateIn = document.getElementById('bulkStartDate');
+  const cad = document.getElementById('bulkCadence');
+  const platsBox = document.getElementById('bulkPlatforms');
+  const errEl = document.getElementById('bulkError');
+  if(!dateIn || !cad || !platsBox) return;
+  const showErr = (msg) => {
+    if(errEl){ errEl.textContent = msg; errEl.style.display = 'inline'; }
+  };
+  const startDate = (dateIn.value || '').trim();
+  if(!startDate){ showErr('Pick a start date.'); dateIn.focus(); return; }
+  const cadence = cad.value;
+  const plats = Array.from(platsBox.querySelectorAll('input[type=checkbox]:checked')).map(cb => cb.value);
+  if(!plats.length){ showErr('Pick at least one platform.'); return; }
+  const ids = Array.from(bulkSelectedIds);
+  if(!ids.length){ showErr('No captions selected.'); return; }
+  const dates = bulkComputeDates(startDate, cadence, ids.length);
+  // Capture pre-bulk state for undo. Save every field we're about to touch so
+  // we can restore exactly what was there (including any nulls / undefineds).
+  const snapshot = [];
+  ids.forEach((id, i) => {
+    const c = F(id);
+    if(!c) return;
+    snapshot.push({
+      id: c.id,
+      prev: {
+        scheduled_for: c.scheduled_for,
+        scheduled_platforms: c.scheduled_platforms,
+        scheduled_time_slot: c.scheduled_time_slot,
+        scheduled_time: c.scheduled_time
+      }
+    });
+    c.scheduled_for = dates[i];
+    c.scheduled_platforms = plats.slice();
+    c.scheduled_time_slot = null;
+    c.scheduled_time = null;
+    // Don't touch scheduled_media — bulk doesn't set it; user can edit per caption later
+    // Status stays 'final' (they're already final or we wouldn't be here)
+  });
+  save();
+  closeBulkModal();
+  exitBulkMode();
+  // Refresh dependent views
+  if(typeof rFolder === 'function') rFolder();
+  if(typeof rStats === 'function') rStats();
+  if(typeof renderCalendar === 'function') renderCalendar();
+  // Show undo toast
+  showBulkUndoToast(snapshot);
+}
+
+// ===== UNDO TOAST =====
+function showBulkUndoToast(snapshot){
+  bulkUndoSnapshot = snapshot;
+  const toast = document.getElementById('bulkUndoToast');
+  const msg = document.getElementById('bulkUndoMsg');
+  if(!toast || !msg) return;
+  const n = snapshot.length;
+  msg.textContent = `Scheduled ${n} caption${n === 1 ? '' : 's'}`;
+  toast.classList.add('show');
+  // Clear any previous pending hide
+  if(bulkUndoTimer){
+    clearTimeout(bulkUndoTimer);
+    bulkUndoTimer = null;
+  }
+  bulkUndoTimer = setTimeout(() => {
+    bulkDismissUndoToast();
+  }, BULK_UNDO_TIMEOUT_MS);
+}
+
+// Hide the toast (no undo, just dismiss). Also clears the snapshot so Undo
+// can't be fired after the toast has gone — protecting against staleness.
+function bulkDismissUndoToast(){
+  const toast = document.getElementById('bulkUndoToast');
+  if(toast) toast.classList.remove('show');
+  bulkUndoSnapshot = null;
+  if(bulkUndoTimer){
+    clearTimeout(bulkUndoTimer);
+    bulkUndoTimer = null;
+  }
+}
+
+// Actually revert. Walks the snapshot and restores each caption's pre-bulk
+// scheduling fields. Saves and refreshes dependent views.
+function bulkUndoCommit(){
+  if(!bulkUndoSnapshot || !bulkUndoSnapshot.length){
+    bulkDismissUndoToast();
+    return;
+  }
+  bulkUndoSnapshot.forEach(entry => {
+    const c = F(entry.id);
+    if(!c) return;
+    c.scheduled_for = entry.prev.scheduled_for;
+    c.scheduled_platforms = entry.prev.scheduled_platforms;
+    c.scheduled_time_slot = entry.prev.scheduled_time_slot;
+    c.scheduled_time = entry.prev.scheduled_time;
+  });
+  save();
+  bulkDismissUndoToast();
+  // Refresh dependent views
+  if(typeof rFolder === 'function') rFolder();
+  if(typeof rStats === 'function') rStats();
+  if(typeof renderCalendar === 'function') renderCalendar();
 }
 
 function rStats(){
