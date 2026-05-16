@@ -4059,6 +4059,334 @@ footer span{color:var(--mojo)}
 }
 
 /* ============================================================================
+   PRICING MODAL (NOTE-21 tier system) — full plan comparison
+   ============================================================================
+   Triggered by:
+     - "See all plans →" link in the upsell modal
+     - Topbar / footer "Pricing" link (added separately)
+     - upgradeModalUpgrade() CTA
+   Shows the 5-tier matrix with monthly/annual toggle. Pro is the anchored
+   "RECOMMENDED" tier. Current tier shows "Current plan" disabled button.
+*/
+.pricing-modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  z-index:1090;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .22s var(--ease);
+  display:flex;align-items:flex-start;justify-content:center;
+  overflow-y:auto;
+  padding:30px 16px;
+}
+.pricing-modal-backdrop.open{opacity:1;pointer-events:auto}
+.pricing-modal{
+  background:var(--surface);
+  border-radius:18px;
+  width:100%;
+  max-width:920px;
+  padding:28px 26px 24px;
+  border:1px solid var(--border);
+  box-shadow:0 24px 70px rgba(0,0,0,.22);
+  position:relative;
+  transform:translateY(-12px);
+  transition:transform .22s var(--ease);
+  font-family:var(--sans);
+}
+.pricing-modal-backdrop.open .pricing-modal{transform:translateY(0)}
+.pricing-modal-close{
+  position:absolute;
+  top:14px;right:14px;
+  background:transparent;border:none;cursor:pointer;
+  font-size:20px;color:var(--ink2);
+  width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:8px;
+  z-index:2;
+}
+.pricing-modal-close:hover{background:rgba(0,0,0,.06)}
+.pricing-modal-hdr{text-align:center; margin-bottom:18px}
+.pricing-modal-hdr h2{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:28px;
+  font-weight:500;
+  color:var(--ink);
+  margin:0 0 6px;
+  letter-spacing:-.3px;
+}
+.pricing-modal-hdr p{
+  font-size:13.5px;
+  color:var(--ink2);
+  margin:0;
+}
+/* Monthly/Annual toggle */
+.pricing-toggle{
+  display:flex;
+  justify-content:center;
+  gap:4px;
+  margin:0 auto 22px;
+  background:#fff;
+  padding:4px;
+  border-radius:100px;
+  border:1px solid var(--border);
+  max-width:260px;
+}
+.pricing-toggle-opt{
+  flex:1;
+  padding:7px 14px;
+  border-radius:100px;
+  background:transparent;
+  color:var(--ink);
+  border:none;
+  font-family:var(--sans);
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  transition:background .15s ease, color .15s ease;
+}
+.pricing-toggle-opt.on{
+  background:var(--mojo);
+  color:#fff;
+  font-weight:600;
+}
+.pricing-toggle-opt-save{
+  font-weight:400;
+  color:var(--muted);
+  font-size:11px;
+  margin-left:4px;
+}
+.pricing-toggle-opt.on .pricing-toggle-opt-save{
+  color:rgba(255,255,255,.85);
+}
+
+/* Top row: 3 tier cards (Free + Basic + Pro) */
+.pricing-cards-top{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+  margin-bottom:10px;
+}
+@media (max-width:640px){
+  .pricing-cards-top{grid-template-columns:1fr}
+}
+.pricing-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:18px 16px 16px;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+.pricing-card.recommended{
+  border:2px solid var(--mojo);
+  padding:17px 15px 15px;
+}
+.pricing-card-tag{
+  position:absolute;
+  top:-10px;left:16px;
+  background:var(--mojo);
+  color:#fff;
+  font-size:10px;
+  padding:3px 10px;
+  border-radius:100px;
+  font-weight:600;
+  letter-spacing:.4px;
+  font-family:var(--sans);
+}
+.pricing-card-tier{
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  margin-bottom:6px;
+}
+.pricing-card.recommended .pricing-card-tier{color:var(--mojo)}
+.pricing-card-price{
+  font-size:24px;
+  font-weight:600;
+  color:var(--ink);
+  margin-bottom:2px;
+  font-family:var(--sans);
+}
+.pricing-card-price-sub{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:400;
+}
+.pricing-card-tagline{
+  font-size:12px;
+  color:var(--ink2);
+  margin-bottom:14px;
+  line-height:1.4;
+}
+.pricing-card-perks{
+  list-style:none;
+  padding:0;
+  margin:0 0 16px;
+  font-size:12.5px;
+  color:var(--ink);
+}
+.pricing-card-perks li{
+  padding:4px 0;
+  display:flex;
+  align-items:flex-start;
+  gap:6px;
+  line-height:1.45;
+}
+.pricing-card-perks .check{color:#2d8a5e; flex-shrink:0; font-weight:600}
+.pricing-card-perks .dash{color:#aaa49a; flex-shrink:0}
+.pricing-card-perks li.muted{color:var(--muted)}
+.pricing-card-cta{
+  margin-top:auto;
+  padding:9px 12px;
+  font-family:var(--sans);
+  font-size:12.5px;
+  font-weight:600;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .15s ease, transform .1s ease;
+  text-align:center;
+}
+.pricing-card-cta.primary{
+  background:var(--mojo);
+  color:#fff;
+  border:none;
+}
+.pricing-card-cta.primary:hover{background:#e84d24; transform:translateY(-1px)}
+.pricing-card-cta.secondary{
+  background:#fff;
+  color:var(--mojo);
+  border:1px solid var(--mojo);
+}
+.pricing-card-cta.secondary:hover{background:var(--mojo-tint)}
+.pricing-card-cta.current{
+  background:var(--bg);
+  color:var(--muted);
+  border:1px solid var(--border);
+  cursor:default;
+}
+.pricing-card-cta.current:hover{transform:none}
+.pricing-card-cta.downgrade{
+  background:transparent;
+  color:var(--muted);
+  border:1px solid var(--border);
+  font-weight:500;
+}
+.pricing-card-cta.downgrade:hover{color:var(--ink2); border-color:var(--ink2)}
+
+/* Bottom row: Agency (wider) + Compare features link */
+.pricing-cards-bot{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+@media (max-width:640px){
+  .pricing-cards-bot{grid-template-columns:1fr}
+}
+.pricing-agency-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.pricing-agency-info{flex-shrink:0; min-width:120px}
+.pricing-agency-info .pricing-card-tier{margin-bottom:4px}
+.pricing-agency-info .pricing-card-price{font-size:22px; margin-bottom:0}
+.pricing-agency-text{
+  flex:1;
+  font-size:12px;
+  color:var(--ink);
+  line-height:1.5;
+}
+.pricing-agency-text strong{font-weight:600}
+.pricing-agency-text-sub{color:var(--muted)}
+.pricing-agency-card .pricing-card-cta{padding:8px 12px; font-size:12px; flex-shrink:0; margin-top:0}
+
+.pricing-compare-link{
+  background:var(--bg);
+  border:1px dashed var(--border);
+  border-radius:12px;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  cursor:pointer;
+  transition:background .15s ease, border-color .15s ease;
+  font-family:var(--sans);
+  width:100%;
+  text-align:left;
+}
+.pricing-compare-link:hover{
+  background:var(--mojo-tint);
+  border-color:var(--mojo);
+}
+.pricing-compare-link-text{
+  flex:1;
+  font-size:12.5px;
+  color:var(--ink2);
+  line-height:1.5;
+}
+.pricing-compare-link-text strong{display:block; color:var(--ink); font-weight:600; margin-bottom:2px}
+.pricing-compare-link-arrow{font-size:18px; color:var(--muted)}
+
+.pricing-trust{
+  text-align:center;
+  font-size:11.5px;
+  color:var(--muted);
+  margin:22px 0 0;
+}
+
+/* Full comparison table (collapsed by default) */
+.pricing-full-compare{
+  display:none;
+  margin-top:18px;
+  border-top:1px solid var(--line, var(--border));
+  padding-top:18px;
+}
+.pricing-full-compare.open{display:block}
+.pricing-full-compare table{
+  width:100%;
+  border-collapse:collapse;
+  font-family:var(--sans);
+  font-size:12.5px;
+}
+.pricing-full-compare th,
+.pricing-full-compare td{
+  padding:9px 10px;
+  text-align:center;
+  border-bottom:1px solid var(--line, var(--border));
+}
+.pricing-full-compare th:first-child,
+.pricing-full-compare td:first-child{text-align:left}
+.pricing-full-compare th{
+  background:var(--bg);
+  font-weight:500;
+  font-size:11.5px;
+}
+.pricing-full-compare th.recommended-col{
+  background:var(--mojo-tint);
+  color:var(--mojo);
+}
+.pricing-full-compare td.section-hdr{
+  background:var(--bg);
+  font-family:var(--mono);
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  color:var(--muted);
+  padding:12px 10px 6px;
+}
+.pricing-full-compare .check{color:#2d8a5e; font-weight:600}
+.pricing-full-compare .dash{color:#c8c4b9}
+
+/* ============================================================================
    UPSELL MODAL (NOTE-21 tier system) — per-feature soft paywall
    ============================================================================
    Triggered by showUpsellModal(featureName) when a Free/Anon user clicks a
@@ -5699,7 +6027,8 @@ footer span{color:var(--mojo)}
           <div class="user-dropdown-email" id="userDropdownEmail">loading…</div>
           <div class="user-dropdown-tier" id="userDropdownTier">FREE</div>
         </div>
-        <button class="user-dropdown-item" onclick="openUpgradeModal()">Upgrade plan</button>
+        <button class="user-dropdown-item" onclick="openPricingModal('user_menu')">Upgrade plan</button>
+        <button class="user-dropdown-item" onclick="openPricingModal('user_menu')">See pricing</button>
         <button class="user-dropdown-item" onclick="copyReferralLink()">Copy referral link</button>
         <button class="user-dropdown-item logout" onclick="doLogout()">Log out</button>
       </div>
@@ -6446,6 +6775,83 @@ footer span{color:var(--mojo)}
   </div>
 </div>
 
+<!-- ============ PRICING MODAL (full 5-tier comparison, NOTE-21) ============
+     Triggered by "See all plans →" from the upsell modal, the topbar/footer
+     "Pricing" link, or upgradeModalUpgrade() CTA.
+-->
+<div class="pricing-modal-backdrop" id="pricingModalBackdrop" onclick="if(event.target===this)closePricingModal()">
+  <div class="pricing-modal" role="dialog" aria-labelledby="pricingModalTitle">
+    <button class="pricing-modal-close" onclick="closePricingModal()" aria-label="Close">✕</button>
+    <div class="pricing-modal-hdr">
+      <h2 id="pricingModalTitle">Pick your plan</h2>
+      <p>Start free. Upgrade when you're ready to ship at volume.</p>
+    </div>
+
+    <div class="pricing-toggle" role="tablist">
+      <button class="pricing-toggle-opt on" id="pricingToggleMonthly" onclick="setPricingMode('monthly')" role="tab" aria-selected="true">Monthly</button>
+      <button class="pricing-toggle-opt" id="pricingToggleAnnual" onclick="setPricingMode('annual')" role="tab" aria-selected="false">Annual <span class="pricing-toggle-opt-save">· save 17%</span></button>
+    </div>
+
+    <div class="pricing-cards-top" id="pricingCardsTop">
+      <!-- Filled by renderPricingCards() -->
+    </div>
+
+    <div class="pricing-cards-bot">
+      <!-- Agency card and Compare link, also filled by renderPricingCards() -->
+      <div id="pricingAgencyCard"></div>
+      <button class="pricing-compare-link" onclick="togglePricingCompare()">
+        <span class="pricing-compare-link-text">
+          <strong>Compare every feature</strong>
+          See exactly what's in each plan
+        </span>
+        <span class="pricing-compare-link-arrow" id="pricingCompareArrow">→</span>
+      </button>
+    </div>
+
+    <!-- Full feature comparison table — collapsed by default, opens when user clicks the Compare link -->
+    <div class="pricing-full-compare" id="pricingFullCompare">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Free</th>
+            <th>Basic</th>
+            <th class="recommended-col">Pro</th>
+            <th>Agency</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="section-hdr" colspan="5">Limits</td></tr>
+          <tr><td>Captions / month</td><td>10</td><td>100</td><td class="recommended-col">400</td><td>2,000</td></tr>
+          <tr><td>Daily cap</td><td>5</td><td>50</td><td class="recommended-col">150</td><td>600</td></tr>
+          <tr><td>Refines / month</td><td>30</td><td>300</td><td class="recommended-col">1,200</td><td>6,000</td></tr>
+          <tr><td>Brand profiles</td><td>1</td><td>1</td><td class="recommended-col">3</td><td>10</td></tr>
+
+          <tr><td class="section-hdr" colspan="5">Core generation</td></tr>
+          <tr><td>AI caption generation</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Brand brain (segments + voice)</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Edit chips (shorter/punchier/etc)</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Custom AI directives</td><td><span class="dash">—</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Custom audience segments</td><td><span class="dash">—</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+
+          <tr><td class="section-hdr" colspan="5">Organization</td></tr>
+          <tr><td>Folders (Final/Liked/WIP/Trash)</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Calendar view</td><td>view only</td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Ship to Calendar</td><td><span class="dash">—</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Bulk schedule</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>CSV export</td><td><span class="dash">—</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+
+          <tr><td class="section-hdr" colspan="5">Support</td></tr>
+          <tr><td>Mojo chatbot help</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+          <tr><td>Email support</td><td>community</td><td>standard</td><td class="recommended-col">priority</td><td>dedicated</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="pricing-trust">Cancel anytime · 30-day money-back guarantee · Secure payment via Stripe</p>
+  </div>
+</div>
+
 <!-- ============ UPSELL MODAL (per-feature soft paywall, NOTE-21) ============
      Triggered by showUpsellModal(featureName) when a Free/Anon user tries to
      use a Pro/Basic-only feature. Smaller and focused — one feature, one CTA.
@@ -6828,13 +7234,211 @@ function upsellModalUpgrade(){
   }
 }
 
-// Stub for the pricing modal — full implementation in Part 4 of NOTE-21 build.
-// For now, "See all plans →" / Upgrade buttons log + alert so it's clear
-// they're discovered. Will be replaced with the 5-tier comparison modal.
-function openPricingModal(featureName){
-  console.log('openPricingModal stub — feature trigger:', featureName);
-  alert('Pricing comparison page coming next.\n\n(In the real flow you\'d see all 5 tiers compared here, with a month/annual toggle and an Upgrade button per tier.)');
+// ============================================================================
+// PRICING MODAL (NOTE-21 tier system) — full 5-tier plan comparison
+// ============================================================================
+// Renders the 3+1 card grid (Free + Basic + Pro on top, Agency below) with
+// monthly/annual toggle. Cards show "Current plan" if tier matches user's,
+// "Upgrade" for higher tiers, "Downgrade" for lower (rare). Pro is anchored.
+//
+// Click "Upgrade" → eventually creates Stripe Checkout Session. For tonight
+// it just calls upgradeToTier(tier) which logs + alerts (stubbed).
+
+let pricingMode = 'monthly'; // 'monthly' | 'annual'
+
+function openPricingModal(featureTrigger){
+  // featureTrigger lets the modal know what feature drove the click (for
+  // analytics later). Not used visually for now.
+  pricingMode = 'monthly';
+  renderPricingCards();
+  const backdrop = document.getElementById('pricingModalBackdrop');
+  if (backdrop) backdrop.classList.add('open');
+  // Reset the compare-features collapsible
+  const full = document.getElementById('pricingFullCompare');
+  if (full) full.classList.remove('open');
+  const arrow = document.getElementById('pricingCompareArrow');
+  if (arrow) arrow.textContent = '→';
 }
+
+function closePricingModal(){
+  const backdrop = document.getElementById('pricingModalBackdrop');
+  if (backdrop) backdrop.classList.remove('open');
+}
+
+// Toggle monthly/annual prices
+function setPricingMode(mode){
+  pricingMode = mode;
+  const mEl = document.getElementById('pricingToggleMonthly');
+  const aEl = document.getElementById('pricingToggleAnnual');
+  if (mEl) mEl.classList.toggle('on', mode === 'monthly');
+  if (aEl) aEl.classList.toggle('on', mode === 'annual');
+  if (mEl) mEl.setAttribute('aria-selected', mode === 'monthly');
+  if (aEl) aEl.setAttribute('aria-selected', mode === 'annual');
+  renderPricingCards();
+}
+
+function togglePricingCompare(){
+  const full = document.getElementById('pricingFullCompare');
+  const arrow = document.getElementById('pricingCompareArrow');
+  if (!full) return;
+  const isOpen = full.classList.toggle('open');
+  if (arrow) arrow.textContent = isOpen ? '↑' : '→';
+  // Scroll into view if just opened
+  if (isOpen){
+    setTimeout(() => {
+      full.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 100);
+  }
+}
+
+// Get the price string for a tier in the current pricingMode.
+// Annual = 10x monthly (2 months free).
+function getTierPriceDisplay(tier){
+  const cfg = tierConfig[tier];
+  if (!cfg || cfg.price === 0) return { price: '$0', sub: '' };
+  if (pricingMode === 'annual'){
+    const monthlyEquivalent = Math.round((cfg.priceAnnual / 12) * 100) / 100;
+    return {
+      price: `$${monthlyEquivalent}`,
+      sub: `/mo billed yearly`,
+    };
+  }
+  return { price: `$${cfg.price}`, sub: '/mo' };
+}
+
+// Determine the CTA shape for a tier vs the user's current tier
+function getTierCtaType(tier){
+  const current = userTier();
+  const currentIdx = tierIndex(current);
+  const targetIdx = tierIndex(tier);
+  if (currentIdx === targetIdx) return 'current';
+  if (targetIdx > currentIdx) return tier === 'pro' ? 'primary' : 'secondary';
+  return 'downgrade';
+}
+
+function ctaButtonHtml(tier){
+  const type = getTierCtaType(tier);
+  const cfg = tierConfig[tier];
+  if (type === 'current'){
+    return `<button class="pricing-card-cta current" disabled>Current plan</button>`;
+  }
+  if (type === 'downgrade'){
+    return `<button class="pricing-card-cta downgrade" onclick="upgradeToTier('${tier}')">Switch to ${cfg.displayLabel}</button>`;
+  }
+  const label = (tier === 'pro') ? 'Upgrade to Pro →' : 'Upgrade →';
+  return `<button class="pricing-card-cta ${type}" onclick="upgradeToTier('${tier}')">${label}</button>`;
+}
+
+// Render the three top cards (Free, Basic, Pro) and the Agency card below.
+function renderPricingCards(){
+  const top = document.getElementById('pricingCardsTop');
+  if (!top) return;
+
+  // FREE card
+  const freeP = getTierPriceDisplay('free');
+  const freeCard = `
+    <div class="pricing-card">
+      <div class="pricing-card-tier">${tierConfig.free.displayLabel}</div>
+      <div class="pricing-card-price">${freeP.price}<span class="pricing-card-price-sub">${freeP.sub}</span></div>
+      <p class="pricing-card-tagline">Test if it fits your brand</p>
+      <ul class="pricing-card-perks">
+        <li><span class="check">✓</span> 10 captions/month</li>
+        <li><span class="check">✓</span> Edit chips + brand brain</li>
+        <li><span class="check">✓</span> Folders + Liked</li>
+        <li class="muted"><span class="dash">—</span> No calendar scheduling</li>
+      </ul>
+      ${ctaButtonHtml('free')}
+    </div>
+  `;
+
+  // BASIC card
+  const basicP = getTierPriceDisplay('basic');
+  const basicCard = `
+    <div class="pricing-card">
+      <div class="pricing-card-tier">${tierConfig.basic.displayLabel}</div>
+      <div class="pricing-card-price">${basicP.price}<span class="pricing-card-price-sub">${basicP.sub}</span></div>
+      <p class="pricing-card-tagline">For getting consistent</p>
+      <ul class="pricing-card-perks">
+        <li><span class="check">✓</span> 100 captions/month</li>
+        <li><span class="check">✓</span> Ship to Calendar</li>
+        <li><span class="check">✓</span> Custom AI directives</li>
+        <li><span class="check">✓</span> CSV export</li>
+      </ul>
+      ${ctaButtonHtml('basic')}
+    </div>
+  `;
+
+  // PRO card (recommended)
+  const proP = getTierPriceDisplay('pro');
+  const proCard = `
+    <div class="pricing-card recommended">
+      <div class="pricing-card-tag">RECOMMENDED</div>
+      <div class="pricing-card-tier">${tierConfig.pro.displayLabel}</div>
+      <div class="pricing-card-price">${proP.price}<span class="pricing-card-price-sub">${proP.sub}</span></div>
+      <p class="pricing-card-tagline">For actually shipping content</p>
+      <ul class="pricing-card-perks">
+        <li><span class="check">✓</span> 400 captions/month</li>
+        <li><span class="check">✓</span> <strong>Bulk schedule</strong></li>
+        <li><span class="check">✓</span> 3 brand profiles</li>
+        <li><span class="check">✓</span> Priority support</li>
+      </ul>
+      ${ctaButtonHtml('pro')}
+    </div>
+  `;
+
+  top.innerHTML = freeCard + basicCard + proCard;
+
+  // Agency card (wider, below)
+  const agencyContainer = document.getElementById('pricingAgencyCard');
+  if (agencyContainer){
+    const agP = getTierPriceDisplay('agency');
+    agencyContainer.innerHTML = `
+      <div class="pricing-agency-card">
+        <div class="pricing-agency-info">
+          <div class="pricing-card-tier">${tierConfig.agency.displayLabel}</div>
+          <div class="pricing-card-price">${agP.price}<span class="pricing-card-price-sub">${agP.sub}</span></div>
+        </div>
+        <div class="pricing-agency-text">
+          <strong>2,000 captions/mo · 10 brands · dedicated support.</strong>
+          <div class="pricing-agency-text-sub">For agencies running multiple clients.</div>
+        </div>
+        ${ctaButtonHtml('agency')}
+      </div>
+    `;
+  }
+}
+
+// Stubbed upgrade handler — replaced with real Stripe checkout when wired.
+// For now: shows an alert noting what would happen, plus the dev-tier
+// hint so testers can use setTier() to simulate the upgrade.
+function upgradeToTier(tier){
+  const cfg = tierConfig[tier];
+  if (!cfg) return;
+  // For now, just alert + offer to dev-switch.
+  // TODO when Stripe is wired: createCheckoutSession(tier, pricingMode)
+  console.log('upgradeToTier:', tier, '| mode:', pricingMode);
+  const ok = confirm(
+    `Stripe checkout coming soon.\n\n` +
+    `You would be redirected to pay $${cfg.price}/mo for ${cfg.displayLabel}.\n\n` +
+    `For testing: switch to "${tier}" tier now? (Use setTier() in console for full control)`
+  );
+  if (ok){
+    if (typeof window.setTier === 'function'){
+      window.setTier(tier);
+      closePricingModal();
+    }
+  }
+}
+
+// ESC closes pricing modal
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){
+    const backdrop = document.getElementById('pricingModalBackdrop');
+    if (backdrop && backdrop.classList.contains('open')){
+      closePricingModal();
+    }
+  }
+});
 
 // ESC key closes upsell modal
 document.addEventListener('keydown', function(e){
@@ -7552,8 +8156,13 @@ function hideUpgradeModal(){
 // interested users self-identify and we can email them when it's live.
 function upgradeToProClicked(){
   hideUpgradeModal();
-  // For tonight: just scroll to pricing on landing if visible, else alert.
-  // TODO: replace with Stripe Checkout once payment integration is live.
+  // NOTE-21: route to the full pricing modal instead of alerting.
+  // Real Stripe checkout fires from upgradeToTier() inside the pricing modal.
+  if (typeof openPricingModal === 'function'){
+    openPricingModal('cap_hit');
+    return;
+  }
+  // Legacy fallback (if pricing modal hasn't loaded yet)
   const pricingSection = document.getElementById('pricing');
   if(pricingSection){
     pricingSection.scrollIntoView({behavior:'smooth'});
