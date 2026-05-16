@@ -4059,6 +4059,170 @@ footer span{color:var(--mojo)}
 }
 
 /* ============================================================================
+   UPSELL MODAL (NOTE-21 tier system) — per-feature soft paywall
+   ============================================================================
+   Triggered by showUpsellModal(featureName) when a Free/Anon user clicks a
+   locked feature. Smaller and more focused than the full conversion-card
+   modal — single feature, single CTA. Has a "Maybe later" dismiss and a "See
+   all plans" link that opens the full pricing modal/page.
+*/
+.upsell-modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  z-index:1080;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s var(--ease);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.upsell-modal-backdrop.open{opacity:1;pointer-events:auto}
+.upsell-modal{
+  background:var(--surface);
+  border-radius:16px;
+  width:100%;
+  max-width:440px;
+  padding:0;
+  border:1px solid var(--border);
+  box-shadow:0 24px 60px rgba(0,0,0,.2);
+  position:relative;
+  transform:scale(.96);
+  transition:transform .2s var(--ease);
+  font-family:var(--sans);
+  overflow:hidden;
+}
+.upsell-modal-backdrop.open .upsell-modal{transform:scale(1)}
+.upsell-modal-close{
+  position:absolute;
+  top:12px;right:12px;
+  background:transparent;border:none;cursor:pointer;
+  font-size:20px;color:var(--ink2);
+  width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:6px;
+  z-index:2;
+}
+.upsell-modal-close:hover{background:rgba(0,0,0,.06)}
+.upsell-modal-hdr{
+  background:linear-gradient(135deg, var(--mojo-tint), #fff);
+  padding:30px 26px 22px;
+  text-align:center;
+  border-bottom:1px solid var(--line, var(--border));
+}
+.upsell-modal-icon{
+  width:54px;height:54px;
+  background:var(--mojo);
+  border-radius:50%;
+  margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);
+  font-style:italic;
+  font-weight:500;
+  font-size:28px;
+  color:#fff;
+  letter-spacing:-1px;
+}
+.upsell-modal-title{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:22px;
+  font-weight:500;
+  color:var(--ink);
+  margin:0 0 8px;
+  letter-spacing:-.3px;
+}
+.upsell-modal-desc{
+  font-family:var(--sans);
+  font-size:14px;
+  color:var(--ink2);
+  line-height:1.55;
+  margin:0;
+}
+.upsell-modal-body{padding:18px 26px 22px}
+.upsell-modal-tier-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;
+  background:var(--bg);
+  border-radius:10px;
+  border:1px solid var(--line, var(--border));
+  margin-bottom:10px;
+}
+.upsell-modal-tier-info{
+  display:flex;flex-direction:column;gap:2px;
+}
+.upsell-modal-tier-name{
+  font-family:var(--mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  color:var(--muted);
+}
+.upsell-modal-tier-price{
+  font-family:var(--sans);
+  font-size:18px;
+  font-weight:600;
+  color:var(--ink);
+}
+.upsell-modal-tier-price-sub{
+  font-family:var(--sans);
+  font-size:13px;
+  font-weight:400;
+  color:var(--muted);
+}
+.upsell-modal-cta{
+  background:var(--mojo);
+  color:#fff;
+  border:none;
+  padding:10px 20px;
+  font-family:var(--sans);
+  font-size:13.5px;
+  font-weight:600;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .15s ease, transform .12s ease;
+}
+.upsell-modal-cta:hover{
+  background:#e84d24;
+  transform:translateY(-1px);
+}
+.upsell-modal-cta:active{transform:translateY(0)}
+.upsell-modal-foot{
+  padding:14px 26px 22px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--line, var(--border));
+  font-family:var(--sans);
+  font-size:13px;
+}
+.upsell-modal-see-all{
+  background:transparent;border:none;cursor:pointer;
+  color:var(--mojo);
+  font-family:var(--sans);
+  font-size:13px;
+  font-weight:500;
+  padding:6px 10px;
+  border-radius:6px;
+}
+.upsell-modal-see-all:hover{background:var(--mojo-tint)}
+.upsell-modal-later{
+  background:transparent;border:none;cursor:pointer;
+  color:var(--muted);
+  font-family:var(--sans);
+  font-size:13px;
+  padding:6px 10px;
+  border-radius:6px;
+}
+.upsell-modal-later:hover{color:var(--ink2)}
+.upsell-modal-guarantee{
+  font-family:var(--sans);
+  font-size:11.5px;
+  color:var(--muted);
+  text-align:center;
+  padding:0 26px 18px;
+  margin:-10px 0 0;
+}
+
+/* ============================================================================
    BULK SCHEDULE (NOTE-21/A — bulk ship from Final folder)
    ============================================================================
    When "☐ Select" is clicked in the Final folder's action row, the folder
@@ -6282,9 +6446,401 @@ footer span{color:var(--mojo)}
   </div>
 </div>
 
+<!-- ============ UPSELL MODAL (per-feature soft paywall, NOTE-21) ============
+     Triggered by showUpsellModal(featureName) when a Free/Anon user tries to
+     use a Pro/Basic-only feature. Smaller and focused — one feature, one CTA.
+-->
+<div class="upsell-modal-backdrop" id="upsellModalBackdrop" onclick="if(event.target===this)hideUpsellModal()">
+  <div class="upsell-modal" role="dialog" aria-labelledby="upsellModalTitle">
+    <button class="upsell-modal-close" onclick="hideUpsellModal()" aria-label="Close">✕</button>
+    <div class="upsell-modal-hdr">
+      <div class="upsell-modal-icon">m</div>
+      <h2 class="upsell-modal-title" id="upsellModalTitle">Unlock this feature</h2>
+      <p class="upsell-modal-desc" id="upsellModalDesc">Add this to your workflow with a paid plan.</p>
+    </div>
+    <div class="upsell-modal-body">
+      <div class="upsell-modal-tier-row">
+        <div class="upsell-modal-tier-info">
+          <span class="upsell-modal-tier-name" id="upsellModalTierName">Basic</span>
+          <span class="upsell-modal-tier-price" id="upsellModalTierPrice">$9<span class="upsell-modal-tier-price-sub">/mo</span></span>
+        </div>
+        <button class="upsell-modal-cta" id="upsellModalCta" onclick="upsellModalUpgrade()">Upgrade →</button>
+      </div>
+    </div>
+    <p class="upsell-modal-guarantee">Cancel anytime. 30-day money-back guarantee.</p>
+    <div class="upsell-modal-foot">
+      <button class="upsell-modal-later" onclick="hideUpsellModal()">Maybe later</button>
+      <button class="upsell-modal-see-all" onclick="hideUpsellModal(); openPricingModal()">See all plans →</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============ STATE ============
 let BP={name:'',what:'',industry:'',customer:'',tones:[],avoid:'',usp:'',platforms:[],voice:'',lookalike:'',platRules:'',goodEx:'',badEx:'',docs:[],pastedDocs:'',notes:'',brain:null,tier:'free'};
+
+// ============================================================================
+// TIER SYSTEM (NOTE-21 Stripe foundation, built 5/15 session 4 late)
+// ============================================================================
+// Single source of truth for what each tier gets. Used by:
+//   - canUseFeature(featureName) → boolean
+//   - getTierLimit(limitName) → number
+//   - showUpsellModal(featureName) → renders the per-feature upsell
+//   - the /pricing page tier comparison table
+//
+// Tiers (lowest → highest): anon → free → basic → pro → agency
+// Tier order matters: a feature available to 'basic' is also available to
+// 'pro' and 'agency' (everything cascades up).
+const TIER_ORDER = ['anon', 'free', 'basic', 'pro', 'agency'];
+
+const tierConfig = {
+  anon: {
+    label: 'Anon',
+    displayLabel: 'Demo',
+    price: 0,
+    priceAnnual: 0,
+    // Usage limits — anon is one-shot, 3 lifetime captions
+    captionsTotal: 3,    // lifetime, not monthly
+    captionsDay: 3,
+    refinesMonth: 5,
+    brands: 1,           // demo brand only
+    // Feature gates — true = available, false = locked
+    features: {
+      generation: true,
+      brand_brain: 'view_only',
+      edit_chips: 'hover_only',
+      custom_ai: 'hover_only',
+      custom_segments: 'hover_only',
+      folders: 'view_only',
+      calendar_view: 'view_only',
+      ship_to_calendar: 'hover_only',
+      bulk_schedule: 'hover_only',
+      csv_export: false,
+      mojo_chat: true,
+    },
+  },
+  free: {
+    label: 'Free',
+    displayLabel: 'Free',
+    price: 0,
+    priceAnnual: 0,
+    captionsMonth: 10,
+    captionsDay: 5,
+    refinesMonth: 30,
+    brands: 1,
+    features: {
+      generation: true,
+      brand_brain: true,
+      edit_chips: true,
+      custom_ai: false,
+      custom_segments: false,
+      folders: true,
+      calendar_view: 'view_only',
+      ship_to_calendar: false,
+      bulk_schedule: false,
+      csv_export: false,
+      mojo_chat: true,
+    },
+  },
+  basic: {
+    label: 'Basic',
+    displayLabel: 'Basic',
+    price: 9,
+    priceAnnual: 90,
+    captionsMonth: 100,
+    captionsDay: 50,
+    refinesMonth: 300,
+    brands: 1,
+    features: {
+      generation: true,
+      brand_brain: true,
+      edit_chips: true,
+      custom_ai: true,
+      custom_segments: true,
+      folders: true,
+      calendar_view: true,
+      ship_to_calendar: true,
+      bulk_schedule: false,
+      csv_export: true,
+      mojo_chat: true,
+    },
+  },
+  pro: {
+    label: 'Pro',
+    displayLabel: 'Pro',
+    price: 29,
+    priceAnnual: 290,
+    captionsMonth: 400,
+    captionsDay: 150,
+    refinesMonth: 1200,
+    brands: 3,
+    features: {
+      generation: true,
+      brand_brain: true,
+      edit_chips: true,
+      custom_ai: true,
+      custom_segments: true,
+      folders: true,
+      calendar_view: true,
+      ship_to_calendar: true,
+      bulk_schedule: true,
+      csv_export: true,
+      mojo_chat: true,
+    },
+  },
+  agency: {
+    label: 'Agency',
+    displayLabel: 'Agency',
+    price: 149,
+    priceAnnual: 1490,
+    captionsMonth: 2000,
+    captionsDay: 600,
+    refinesMonth: 6000,
+    brands: 10,
+    features: {
+      generation: true,
+      brand_brain: true,
+      edit_chips: true,
+      custom_ai: true,
+      custom_segments: true,
+      folders: true,
+      calendar_view: true,
+      ship_to_calendar: true,
+      bulk_schedule: true,
+      csv_export: true,
+      mojo_chat: true,
+    },
+  },
+};
+
+// Per-feature copy for the upsell modal. Keep specific + benefits-led.
+// minTier = lowest tier that unlocks it (used to set the CTA target).
+const featureUpsellCopy = {
+  ship_to_calendar: {
+    minTier: 'basic',
+    title: 'Schedule your captions',
+    desc: 'Plan your week ahead, never miss a post day. Calendar shows your whole content slate in one view.',
+    cta: 'Unlock with Basic — $9/mo',
+  },
+  bulk_schedule: {
+    minTier: 'pro',
+    title: 'Schedule a week in one click',
+    desc: 'Multi-select 5 captions, pick a start date and cadence, and lay your week out in seconds. The way real creators batch-work.',
+    cta: 'Unlock with Pro — $29/mo',
+  },
+  custom_ai: {
+    minTier: 'basic',
+    title: 'Direct the AI in your own words',
+    desc: 'Add a custom directive to every generation: "Always end with a CTA," "Use \'we\' not \'I\'," anything. Your AI, your rules.',
+    cta: 'Unlock with Basic — $9/mo',
+  },
+  custom_segments: {
+    minTier: 'basic',
+    title: 'Build your own audience segments',
+    desc: 'The AI gives you a baseline. Add your own ("Crate-Diggers", "Late-Night Listeners") to write captions for the audience YOU see.',
+    cta: 'Unlock with Basic — $9/mo',
+  },
+  csv_export: {
+    minTier: 'basic',
+    title: 'Export to spreadsheet',
+    desc: 'Download all your captions as CSV. Hand off to clients, archive your work, or pull into your own workflow tools.',
+    cta: 'Unlock with Basic — $9/mo',
+  },
+  more_brands: {
+    minTier: 'pro',
+    title: 'Manage multiple brands',
+    desc: 'Pro gets you 3 brand profiles. Agency gets you 10. Switch between brands without losing your settings.',
+    cta: 'Unlock with Pro — $29/mo',
+  },
+  monthly_cap: {
+    minTier: 'basic',
+    title: 'You\'ve hit this month\'s cap',
+    desc: 'Free gives you 10 captions a month to test if CaptionMojo fits your brand. Basic gives you 100/mo, Pro gives you 400/mo.',
+    cta: 'See plans',
+  },
+  daily_cap: {
+    minTier: 'basic',
+    title: 'You\'ve hit today\'s cap',
+    desc: 'Free is 5 captions a day. Resets at midnight. Or upgrade now to keep working.',
+    cta: 'See plans',
+  },
+};
+
+// Get the user's current tier. Falls back to BP.tier if set, then 'free'.
+// Anon users (no session) get 'anon'.
+function userTier(){
+  // If not signed in, treat as anon
+  if (!session && !user) return 'anon';
+  // Normalize legacy values: old code used BP.tier='paid' as a 2-tier flag
+  if (BP.tier === 'paid') return 'pro';
+  if (BP.tier && TIER_ORDER.includes(BP.tier)) return BP.tier;
+  return 'free';
+}
+
+// Numeric tier index for comparison
+function tierIndex(tier){
+  const i = TIER_ORDER.indexOf(tier);
+  return i < 0 ? 0 : i;
+}
+
+// Check if the current user can use a given feature.
+// Returns: true | false | 'view_only' | 'hover_only'
+// Callers should check `=== true` for "fully unlocked".
+function canUseFeature(featureName){
+  const tier = userTier();
+  const cfg = tierConfig[tier];
+  if (!cfg) return false;
+  const val = cfg.features[featureName];
+  return val === undefined ? false : val;
+}
+
+// Get a numeric limit (e.g. 'captionsMonth', 'captionsDay', 'brands')
+function getTierLimit(limitName){
+  const tier = userTier();
+  const cfg = tierConfig[tier];
+  return (cfg && typeof cfg[limitName] === 'number') ? cfg[limitName] : 0;
+}
+
+// Find the lowest tier that has a given feature fully unlocked
+function lowestTierForFeature(featureName){
+  for (const t of TIER_ORDER){
+    if (tierConfig[t].features[featureName] === true) return t;
+  }
+  return 'agency'; // fallback
+}
+
+// ============================================================================
+// DEV CONSOLE HELPERS — for testing without real Stripe
+// ============================================================================
+// Run in the browser console:
+//   setTier('pro')   → switch the local user to Pro tier (no payment)
+//   getTier()        → see what tier you're currently treated as
+//   tierReset()      → wipe and go back to default
+// These are intentionally global so they're accessible from devtools.
+window.setTier = function(tier){
+  if (!TIER_ORDER.includes(tier)){
+    console.error('Invalid tier. Use one of:', TIER_ORDER.join(', '));
+    return;
+  }
+  BP.tier = tier;
+  try { localStorage.setItem('cm_dev_tier', tier); } catch(e){}
+  if (typeof save === 'function') save();
+  console.log(`Tier set to "${tier}". Reloading UI...`);
+  // Refresh all dependent views
+  if (typeof rFolder === 'function') rFolder();
+  if (typeof rStats === 'function') rStats();
+  if (typeof updateTierBadge === 'function') updateTierBadge();
+  if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
+};
+window.getTier = function(){
+  console.log('Current tier:', userTier(), '| BP.tier:', BP.tier);
+  return userTier();
+};
+window.tierReset = function(){
+  BP.tier = 'free';
+  try { localStorage.removeItem('cm_dev_tier'); } catch(e){}
+  if (typeof save === 'function') save();
+  console.log('Tier reset to default (free).');
+  if (typeof rFolder === 'function') rFolder();
+  if (typeof updateTierBadge === 'function') updateTierBadge();
+  if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
+};
+
+// Restore dev tier from localStorage on load (so refreshing the page
+// keeps you in the test tier you set)
+try {
+  const devTier = localStorage.getItem('cm_dev_tier');
+  if (devTier && TIER_ORDER.includes(devTier)){
+    BP.tier = devTier;
+  }
+} catch(e){}
+
+// ============ END TIER SYSTEM ============
+
+// ============================================================================
+// UPSELL MODAL (NOTE-21) — per-feature soft paywall
+// ============================================================================
+// Call showUpsellModal('bulk_schedule') when a user clicks a locked feature.
+// The modal reads featureUpsellCopy[featureName] for title/desc/CTA and
+// pulls price + tier label from tierConfig[minTier].
+//
+// "See all plans" routes to openPricingModal() which shows the full 5-tier
+// comparison. "Upgrade →" CTA opens the same — for now, since real Stripe
+// checkout isn't wired up tonight.
+//
+// Track currentUpsellFeature so upgrade button knows which feature drove
+// the click (for analytics later when Stripe is real).
+let currentUpsellFeature = null;
+
+function showUpsellModal(featureName){
+  const copy = featureUpsellCopy[featureName];
+  if (!copy){
+    console.warn('No upsell copy for feature:', featureName);
+    return;
+  }
+  const minTier = copy.minTier;
+  const tierCfg = tierConfig[minTier];
+  if (!tierCfg) return;
+
+  currentUpsellFeature = featureName;
+
+  // Update modal content
+  const titleEl = document.getElementById('upsellModalTitle');
+  const descEl = document.getElementById('upsellModalDesc');
+  const tierNameEl = document.getElementById('upsellModalTierName');
+  const tierPriceEl = document.getElementById('upsellModalTierPrice');
+  const ctaEl = document.getElementById('upsellModalCta');
+
+  if (titleEl) titleEl.textContent = copy.title;
+  if (descEl) descEl.textContent = copy.desc;
+  if (tierNameEl) tierNameEl.textContent = tierCfg.displayLabel || tierCfg.label;
+  if (tierPriceEl){
+    tierPriceEl.innerHTML = `$${tierCfg.price}<span class="upsell-modal-tier-price-sub">/mo</span>`;
+  }
+  if (ctaEl) ctaEl.textContent = copy.cta || 'Upgrade →';
+
+  const backdrop = document.getElementById('upsellModalBackdrop');
+  if (backdrop) backdrop.classList.add('open');
+}
+
+function hideUpsellModal(){
+  const backdrop = document.getElementById('upsellModalBackdrop');
+  if (backdrop) backdrop.classList.remove('open');
+  // Don't clear currentUpsellFeature yet — the upgrade flow may still need it
+}
+
+// Triggered by the "Upgrade →" button. For tonight, route to the full
+// pricing modal — when Stripe is real, this will create a Checkout Session
+// for the specific tier and redirect.
+function upsellModalUpgrade(){
+  hideUpsellModal();
+  // For now, open the full pricing modal so user sees comparison
+  if (typeof openPricingModal === 'function'){
+    openPricingModal(currentUpsellFeature);
+  } else {
+    console.log('Upgrade clicked for feature:', currentUpsellFeature);
+  }
+}
+
+// Stub for the pricing modal — full implementation in Part 4 of NOTE-21 build.
+// For now, "See all plans →" / Upgrade buttons log + alert so it's clear
+// they're discovered. Will be replaced with the 5-tier comparison modal.
+function openPricingModal(featureName){
+  console.log('openPricingModal stub — feature trigger:', featureName);
+  alert('Pricing comparison page coming next.\n\n(In the real flow you\'d see all 5 tiers compared here, with a month/annual toggle and an Upgrade button per tier.)');
+}
+
+// ESC key closes upsell modal
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){
+    const backdrop = document.getElementById('upsellModalBackdrop');
+    if (backdrop && backdrop.classList.contains('open')){
+      hideUpsellModal();
+    }
+  }
+});
+
+
 let segments=[];
 let caps=[],nId=0,pF='all',fTab='final',fEId=null,saveTO=null,rdy=false;
 // CAPTION LIMITS (free tier business model)
@@ -9807,6 +10363,11 @@ const BULK_UNDO_TIMEOUT_MS = 10000; // 10s window to hit Undo
 
 // Toggle bulk-select mode on/off. Called by the "Select" button in the expbar.
 function toggleBulkMode(){
+  // NOTE-21 tier gate: bulk schedule is Pro+. Free/Basic see upsell instead.
+  if (!bulkSelectMode && canUseFeature('bulk_schedule') !== true){
+    showUpsellModal('bulk_schedule');
+    return;
+  }
   if(bulkSelectMode){
     exitBulkMode();
   } else {
