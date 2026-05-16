@@ -5171,6 +5171,8 @@ footer span{color:var(--mojo)}
           <p class="hero-mantra">You're the editor, not the writer.</p>
           <p class="hero-deck">Train it on your brand once. Generate batches of on-brand captions. Edit them in one click. Ship. <strong>Scale from solo creator to full agency</strong> — same workflow, more horsepower.</p>
 
+          <p class="hero-deck" style="margin-top:14px;font-size:15px;color:var(--ink2)"><em>Most caption tools make you book a demo to see how they work.</em> CaptionMojo lets you walk in, build your brand brain, and ship captions in under 5 minutes — <strong>free, no card, no sales call</strong>.</p>
+
           <div class="workflow">
             <div class="step">
               <div class="step-num">1</div>
@@ -5201,6 +5203,7 @@ footer span{color:var(--mojo)}
           <div class="hero-bullets">
             <span class="hero-bullet">No signup to try</span>
             <span class="hero-bullet">No credit card ever</span>
+            <span class="hero-bullet">No demo call. No sales follow-up.</span>
             <span class="hero-bullet">Free forever tier</span>
           </div>
         </div>
@@ -9425,6 +9428,75 @@ async function buildBrain(track){
   }
 }
 
+// ============================================================================
+// ONBOARDING REASSURANCE COPY (NOTE-21 onboarding promise, 5/16)
+// ============================================================================
+// During the 30-60s wait while brand brain + segments build, users sit and
+// watch a loading screen. Without reassurance, that wait builds DREAD —
+// "they collected my data, what's the catch?" Many users churn here.
+// We rotate friendly messages that (1) explain what's happening and
+// (2) reinforce the no-friction promise: no card, free forever to test.
+//
+// Messages are pairs: a "primary" (what we're doing) + "trust" (reassurance).
+// Rotates every ~4 seconds while the loading screen is shown.
+
+const ONBOARDING_REASSURANCE = {
+  // Used while building the brand brain (Deep Setup with docs)
+  brain: [
+    { primary: 'Reading your brand documents…', trust: 'No credit card required.' },
+    { primary: 'Distilling your voice and references…', trust: 'You\'ll get 10 free captions a month — no commitment.' },
+    { primary: 'Extracting proof points and brand pillars…', trust: 'Cancel anytime. We won\'t even ask for a card to start.' },
+    { primary: 'Almost there — this takes about 30 seconds…', trust: 'No demo call. No waiting for sales. You\'re minutes from your first captions.' },
+  ],
+  // Used while building audience segments (both Quick and Deep)
+  segments: [
+    { primary: 'Building your audience dimensions…', trust: 'Mix-and-match when generating. Always free to use.' },
+    { primary: 'Finding the segments that match your brand…', trust: 'No card required to test how it fits.' },
+    { primary: 'Almost done — last 10 seconds…', trust: 'Your data stays yours. We don\'t train AI on your captions.' },
+  ],
+};
+
+// Holds the active rotation timer so we can clear it when the loading screen
+// is replaced with real content.
+let onboardingReassuranceTimer = null;
+
+// Renders one reassurance frame into the given container element.
+// `kind` is 'brain' or 'segments'. `frameIndex` is which message to show.
+function renderReassuranceFrame(container, kind, frameIndex){
+  const frames = ONBOARDING_REASSURANCE[kind];
+  if (!frames || !container) return;
+  const f = frames[frameIndex % frames.length];
+  container.innerHTML = `
+    <div class="seg-loading">
+      <div class="seg-spinner"></div>
+      <div>
+        <div style="font-weight:600;color:var(--ink)">${esc(f.primary)}</div>
+        <div style="font-size:12.5px;color:var(--mojo);margin-top:6px;font-family:var(--sans);font-weight:500">${esc(f.trust)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// Starts a rotating reassurance display in the given container.
+// Returns a "stop" function (also tracked via onboardingReassuranceTimer).
+function startOnboardingReassurance(container, kind){
+  stopOnboardingReassurance(); // clear any previous rotation
+  let i = 0;
+  renderReassuranceFrame(container, kind, i);
+  onboardingReassuranceTimer = setInterval(() => {
+    i++;
+    renderReassuranceFrame(container, kind, i);
+  }, 4000); // rotate every 4 seconds
+}
+
+function stopOnboardingReassurance(){
+  if (onboardingReassuranceTimer){
+    clearInterval(onboardingReassuranceTimer);
+    onboardingReassuranceTimer = null;
+  }
+}
+// ============ END ONBOARDING REASSURANCE COPY ============
+
 async function generateSegments(track){
   const contId = track==='q'?'q-seg-container':'d-seg-container';
   const cont = document.getElementById(contId);
@@ -9433,13 +9505,16 @@ async function generateSegments(track){
   // Step 1: Build the Brain silently (Deep Setup with docs only). This takes 10-30s.
   // We do this BEFORE segments so the segment builder has the Brain to work from.
   if(track === 'd' && cont){
-    cont.innerHTML = '<div class="seg-loading"><div class="seg-spinner"></div><div><div style="font-weight:600;color:var(--ink)">Reading your brand documents…</div><div style="font-size:12px;color:var(--muted);margin-top:4px;font-family:var(--mono)">Extracting voice, references, proof points (this takes ~15-30 seconds)</div></div></div>';
+    // NOTE-21 onboarding promise: rotate reassurance messages during the wait.
+    // First message shows immediately; subsequent ones rotate every 4s.
+    startOnboardingReassurance(cont, 'brain');
     await buildBrain(track);
+    stopOnboardingReassurance();
   }
 
   // Step 2: Build segments (now using the Brain if it was built)
   if(cont){
-    cont.innerHTML = '<div class="seg-loading"><div class="seg-spinner"></div><div><div style="font-weight:600;color:var(--ink)">Building your audience dimensions…</div><div style="font-size:12px;color:var(--muted);margin-top:4px;font-family:var(--mono)">Categories you can mix-and-match when generating</div></div></div>';
+    startOnboardingReassurance(cont, 'segments');
   }
 
   const profile = track==='q'
@@ -9470,11 +9545,13 @@ async function generateSegments(track){
     const data = await resp.json();
     segments = (data.segments||[]).map(s=>({...s,category:s.category||'General',on:true}));
     if(!segments.length) throw new Error('No segments returned');
+    stopOnboardingReassurance();
     renderSegments(contId);
     nextBtn.disabled=false;
   }catch(e){
     console.error('Segments error:', e);
     segments = fallbackSegments();
+    stopOnboardingReassurance();
     renderSegments(contId);
     nextBtn.disabled=false;
   }
