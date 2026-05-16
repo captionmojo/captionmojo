@@ -6667,8 +6667,14 @@ const featureUpsellCopy = {
 };
 
 // Get the user's current tier. Falls back to BP.tier if set, then 'free'.
-// Anon users (no session) get 'anon'.
+// Anon users (no session) get 'anon' UNLESS a dev tier override is in place
+// (so setTier('pro') works for testing without needing to sign in).
 function userTier(){
+  // Dev override always wins (set via setTier() console helper)
+  try {
+    const devTier = localStorage.getItem('cm_dev_tier');
+    if (devTier && TIER_ORDER.includes(devTier)) return devTier;
+  } catch(e){}
   // If not signed in, treat as anon
   if (!session && !user) return 'anon';
   // Normalize legacy values: old code used BP.tier='paid' as a 2-tier flag
