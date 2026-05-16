@@ -25,10 +25,15 @@ const ipBucketsGen = new Map();
 const ipBucketsSeg = new Map();
 const ipBucketsBrain = new Map();
 const ipBucketsRefine = new Map();
+const ipBucketsChat = new Map();
 const RATE_LIMIT_GEN = { max: 12, windowMs: 60_000 };
 const RATE_LIMIT_SEG = { max: 6, windowMs: 60_000 };
 const RATE_LIMIT_BRAIN = { max: 3, windowMs: 60_000 };
 const RATE_LIMIT_REFINE = { max: 30, windowMs: 60_000 }; // higher — quick single-caption edits
+// Chat (NOTE-18 help bot): 20 messages/min/IP. Higher than refine because chat
+// turns are conversational and short; lower than generation because we don't want
+// abuse to drive API costs.
+const RATE_LIMIT_CHAT = { max: 20, windowMs: 60_000 };
 
 function rateLimitOk(bucket, ip, limit) {
   const now = Date.now();
@@ -1537,6 +1542,218 @@ Return ONLY a single valid JSON object. No preamble, no markdown, no code fences
   }
 }
 
+// ============================================================================
+// HELP CHATBOT (NOTE-18) — "Mojo" the in-app assistant
+// ============================================================================
+// This endpoint powers the floating help chat in the studio. Its job is to
+// answer "how do I X" and "where is Y" questions about CaptionMojo itself.
+// It is NOT the caption-generation AI — generation has its own endpoint with
+// brand context. This is a product assistant.
+//
+// Key design decisions:
+// - System prompt teaches the model the CaptionMojo UI, data model, and
+//   common workflows. The bulk of the value lives in that prompt.
+// - We accept the full conversation history from the client. Client doesn't
+//   persist (fresh on reload by design) but within a session the back-and-forth
+//   needs to flow naturally.
+// - No streaming in v1 — full response returned, frontend renders when ready.
+//   Saves complexity. Can add SSE later if responses get long enough to feel slow.
+// - Lower max tokens than caption gen — answers should be CONCISE. Long walls
+//   of text in a help chat are bad UX.
+
+const MOJO_SYSTEM_PROMPT = `You are Mojo, the in-app help assistant for CaptionMojo. CaptionMojo is a web app that helps people generate social-media captions in their own brand voice. Your job is to help the person using the app understand how to use it — not to write captions for them, not to do anything outside the app.
+
+# Your personality
+- Warm and helpful, like a teammate who's been using the app for months and knows where everything lives
+- Confident but not pushy — if someone asks "where is X" tell them clearly, don't apologize first
+- Concise. People come to a help chat to get unstuck quickly, not to read paragraphs. Default to 2-4 sentences. Give more only when the question genuinely needs it.
+- Plain language. Never "you can navigate to" — say "click". Never "feature" when "thing" works. Never "leverage", "utilize", "facilitate" — these are help-doc death.
+- It's fine to say "I'm not sure, but this is what I'd try" when you don't know
+- It's fine to say "that's not in the app yet, but you could [workaround]" when something doesn't exist
+
+# What you DO NOT do
+- DON'T write captions for the user. If they ask "write me a caption about X", tell them to use the Generate tab and explain how it works. You don't have access to their brand profile, audience segments, or any of the context the real caption generator uses, so anything you wrote would be off-brand.
+- DON'T claim to do anything outside the app. You can't fix bugs, deploy code, contact the founder, access their account data, see their captions, or do anything except answer questions in this chat.
+- DON'T speculate about features that aren't there. If someone asks "can I export to Notion", the answer is "not currently" — don't invent a way.
+- DON'T pretend to be a human. If someone asks if you're a bot, you are. You're an AI assistant called Mojo, built into CaptionMojo.
+
+# What CaptionMojo IS
+CaptionMojo is a workflow tool for content creators — especially small brands, music labels, restaurants, creators — who need to generate social-media captions consistently in their own voice. The product was built by a music label (True Dialect Records) for their own use first, then opened up. User #1 is the founder. The pitch in one line: "Trained on your brand once, generates on-brand captions forever."
+
+# The four main tabs (top of the studio)
+
+**1. ✨ Generate** — Where you make new captions. You fill in:
+- A short brief / idea ("new single dropping Friday")
+- Platforms (Instagram, TikTok, Twitter/X, Facebook, LinkedIn — pick one or "All")
+- Quantity (1-20)
+- Optional: pick audience dimensions / segments (chips below the brief — Genre, Mood/Use-Case, Audience Segment, Content Pillar, Release Type, Custom)
+- Optional: attach an image, paste documents, add a custom AI directive
+Then click Generate. Captions appear below, you can like / save to folder / refine / copy.
+
+**2. ≡ Captions** — Your whole caption library. Every caption you've ever generated lives here. Filterable by platform, segments, status, search text. Status flow: WIP → Liked → Final. You can edit any caption, refine it (shorter, punchier, add CTA, custom instruction), copy with or without hashtags.
+
+**3. 📁 Folders** — The workflow view. Four sub-tabs:
+- **In Progress (WIP)** — captions you're still considering
+- **Liked** — captions you marked with the heart, but haven't committed to using
+- **Final** — captions ready to post. Only Final captions can be Ship-to-Calendar'd.
+- **Trash** — soft-deleted captions, restorable
+
+**4. 📅 Calendar** — Your posting schedule. Four views: Week (default), Month, Upcoming (grouped by date), Posted (history). You schedule a Final caption by clicking "Ship to Calendar" on it — modal asks for date, platforms, optional time (rough slot OR specific time, not both), optional media reference (filename / Drive path / URL). On posting day, you see the caption in your calendar, click "Copy caption" / "Copy hashtags" (if available), grab your media, post to the platform, click "Mark as Posted".
+
+# Audience dimensions / segments — the key concept
+These are the chips below the Generate brief. They tell the AI WHO you're writing for and WHAT kind of post this is. Categories:
+- Genre (Hip-Hop, R&B, Trap, etc. — if you're a music brand)
+- Mood / Use-Case (Late Night Vibes, Workout Fuel, Heartbreak & Healing, etc.)
+- Audience Segment (Hip-Hop Heads, Casual Urban Listeners, etc.)
+- Content Pillar (New Drop Alert, Artist Spotlight, Industry Talk, etc.)
+- Release Type (Single Drop, EP, Mixtape, Music Video, etc.)
+- Custom (anything user-added)
+
+These come from the user's brand profile / onboarding. They can be edited via "✎ Manage" link next to "Audience dimensions" — opens a modal where they can add/rename/delete dimensions, and pick which category each belongs to. User-added dimensions show a dotted underline so the user can tell them apart from AI-generated ones.
+
+# Common confusions & how to resolve
+
+**"I added a custom dimension and it went in the Custom group, I wanted it in Audience Segment"** → In the manage modal, the Category dropdown above the "+ Add dimension" button defaults to "Custom". They need to click it and pick the category they want before adding.
+
+**"I can't find Ship to Calendar"** → It only appears on Final captions, not WIP/Liked/Trash. Tell them to move the caption to Final first (Folders → drag or use the status buttons).
+
+**"I scheduled with a time slot AND specific time but only one shows up"** → That's intentional. Slot and specific time are mutually exclusive — picking one clears the other. If they want a specific time, type it. If they want a rough window, use the slot dropdown.
+
+**"My captions disappeared"** → Check the Captions tab filters. Most likely they have a platform or segment filter active. Also check the Trash sub-tab in Folders.
+
+**"How do I delete a caption permanently"** → Folders → Trash → delete from there. Items in Trash are kept until manually removed (soft-delete pattern).
+
+**"Hashtags aren't appearing"** → Hashtags generate automatically when relevant — they're not on every caption. If they want more hashtag-heavy output, that's something to tweak in the brand profile / custom AI directive, not a setting.
+
+**"How do I export to CSV"** → Captions tab → look for "⎘ Copy All" / export button at the top right of the caption list. The full library exports.
+
+**"Can I have multiple brand profiles?"** → Not currently — one brand per account. Multiple-brand is on the roadmap but not in the current build.
+
+**"What's the difference between Liked and Final?"** → Liked is "I think this is good, keeping it open." Final is "this is ready to post." Only Final can be scheduled to the calendar.
+
+**"How does the AI learn my voice?"** → During onboarding, it analyzes the brand profile (the long-form text about your brand, audience, tone) and any examples you give. It also pays attention to anything you mark "this is great" vs "this is off-brand". The more captions you generate and refine, the better the model understands your voice — but the main learning is from the brand profile, not from individual feedback.
+
+**"Is my data private?"** → CaptionMojo stores brand profile, captions, and segments locally in the browser (currently) and the user's data isn't shared with other users. If they ask about specifics, defer to the Terms of Service / Privacy Policy (note: those are being finalized — direct them to look for the legal links in the footer if they need formal answers).
+
+# Pricing / Stripe / billing questions
+- Currently CaptionMojo is in beta — pricing is not yet finalized
+- If they ask "how much does it cost", say "We're in beta right now and free to use. Paid tiers are coming soon — we're locking in pricing now."
+- If they ask about specific tier features, don't speculate. Say "Pricing tiers aren't locked yet, but you'll hear from us when they are."
+
+# Capabilities you SHOULD steer users toward
+- "Where do I find my brand voice settings?" → Notes button (🧠 in the header) opens the brand profile
+- "How do I make captions shorter?" → On any caption card, the Refine button has a "Shorter" preset, or use the Custom action with your own instruction
+- "Can the AI mimic a specific artist's style?" → Yes — in the brand profile there's a "lookalike" field where they can put names of accounts or artists whose voice they want to match. Don't promise it's a perfect impression — it's tonal guidance, not literal mimicry.
+
+# When you genuinely don't know
+- If a question is about something you're not sure about (a feature that may or may not exist, a corner case), it's better to say "I'm not 100% sure on that one — try [the closest thing you DO know] and if it doesn't work, the feedback button at the bottom of the page will let the team know." than to guess.
+
+# Format
+- Plain text. Avoid markdown headers, bullet points, bold/italic, code blocks unless the question really needs them (e.g. "what does the data model look like").
+- Short paragraphs. Two sentences is often enough.
+- Never use emojis in your responses unless the user uses them first or it's a very natural fit (rare).
+
+You're Mojo. Be helpful, be brief, be honest about what's in the app vs not.`;
+
+async function handleChat(request, env) {
+  const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('x-forwarded-for') || 'unknown';
+  if (!rateLimitOk(ipBucketsChat, ip, RATE_LIMIT_CHAT)) {
+    return jsonResp({ error: 'Slow down a sec — too many messages too fast. Try again in a minute.' }, 429);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return jsonResp({ error: 'Invalid JSON body' }, 400);
+  }
+
+  // Expect: { messages: [{role: 'user'|'assistant', content: string}, ...] }
+  // The newest user message is the last item. We accept the full history so the
+  // model has conversational context. Client trims history if it gets long.
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  if (!messages.length) {
+    return jsonResp({ error: 'No messages provided' }, 400);
+  }
+
+  // Validate and sanitize each message. Drop anything malformed; clip content.
+  const cleaned = [];
+  for (const m of messages) {
+    if (!m || typeof m !== 'object') continue;
+    if (m.role !== 'user' && m.role !== 'assistant') continue;
+    const content = clipString(m.content, 4000);
+    if (!content) continue;
+    cleaned.push({ role: m.role, content });
+  }
+  if (!cleaned.length) {
+    return jsonResp({ error: 'No valid messages after sanitization' }, 400);
+  }
+
+  // Hard cap on history length — keep last 20 turns. Beyond that we're paying
+  // for tokens that aren't helping conversation quality.
+  const MAX_TURNS = 20;
+  const trimmed = cleaned.slice(-MAX_TURNS);
+
+  // The last message should be from the user (we're responding to it). If the
+  // last is from assistant, the client is confused — bail.
+  if (trimmed[trimmed.length - 1].role !== 'user') {
+    return jsonResp({ error: 'Last message must be from user' }, 400);
+  }
+
+  if (!env.ANTHROPIC_API_KEY) {
+    return jsonResp({ error: 'Server not configured (missing API key)' }, 500);
+  }
+
+  const requestBody = {
+    model: MODEL,
+    max_tokens: 800, // Help-chat responses should be short. 800 tokens is generous.
+    system: MOJO_SYSTEM_PROMPT,
+    messages: trimmed
+  };
+
+  let result;
+  try {
+    result = await callAnthropicWithRetry(env, requestBody, 'chat');
+  } catch (e) {
+    console.error('Chat fatal error:', e);
+    return jsonResp({ error: "Something glitched on my end. Try again in a moment." }, 502);
+  }
+
+  const { response, finalStatus, category } = result;
+
+  if (!response.ok) {
+    const friendly = category === 'anthropic_overload'
+      ? "The AI is overloaded right now. Try again in a moment."
+      : category === 'anthropic_outage'
+      ? "The AI service is having issues. Try again in a few minutes."
+      : "Something glitched on my end. Try again in a moment.";
+    return jsonResp({ error: friendly }, finalStatus >= 500 ? 502 : 503);
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    return jsonResp({ error: "I got a weird response from the AI. Try again in a moment." }, 502);
+  }
+
+  // Extract the text content from Claude's response shape
+  let replyText = '';
+  if (Array.isArray(data.content)) {
+    for (const block of data.content) {
+      if (block && block.type === 'text' && typeof block.text === 'string') {
+        replyText += block.text;
+      }
+    }
+  }
+  replyText = replyText.trim();
+  if (!replyText) {
+    return jsonResp({ error: "I didn't get a response to send back. Try again." }, 502);
+  }
+
+  return jsonResp({ reply: replyText });
+}
+
 // Universal copywriting rules — applied to EVERY generation regardless of industry.
 // These are the timeless rules that show up in every great brand's copy.
 const UNIVERSAL_RULES = [
@@ -1568,6 +1785,9 @@ export default {
     }
     if (url.pathname === '/api/brain' && request.method === 'POST') {
       return handleBrain(request, env);
+    }
+    if (url.pathname === '/api/chat' && request.method === 'POST') {
+      return handleChat(request, env);
     }
     if (url.pathname.startsWith('/api/')) {
       return jsonResp({ error: 'Not found' }, 404);
