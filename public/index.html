@@ -8898,6 +8898,14 @@ let shipModalCapId = null;
 function openShipModal(capId){
   const c = F(capId);
   if(!c) return;
+  // NOTE-21 tier gate: ship_to_calendar is Basic+. Free/Anon see upsell.
+  // EXCEPTION: if the caption is already scheduled (i.e., user is EDITING an
+  // existing schedule), allow it — they got into this state legitimately
+  // (likely as a paid user who downgraded) and we don't want to trap them.
+  if (!c.scheduled_for && canUseFeature('ship_to_calendar') !== true){
+    showUpsellModal('ship_to_calendar');
+    return;
+  }
   shipModalCapId = capId;
   const backdrop = document.getElementById('shipModalBackdrop');
   if(!backdrop) return;
@@ -9448,6 +9456,14 @@ function calUnschedule(id){
 // ============================================================================
 
 function openSegMgr(){
+  // NOTE-21 tier gate: custom audience dimensions are Basic+. Free can use
+  // the AI-generated ones from their brand profile but can't add/edit/manage.
+  // The onboarding "+ Add" flow stays open for all users — segments need to
+  // exist for the picker to work. This gates the POST-onboarding management UI.
+  if (canUseFeature('custom_segments') !== true){
+    showUpsellModal('custom_segments');
+    return;
+  }
   const backdrop = document.getElementById('segMgrBackdrop');
   if(!backdrop) return;
   renderSegMgr();
@@ -10760,6 +10776,13 @@ function updateLearningPill(){
 // This is the user's safety valve for fixing AI mistakes without rebuilding the Brain.
 const NOTES_SOFT_CAP = 2500; // worker-side hard cap; warn before user hits it
 function openNotesModal(){
+  // NOTE-21 tier gate: custom AI directive (Notes) is Basic+.
+  // Exception: if BP.notes is non-empty (user has notes from a former paid tier),
+  // let them view/clear them rather than trap them.
+  if (!BP.notes && canUseFeature('custom_ai') !== true){
+    showUpsellModal('custom_ai');
+    return;
+  }
   const backdrop = document.getElementById('notesModalBackdrop');
   const ta = document.getElementById('notesTextarea');
   if(!backdrop || !ta) return;
@@ -11366,6 +11389,11 @@ function downloadCsv(csvContent, filename){
 
 // Folders tab CSV export — exports current folder
 function doExportCsv(){
+  // NOTE-21 tier gate: CSV export is Basic+. .txt export remains free.
+  if (canUseFeature('csv_export') !== true){
+    showUpsellModal('csv_export');
+    return;
+  }
   const items = gFolder();
   if(!items.length){ alert('This folder is empty.'); return; }
   const csv = buildCaptionsCsv(items, fTab);
@@ -11376,6 +11404,11 @@ function doExportCsv(){
 
 // Captions tab CSV export — exports currently filtered view (respects platform + segment filters)
 function doExportCapsCsv(){
+  // NOTE-21 tier gate: CSV export is Basic+.
+  if (canUseFeature('csv_export') !== true){
+    showUpsellModal('csv_export');
+    return;
+  }
   // Mirror the filtering logic from rCards() so the export matches what
   // the user sees on screen. Trash captions are always excluded.
   let list = caps.filter(c => c.status !== 'trash');
