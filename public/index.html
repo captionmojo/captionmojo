@@ -6841,6 +6841,9 @@ footer span{color:var(--mojo)}
           <tr><td>Bulk schedule</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
           <tr><td>CSV export</td><td><span class="dash">—</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
 
+          <tr><td class="section-hdr" colspan="5">Workspace</td></tr>
+          <tr><td>Ad-free workspace</td><td><span class="dash">—</span></td><td><span class="dash">—</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+
           <tr><td class="section-hdr" colspan="5">Support</td></tr>
           <tr><td>Mojo chatbot help</td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td class="recommended-col"><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
           <tr><td>Email support</td><td>community</td><td>standard</td><td class="recommended-col">priority</td><td>dedicated</td></tr>
@@ -7143,6 +7146,7 @@ window.setTier = function(tier){
   if (typeof rStats === 'function') rStats();
   if (typeof updateTierBadge === 'function') updateTierBadge();
   if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
+  if (typeof applyAdGating === 'function') applyAdGating();
 };
 window.getTier = function(){
   console.log('Current tier:', userTier(), '| BP.tier:', BP.tier);
@@ -7156,6 +7160,7 @@ window.tierReset = function(){
   if (typeof rFolder === 'function') rFolder();
   if (typeof updateTierBadge === 'function') updateTierBadge();
   if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
+  if (typeof applyAdGating === 'function') applyAdGating();
 };
 
 // Restore dev tier from localStorage on load (so refreshing the page
@@ -7168,6 +7173,58 @@ try {
 } catch(e){}
 
 // ============ END TIER SYSTEM ============
+
+// ============================================================================
+// AD SLOT ARCHITECTURE (NOTE-21, built 5/16 session 4 late)
+// ============================================================================
+// CaptionMojo carries advertising on the Anon/Free/Basic tiers. Pro/Agency
+// pay more (in part) to remove ads — the "ad-free workspace" perk.
+//
+// Currently the only ad slot is the True Dialect Radio player at the bottom
+// of the studio. This is architected as a generic ad slot so future
+// advertisers (Spotify-promoted artists, music tools, indie SaaS, etc.)
+// can rotate through without rebuilding the gating logic.
+//
+// Design principle: TD Radio is THE FIRST AD, not the only ad. Treat it
+// like any other ad slot — the gating, the analytics, the rotation logic
+// should all be partner-agnostic.
+
+// Returns true if the user's tier should see no ads.
+// Currently: Pro and Agency are ad-free. Everyone else (Anon, Free, Basic)
+// sees ads. If we ever add an "Ad-Free Add-on" SKU, this is where it'd hook.
+function userHidesAds(){
+  const tier = userTier();
+  // Pro and above are ad-free. Modify this check if pricing structure changes.
+  return tierIndex(tier) >= tierIndex('pro');
+}
+
+// Applies/removes the .is-pro CSS class on ad-bearing elements based on the
+// current tier. Called on page load AND whenever tier changes via setTier().
+// The .is-pro class is already wired in CSS to hide .cm-td-brain and
+// .cm-td-footer — see CSS section "TD RADIO FOOTER" and ".cm-td-brain".
+function applyAdGating(){
+  const hideAds = userHidesAds();
+  // TD radio footer at the bottom of the studio
+  document.querySelectorAll('.cm-td-footer').forEach(el => {
+    el.classList.toggle('is-pro', hideAds);
+  });
+  // TD radio modules embedded in onboarding (quick/deep/fast tracks)
+  document.querySelectorAll('.cm-td-brain').forEach(el => {
+    el.classList.toggle('is-pro', hideAds);
+  });
+}
+
+// Run on load (after the DOM has rendered the ad elements)
+document.addEventListener('DOMContentLoaded', () => {
+  // Slight delay so any tier-determining state (session, localStorage tier
+  // override) has loaded first.
+  setTimeout(applyAdGating, 50);
+});
+
+// Re-run whenever tier changes (setTier in dev console, or future Stripe webhook
+// flipping a user to Pro mid-session). The existing setTier() function calls
+// updateLockedFeatures if defined — extending that pattern below.
+// ============ END AD SLOT ARCHITECTURE ============
 
 // ============================================================================
 // UPSELL MODAL (NOTE-21) — per-feature soft paywall
@@ -7380,6 +7437,7 @@ function renderPricingCards(){
         <li><span class="check">✓</span> 400 captions/month</li>
         <li><span class="check">✓</span> <strong>Bulk schedule</strong></li>
         <li><span class="check">✓</span> 3 brand profiles</li>
+        <li><span class="check">✓</span> <strong>Ad-free workspace</strong></li>
         <li><span class="check">✓</span> Priority support</li>
       </ul>
       ${ctaButtonHtml('pro')}
