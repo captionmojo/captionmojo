@@ -6007,7 +6007,7 @@ footer span{color:var(--mojo)}
             <div class="ob-path-badge">Recommended</div>
             <div class="ob-path-icon">+</div>
             <h3>Upload brand docs</h3>
-            <p>Business plans, brand guides, screenshots, audience research — anything. The AI reads it all and pulls out your voice, customer, USP, and competitors.</p>
+            <p>Business plans, brand guides, screenshots, audience research — anything. The AI reads it all and pulls out your voice, customer, what makes you different, and competitors.</p>
             <div class="ob-path-time">~3–5 minutes</div>
           </div>
           <div class="ob-path-card" onclick="dStartPath('forms')">
@@ -6052,7 +6052,7 @@ footer span{color:var(--mojo)}
 
       <div class="ob-card" id="da2-load" style="display:none">
         <h2 style="font-family:var(--serif);font-style:italic">Building your brand brain</h2>
-        <p class="ob-hint">Extracting voice, customer details, USP, and competitors from your docs. Also building your audience segments. <strong style="color:var(--mojo);font-weight:600">This takes 3–5 minutes.</strong> <strong style="color:var(--ink);font-weight:600">After this: you'll review what we found and edit anything that looks off.</strong></p>
+        <p class="ob-hint">Extracting voice, customer details, what makes you different, and competitors from your docs. Also building your audience segments. <strong style="color:var(--mojo);font-weight:600">This takes 3–5 minutes.</strong> <strong style="color:var(--ink);font-weight:600">After this: you'll review what we found and edit anything that looks off.</strong></p>
 
         <div id="d-extract-status" style="margin-top:24px">
           <div class="seg-loading"><div class="seg-spinner"></div>
@@ -6116,7 +6116,7 @@ footer span{color:var(--mojo)}
           <textarea id="d-review-aud" rows="3" placeholder="Your ideal customer" oninput="dVal()"></textarea>
         </div>
         <div class="review-field">
-          <div class="review-field-label">USP / positioning <span id="d-review-usp-badge"></span></div>
+          <div class="review-field-label">What makes you different <span id="d-review-usp-badge"></span></div>
           <textarea id="d-review-usp" rows="2" placeholder="What makes you different"></textarea>
         </div>
         <div class="review-field">
@@ -6158,7 +6158,7 @@ footer span{color:var(--mojo)}
         <div class="field"><label>What you sell or offer</label><textarea id="d-what" rows="3" placeholder="e.g. Handmade sourdough and seasonal pastries. Heritage grain wheat from local farms." oninput="dVal()"></textarea></div>
         <div class="field"><label>Describe your customer</label><textarea id="d-aud" rows="3" placeholder="e.g. Women 28–45 who care about quality and provenance. They treat food as self-care." oninput="dVal()"></textarea></div>
         <div class="field"><label>Industry <span class="lh">(optional)</span></label><select id="d-ind"><option value="">Select your industry</option><option>Food &amp; Beverage</option><option>Retail &amp; E-commerce</option><option>Health &amp; Wellness</option><option>Beauty &amp; Skincare</option><option>Fitness &amp; Sport</option><option>Music &amp; Entertainment</option><option>Fashion &amp; Apparel</option><option>Real Estate</option><option>Professional Services</option><option>Creator / Influencer</option><option>Hospitality &amp; Events</option><option>Technology &amp; SaaS</option><option>Education &amp; Coaching</option><option>Nonprofit</option><option>Home &amp; Interior</option><option>Other</option></select></div>
-        <div class="field"><label>Your USP <span class="lh">(optional but powerful)</span></label><textarea id="d-usp" rows="2" placeholder="What's the one thing only you can say? A real fact about what makes you different.&#10;&#10;e.g. We're the only bakery in the city using heritage grain from local farms."></textarea></div>
+        <div class="field"><label>What makes you different <span class="lh">(optional but powerful)</span></label><textarea id="d-usp" rows="2" placeholder="What's the one thing only you can say? A real fact about what makes you different.&#10;&#10;e.g. We're the only bakery in the city using heritage grain from local farms."></textarea></div>
         <div class="field"><label>Competitors / lookalikes <span class="lh">(optional)</span></label><textarea id="d-comp" rows="2" placeholder="Name your main competitors, or brands your customers also follow. e.g. Tartine, Boudin, La Brea Bakery"></textarea></div>
       </div>
 
@@ -9636,7 +9636,7 @@ async function deepBuildBrain(){
 // than cycling through generic frames. Also updates the elapsed-time clock.
 const DA_LOAD_FRAMES = [
   { atSec: 0,  primary: 'Reading your brand documents and screenshots…',   trust: 'Your data stays yours. We don\'t train AI on it.' },
-  { atSec: 12, primary: 'Extracting voice, customer details, and USP…',     trust: 'No demo call. No waiting for sales.' },
+  { atSec: 12, primary: 'Extracting voice, customer details, and what makes you different…', trust: 'No demo call. No waiting for sales.' },
   { atSec: 30, primary: 'Distilling your brand brain — tone, references, CTAs…', trust: 'You\'re minutes from your first captions.' },
   { atSec: 55, primary: 'Building your audience segments now…',             trust: 'Almost done — just laying out the dimensions.' },
   { atSec: 90, primary: 'Rich brand brains take a moment — hang tight…',    trust: 'We\'re combing through every proof point.' },
