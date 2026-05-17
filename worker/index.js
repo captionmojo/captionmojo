@@ -1245,7 +1245,43 @@ Each tag must have:
 Return ONLY a valid JSON array (no preamble, no markdown, no code fences). Return EVERY tag the brand documents justify — comprehensive coverage, not summary.
 Format: [{"category":"Genre","name":"Chill Lofi","desc":"Warm, mellow instrumental lo-fi beats."}, {"category":"Mood","name":"Mental Health & Decompression","desc":"Listeners using music to unwind, regulate, and reset."}]`;
 
-  const variablePart = `Brand profile:\n${profile}\n\nGenerate comprehensive multi-dimensional tag categories for this business. Return EVERY distinct tag the brand documents justify — do NOT consolidate or summarize. If the docs reference 17 playlists, return 17 separate genre tags. If 8 audience types, return 8 audience tags. Return only the JSON array.`;
+  // BUG FIX (session 7, May 17 2026): when brain is present, frontend sends an
+  // empty profile string (Path A users uploaded docs instead of filling forms).
+  // Worker was passing empty profile to the AI and the AI was returning generic
+  // segments mirrored from this system prompt's own examples. Fix: compose
+  // brain content into the variablePart, same shape as buildSystemPrompt's
+  // brain-mode block (lines 361-416). Path B users still get their typed profile.
+  let brainContext = '';
+  if (brain) {
+    const lines = [];
+    if (brain.identity) { lines.push('Identity:', brain.identity, ''); }
+    if (brain.industry) lines.push(`Industry: ${brain.industry}`);
+    if (brain.customerPortraits && brain.customerPortraits.length) {
+      lines.push('', 'Customer portraits (the brand\'s actual audience):');
+      brain.customerPortraits.forEach(c => lines.push(`- ${c}`));
+    }
+    if (brain.proofPoints && brain.proofPoints.length) {
+      lines.push('', 'Proof points / authentic specifics:');
+      brain.proofPoints.forEach(p => lines.push(`- ${p.name}: ${p.what || ''}`));
+    }
+    if (brain.culturalReferences && brain.culturalReferences.length) {
+      lines.push('', `Cultural references the brand uses: ${brain.culturalReferences.join(', ')}`);
+    }
+    if (brain.voiceRules && brain.voiceRules.length) {
+      lines.push('', 'Voice rules:');
+      brain.voiceRules.forEach(r => lines.push(`- ${r}`));
+    }
+    if (brain.toneTags && brain.toneTags.length) {
+      lines.push('', `Tone: ${brain.toneTags.join(', ')}`);
+    }
+    if (brain.exampleCaptions && brain.exampleCaptions.length) {
+      lines.push('', 'Example captions (voice and energy):');
+      brain.exampleCaptions.forEach((c, i) => lines.push(`[${i+1}] ${c}`));
+    }
+    if (lines.length) brainContext = `\n\nBrand brain (distilled from the brand documents):\n${lines.join('\n')}`;
+  }
+
+  const variablePart = `Brand profile:\n${profile}${brainContext}\n\nGenerate comprehensive multi-dimensional tag categories for this business. Return EVERY distinct tag the brand documents justify — do NOT consolidate or summarize. If the docs reference 17 playlists, return 17 separate genre tags. If 8 audience types, return 8 audience tags. Return only the JSON array.`;
 
   // /api/segments has no post image (we're building tags from brand context, not a specific post)
   const userContent = buildUserContent({ docBlocks, textParts, pastedDocs, postImageBlock: null, variablePart });
