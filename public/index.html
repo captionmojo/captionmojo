@@ -2083,6 +2083,30 @@ footer span{color:var(--mojo)}
 .pchip:hover{border-color:var(--mojo);color:var(--mojo)}
 .pchip.on{background:var(--mojo);color:#fff;border-color:var(--mojo)}
 
+/* ===== PROMOTED PROMPT FIELD + INLINE HOW MANY (NOTE-33) =====
+   Two related layout helpers for the redesigned AI Generate tab:
+   1. .g-promoted-prompt — wraps the new prominent prompt field above
+      audience dimensions. Same input height as other form inputs but the
+      label is slightly more prominent so the field reads as "primary input."
+   2. .g-platform-row — desktop: chips fill left, "How many" hugs right.
+      Mobile (≤640px): "How many" wraps to its own half-width row below.
+   The existing .two-col-sm wrapper that previously held Direction+How Many
+   is no longer used for this section. */
+.g-promoted-prompt input{width:100%}
+.g-platform-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.g-platform-row .pchips{flex:1 1 auto;min-width:0}
+.g-howmany-inline{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.g-howmany-inline .g-howmany-label{
+  margin:0;font-size:12px;color:var(--ink2);
+  font-family:var(--sans);font-weight:500;white-space:nowrap;
+}
+.g-howmany-inline select{width:auto;min-width:64px;padding:6px 10px;font-size:13px}
+@media (max-width: 640px){
+  .g-platform-row{flex-direction:column;align-items:stretch}
+  .g-howmany-inline{align-self:flex-start;width:50%}
+  .g-howmany-inline select{width:100%}
+}
+
 .smsg{font-size:12px;min-height:18px;color:var(--muted);font-family:var(--mono)}
 .smsg.ok{color:var(--green)}
 .smsg.err{color:var(--red)}
@@ -6475,6 +6499,18 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
           </div>
           <div class="img-error" id="postImgError" style="display:none"></div>
         </div>
+        <!-- ===== PROMOTED PROMPT FIELD (NOTE-33) =====
+             Promotes the existing "Direction" input from a tiny side-by-side
+             field to a prominent prompt-style field above audience dimensions.
+             Lets users describe a specific post in plain English ("album drop,
+             3 thank-yous") instead of being forced through chip selection.
+             Same gPrompt ID + worker plumbing — pure UX promotion, no backend
+             change. The original .two-col-sm row that used to hold this field
+             is removed below; quantity now sits inline with platform. -->
+        <div class="g-promoted-prompt">
+          <label>Anything specific? <span class="lh">(optional — e.g. "new summer menu, album release, etc.")</span></label>
+          <input type="text" id="gPrompt" maxlength="500" placeholder="Describe your post in your own words…">
+        </div>
         <div>
           <label>Audience dimensions <span class="lh">(select one or more — they combine)</span><a class="seg-manage-link" onclick="openSegMgr()" title="Add, rename, or delete audience dimensions">✎ Manage</a></label>
           <div class="seg-filter-wrap">
@@ -6484,37 +6520,33 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
           <div class="seg-picker" id="gSeg"></div>
           <div class="seg-summary" id="gSegSummary" style="display:none"></div>
         </div>
-        <!-- ===== Platform / Quantity / Direction — ALWAYS VISIBLE =====
-             Previously these were hidden behind a "Show options" toggle. A 60-year-old
-             user has no idea to click that toggle and ends up generating with default
-             "All platforms" and quantity 10, missing the real power of platform-aware
-             output. Surfacing these by default fixes the discoverability gap and matches
-             the visible-everything style of the Write Your Own block below. -->
+        <!-- ===== Platform + How Many — ALWAYS VISIBLE =====
+             Platform chips fill most of the row. "How many" sits inline at the
+             right on desktop (Layout 3 design from NOTE-33 mockups). On mobile
+             (≤640px) "How many" wraps to its own half-width row below the
+             chips. The old .two-col-sm wrapper for Direction+How Many is gone
+             — Direction was promoted to the field above the audience block. -->
         <div>
           <label>Platform <span class="lh">(select all that apply)</span></label>
-          <div class="pchips" id="gPlats">
-            <button class="pchip on" onclick="tPC(this)">All</button>
-            <button class="pchip" onclick="tPC(this)">Instagram</button>
-            <button class="pchip" onclick="tPC(this)">TikTok</button>
-            <button class="pchip" onclick="tPC(this)">Twitter / X</button>
-            <button class="pchip" onclick="tPC(this)">Facebook</button>
-            <button class="pchip" onclick="tPC(this)">LinkedIn</button>
-          </div>
-        </div>
-        <div class="two-col-sm">
-          <div>
-            <label>How many</label>
-            <select id="gQty">
-              <option value="1">1</option>
-              <option value="3" selected>3</option>
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="20">20</option>
-            </select>
-          </div>
-          <div>
-            <label>Direction <span class="lh">(optional)</span></label>
-            <input type="text" id="gPrompt" placeholder="e.g. new summer menu">
+          <div class="g-platform-row">
+            <div class="pchips" id="gPlats">
+              <button class="pchip on" onclick="tPC(this)">All</button>
+              <button class="pchip" onclick="tPC(this)">Instagram</button>
+              <button class="pchip" onclick="tPC(this)">TikTok</button>
+              <button class="pchip" onclick="tPC(this)">Twitter / X</button>
+              <button class="pchip" onclick="tPC(this)">Facebook</button>
+              <button class="pchip" onclick="tPC(this)">LinkedIn</button>
+            </div>
+            <div class="g-howmany-inline">
+              <label class="g-howmany-label">How many</label>
+              <select id="gQty">
+                <option value="1">1</option>
+                <option value="3" selected>3</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+            </div>
           </div>
         </div>
         <button class="btn btn-mojo btn-lg" id="gBtn" onclick="doGen()" style="width:100%;font-size:15px;padding:16px 24px;margin-top:4px">✦ Generate Captions</button>
