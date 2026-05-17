@@ -3528,6 +3528,52 @@ footer span{color:var(--mojo)}
   background:#0A0A0A;
   border-radius:8px;
   border:1px solid rgba(204,238,42,.25);
+  display:flex;
+  align-items:flex-start;
+  gap:20px;
+}
+.cm-td-brain .td-brain-content{
+  flex:1;
+  min-width:0;
+}
+/* The new prominent play button — pill on the right side. Yellow on black, with
+   a ▶ icon + "play" label. Unambiguous media-player affordance. Clicking it
+   calls tdBrainToggle() — same as the old text triggers. When open, the icon
+   and label swap to "‖ pause" so it works as a true toggle.
+   Padded with margin-top to vertically center against the header row (row1 +
+   first line of the quote) when the module is in its default closed state. */
+.cm-td-brain .td-brain-play-btn{
+  flex-shrink:0;
+  margin-top:18px;
+  height:40px;
+  padding:0 18px 0 14px;
+  border-radius:20px;
+  background:var(--td-yellow);
+  color:#0A0A0A;
+  border:0;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+  font-weight:600;
+  font-family:var(--sans);
+  letter-spacing:-.1px;
+  transition:transform .12s var(--ease), filter .12s var(--ease);
+}
+.cm-td-brain .td-brain-play-btn:hover{
+  transform:scale(1.04);
+  filter:brightness(1.08);
+}
+.cm-td-brain .td-brain-play-btn:active{transform:scale(.97)}
+.cm-td-brain .td-brain-play-btn:focus-visible{
+  outline:2px solid var(--td-yellow);
+  outline-offset:3px;
+}
+.cm-td-brain .td-brain-play-icon{
+  font-size:14px;
+  line-height:1;
+  display:inline-block;
 }
 .cm-td-brain.is-pro{display:none}
 /* Header row: TD pill on left, "RADIO · WHILE YOU WAIT" label next to it.
@@ -5816,13 +5862,14 @@ footer span{color:var(--mojo)}
         </div>
 
         <div class="cm-td-brain" id="tdBrainModule-quick" style="margin-top:24px">
+          <div class="td-brain-content">
           <div class="td-brain-row1">
             <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
             <span class="td-brain-kicker">radio · while you wait</span>
           </div>
-          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <button type="button" class="td-press-play-btn" onclick="tdBrainToggle('quick')" aria-label="Open playlist picker"><em>press play.</em></button></div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe.</div>
           <div class="td-brain-meta">
-            18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-quick" onclick="tdBrainToggle('quick')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
+            18 curated playlists · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
           </div>
           <div class="td-brain-expanded">
             <div class="td-brain-chips" id="tdBrainChips-quick" data-brain-suffix="quick">
@@ -5844,6 +5891,8 @@ footer span{color:var(--mojo)}
                 referrerpolicy="strict-origin-when-cross-origin"></iframe>
             </div>
           </div>
+          </div>
+          <button type="button" class="td-brain-play-btn" id="tdBrainPlayBtn-quick" onclick="tdBrainToggle('quick')" aria-label="Play music"><span class="td-brain-play-icon" aria-hidden="true">▶</span><span>play</span></button>
         </div>
       </div>
     </div>
@@ -5945,13 +5994,14 @@ footer span{color:var(--mojo)}
         </div>
 
         <div class="cm-td-brain" id="tdBrainModule-deep" style="margin-top:24px">
+          <div class="td-brain-content">
           <div class="td-brain-row1">
             <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
             <span class="td-brain-kicker">radio · while you wait</span>
           </div>
-          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <button type="button" class="td-press-play-btn" onclick="tdBrainToggle('deep')" aria-label="Open playlist picker"><em>press play.</em></button></div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe.</div>
           <div class="td-brain-meta">
-            18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-deep" onclick="tdBrainToggle('deep')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
+            18 curated playlists · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
           </div>
           <div class="td-brain-expanded">
             <div class="td-brain-chips" id="tdBrainChips-deep" data-brain-suffix="deep">
@@ -5973,6 +6023,8 @@ footer span{color:var(--mojo)}
                 referrerpolicy="strict-origin-when-cross-origin"></iframe>
             </div>
           </div>
+          </div>
+          <button type="button" class="td-brain-play-btn" id="tdBrainPlayBtn-deep" onclick="tdBrainToggle('deep')" aria-label="Play music"><span class="td-brain-play-icon" aria-hidden="true">▶</span><span>play</span></button>
         </div>
       </div>
 
@@ -6073,13 +6125,14 @@ footer span{color:var(--mojo)}
         </div>
 
         <div class="cm-td-brain" id="tdBrainModule-deepB" style="margin-top:24px">
+          <div class="td-brain-content">
           <div class="td-brain-row1">
             <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
             <span class="td-brain-kicker">radio · while you wait</span>
           </div>
-          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <button type="button" class="td-press-play-btn" onclick="tdBrainToggle('deepB')" aria-label="Open playlist picker"><em>press play.</em></button></div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe.</div>
           <div class="td-brain-meta">
-            18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-deepB" onclick="tdBrainToggle('deepB')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
+            18 curated playlists · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
           </div>
           <div class="td-brain-expanded">
             <div class="td-brain-chips" id="tdBrainChips-deepB" data-brain-suffix="deepB">
@@ -6101,6 +6154,8 @@ footer span{color:var(--mojo)}
                 referrerpolicy="strict-origin-when-cross-origin"></iframe>
             </div>
           </div>
+          </div>
+          <button type="button" class="td-brain-play-btn" id="tdBrainPlayBtn-deepB" onclick="tdBrainToggle('deepB')" aria-label="Play music"><span class="td-brain-play-icon" aria-hidden="true">▶</span><span>play</span></button>
         </div>
       </div>
 
@@ -6207,13 +6262,14 @@ footer span{color:var(--mojo)}
              Spotify embed. Hidden for Pro users via .is-pro CSS class.
              Playlist names per truedialect.com (May 2026). -->
         <div class="cm-td-brain" id="tdBrainModule-fast">
+          <div class="td-brain-content">
           <div class="td-brain-row1">
             <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
             <span class="td-brain-kicker">radio · while you wait</span>
           </div>
-          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe. <button type="button" class="td-press-play-btn" onclick="tdBrainToggle('fast')" aria-label="Open playlist picker"><em>press play.</em></button></div>
+          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe.</div>
           <div class="td-brain-meta">
-            18 curated playlists · <a class="td-brain-link" id="tdBrainExpand-fast" onclick="tdBrainToggle('fast')">play one →</a> · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
+            18 curated playlists · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
           </div>
           <div class="td-brain-expanded">
             <div class="td-brain-chips" id="tdBrainChips-fast" data-brain-suffix="fast">
@@ -6235,6 +6291,8 @@ footer span{color:var(--mojo)}
                 referrerpolicy="strict-origin-when-cross-origin"></iframe>
             </div>
           </div>
+          </div>
+          <button type="button" class="td-brain-play-btn" id="tdBrainPlayBtn-fast" onclick="tdBrainToggle('fast')" aria-label="Play music"><span class="td-brain-play-icon" aria-hidden="true">▶</span><span>play</span></button>
         </div>
 
       </div>
@@ -9860,6 +9918,7 @@ function tdBrainToggle(suffix){
   const embedId = 'tdBrainEmbed-' + suffix;
   const chipsSel = '#tdBrainChips-' + suffix;
   const linkId = 'tdBrainExpand-' + suffix;
+  const playBtnId = 'tdBrainPlayBtn-' + suffix;
   const wasOpen = m.classList.contains('is-open');
   m.classList.toggle('is-open');
   const isNowClosing = wasOpen;
@@ -9874,11 +9933,22 @@ function tdBrainToggle(suffix){
     }
     stopAllSpotifyEmbedsExcept(embedId);
   }
+  // Legacy "play one →" link — kept in case any instance still has it, no-ops
+  // for the new modules that removed it in favor of the prominent Play button.
   const link = document.getElementById(linkId);
   if(link){
     link.textContent = m.classList.contains('is-open')
       ? 'hide the player ←'
       : 'play one →';
+  }
+  // New prominent Play button — swap icon + label between play and pause states
+  const playBtn = document.getElementById(playBtnId);
+  if(playBtn){
+    const isOpen = m.classList.contains('is-open');
+    playBtn.setAttribute('aria-label', isOpen ? 'Hide the player' : 'Play music');
+    playBtn.innerHTML = isOpen
+      ? '<span class="td-brain-play-icon" aria-hidden="true">‖</span><span>hide</span>'
+      : '<span class="td-brain-play-icon" aria-hidden="true">▶</span><span>play</span>';
   }
 }
 // Wire chip click handlers for every brain instance currently in the DOM.
