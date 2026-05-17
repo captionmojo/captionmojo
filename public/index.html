@@ -833,6 +833,75 @@ footer span{color:var(--mojo)}
 .seg-add-row input{flex:1}
 .rename-input{font-family:var(--serif);font-size:16px;font-weight:600;border:none;border-bottom:1.5px solid var(--mojo);background:transparent;outline:none;width:100%;padding:2px 0;letter-spacing:-.01em}
 
+/* ====== SILENT-FAILURE BANNER (segments fallback) ======
+   When /api/segments fails, the renderer prepends this amber banner above the
+   segment chips so the user knows they're seeing placeholders, not real
+   brand-tailored output. Retry button calls retrySegmentBuild() which re-runs
+   whichever builder fired most recently (Quick/Path A/Path B/Fast). Fallback
+   chips themselves also pick up the .is-fallback modifier — dashed border +
+   grayed-out fill — so the placeholder state is visible at a glance even if
+   the banner is scrolled out of view. */
+.seg-fallback-banner{
+  background:var(--amber-soft);
+  border:1px solid rgba(217,119,6,.3);
+  border-radius:8px;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:14px 0 18px;
+}
+.seg-fallback-icon{
+  font-size:18px;
+  line-height:1;
+  color:var(--amber);
+  flex-shrink:0;
+}
+.seg-fallback-text{
+  flex:1;
+  font-size:13.5px;
+  color:var(--ink);
+  line-height:1.5;
+}
+.seg-fallback-text strong{font-weight:600}
+.seg-fallback-retry{
+  flex-shrink:0;
+  background:var(--amber);
+  color:#fff;
+  border:1.5px solid var(--amber);
+  border-radius:8px;
+  padding:8px 14px;
+  font-size:13px;
+  font-weight:600;
+  font-family:var(--sans);
+  cursor:pointer;
+  transition:filter .12s var(--ease), transform .12s var(--ease);
+}
+.seg-fallback-retry:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+.seg-fallback-retry:active:not(:disabled){transform:translateY(0)}
+.seg-fallback-retry:disabled{opacity:.6;cursor:wait}
+.seg-fallback-banner.is-retrying{opacity:.85}
+/* Fallback chips — dashed border + grayed-out fill so they read as
+   provisional. Overrides the .on highlight (these aren't "real" selections
+   even though the on:true flag is set by default). */
+.seg-card.is-fallback{
+  border-style:dashed;
+  border-color:var(--border2);
+  background:var(--bg2);
+  color:var(--muted);
+}
+.seg-card.is-fallback .seg-name{color:var(--ink2)}
+.seg-card.is-fallback .seg-desc{color:var(--muted)}
+.seg-card.is-fallback.on{
+  border-color:var(--border2);
+  background:var(--bg2);
+}
+.seg-card.is-fallback.on::after{
+  background:var(--border2);
+  color:#fff;
+}
+.seg-card.is-fallback:hover{border-color:var(--amber)}
+
 /* Multi-select segment chip picker (used in studio) */
 .seg-picker{display:flex;flex-direction:column;gap:8px}
 .seg-pgroup-label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
@@ -9707,11 +9776,11 @@ function renderReviewSegments(containerId){
   });
   const html = order.map(cat => {
     const cards = groups[cat].map(({s, i}) =>
-      `<div class="seg-card ${s.on ? 'on' : ''}" onclick="toggleSeg(${i})"><div class="seg-name">${esc(s.name)}</div><div class="seg-desc">${esc(s.desc || '')}</div></div>`
+      `<div class="seg-card ${s.on ? 'on' : ''}${s.isFallback?' is-fallback':''}" onclick="toggleSeg(${i})"><div class="seg-name">${esc(s.name)}</div><div class="seg-desc">${esc(s.desc || '')}</div></div>`
     ).join('');
     return `<div class="seg-group"><div class="seg-group-label">${esc(cat)}</div><div class="seg-grid">${cards}</div></div>`;
   }).join('');
-  cont.innerHTML = html;
+  cont.innerHTML = `${buildFallbackBannerHTML()}${html}`;
 }
 
 // Commit toggled segments from path A's review. Segments array is mutated by
@@ -10332,6 +10401,11 @@ async function fastBuildBrain(){
 
 // Segments build for fast flow (uses brain if present).
 async function fastBuildSegments(){
+  // Remember this build for the silent-failure banner's Retry button.
+  lastSegmentBuilder = () => fastBuildSegments();
+  // No specific contId for fastBuildSegments (renders happen elsewhere in
+  // the fast flow); leave lastSegmentContId untouched so the retry path uses
+  // the most-recent value if any.
   const brainPresent = BP.brain && typeof BP.brain === 'object';
   // Lean profile string from what we have
   const profile = `Industry: ${BP.industry||fastIndustry||'unknown'}\nBrand name: ${BP.name||'(see brain)'}\nNotes: ${V('f-notes')||'(none)'}`;
@@ -10475,10 +10549,51 @@ function stopOnboardingReassurance(){
 }
 // ============ END ONBOARDING REASSURANCE COPY ============
 
+// ============ SEGMENT FALLBACK RETRY (silent-failure UX) ============
+// When /api/segments fails, generateSegments() and fastBuildSegments() set
+// segments = fallbackSegments() (each tagged isFallback:true) and call
+// renderSegments(). The renderer prepends a banner with a Retry button that
+// invokes whichever builder was last used — stored on lastSegmentBuilder
+// when each entry point fires, so the banner doesn't have to know which flow
+// the user is on.
+//
+//   - Quick Start  → () => generateSegments('q')
+//   - Deep Path A  → () => generateSegments('d')   (uses brain if present)
+//   - Deep Path B  → () => { BP.brain = null; return generateSegments('d'); }
+//   - Fast Setup   → () => fastBuildSegments()
+//
+// retrySegmentBuild() pulls from this and is wired to the banner's onclick.
+let lastSegmentBuilder = null;
+let lastSegmentContId = null;
+async function retrySegmentBuild(){
+  if(!lastSegmentBuilder) return;
+  // Show "rebuilding" state on the banner; preserve existing fallback chips
+  // beneath it so the user has something to look at while we retry.
+  const banner = document.querySelector('.seg-fallback-banner');
+  if(banner){
+    banner.classList.add('is-retrying');
+    const btn = banner.querySelector('.seg-fallback-retry');
+    if(btn){ btn.disabled = true; btn.textContent = 'Trying…'; }
+  }
+  try {
+    await lastSegmentBuilder();
+  } catch(e){
+    console.warn('Retry segment build failed:', e);
+    // If it fails again the catch in the builder itself will re-render the
+    // fallback + banner — no extra handling needed here.
+  }
+}
+
 async function generateSegments(track){
   const contId = track==='q'?'q-seg-container':'d-seg-container';
   const cont = document.getElementById(contId);
   const nextBtn = document.getElementById(track+'-next-btn');
+
+  // Remember this build so the silent-failure banner's Retry button can re-run
+  // it without knowing which onboarding flow the user is on. Captures whatever
+  // brain/profile state exists at retry-click time.
+  lastSegmentBuilder = () => generateSegments(track);
+  lastSegmentContId = contId;
 
   // Step 1: Build the Brain silently (Deep Setup with docs only). This takes 10-30s.
   // We do this BEFORE segments so the segment builder has the Brain to work from.
@@ -10540,13 +10655,25 @@ async function generateSegments(track){
 }
 function fallbackSegments(){
   return [
-    {name:'New Customers',desc:'People discovering your brand for the first time.',category:'Customer Type',on:true},
-    {name:'Loyal Regulars',desc:'Existing customers who buy consistently.',category:'Customer Type',on:true},
-    {name:'Promotional',desc:'Deals, offers, and time-sensitive announcements.',category:'Use Case',on:true},
-    {name:'Educational',desc:'Tips, how-tos, and behind-the-scenes content.',category:'Use Case',on:true},
-    {name:'Brand Story',desc:'Your values, mission, and what makes you different.',category:'Use Case',on:true}
+    {name:'New Customers',desc:'People discovering your brand for the first time.',category:'Customer Type',on:true,isFallback:true},
+    {name:'Loyal Regulars',desc:'Existing customers who buy consistently.',category:'Customer Type',on:true,isFallback:true},
+    {name:'Promotional',desc:'Deals, offers, and time-sensitive announcements.',category:'Use Case',on:true,isFallback:true},
+    {name:'Educational',desc:'Tips, how-tos, and behind-the-scenes content.',category:'Use Case',on:true,isFallback:true},
+    {name:'Brand Story',desc:'Your values, mission, and what makes you different.',category:'Use Case',on:true,isFallback:true}
   ];
 }
+// Build the silent-failure banner HTML that appears above fallback segments.
+// Returns empty string when segments aren't fallbacks. Banner has a Try again
+// button wired to retrySegmentBuild() which calls the most recent builder.
+function buildFallbackBannerHTML(){
+  if(!segments.some(s => s.isFallback)) return '';
+  return `<div class="seg-fallback-banner" role="status">
+    <div class="seg-fallback-icon" aria-hidden="true">⚠</div>
+    <div class="seg-fallback-text"><strong>Showing placeholders.</strong> AI couldn't reach our servers — these aren't tailored to your brand yet.</div>
+    <button type="button" class="seg-fallback-retry" onclick="retrySegmentBuild()">↻ Try again</button>
+  </div>`;
+}
+
 function renderSegments(contId){
   const cont = document.getElementById(contId);
   if(!segments.length){cont.innerHTML='<p style="color:var(--muted);font-size:14px">No segments yet — add your own below.</p>';return;}
@@ -10560,11 +10687,11 @@ function renderSegments(contId){
   });
   const groupHTML = order.map(cat => {
     const cards = groups[cat].map(({s, i}) =>
-      `<div class="seg-card ${s.on?'on':''}" onclick="toggleSeg(${i})"><div class="seg-name" onclick="event.stopPropagation();startRename(this,${i},'${contId}')">${esc(s.name)}</div><div class="seg-desc">${esc(s.desc||'')}</div></div>`
+      `<div class="seg-card ${s.on?'on':''}${s.isFallback?' is-fallback':''}" onclick="toggleSeg(${i})"><div class="seg-name" onclick="event.stopPropagation();startRename(this,${i},'${contId}')">${esc(s.name)}</div><div class="seg-desc">${esc(s.desc||'')}</div></div>`
     ).join('');
     return `<div class="seg-cat-group"><div class="seg-cat-label">${esc(cat)}</div><div class="seg-grid">${cards}</div></div>`;
   }).join('');
-  cont.innerHTML = `${groupHTML}<p style="font-size:12px;color:var(--muted);margin-top:12px;font-family:var(--mono)">These are your audience dimensions. You'll mix and match them when generating captions. Click any name to rename. Click a card to deselect.</p>`;
+  cont.innerHTML = `${buildFallbackBannerHTML()}${groupHTML}<p style="font-size:12px;color:var(--muted);margin-top:12px;font-family:var(--mono)">These are your audience dimensions. You'll mix and match them when generating captions. Click any name to rename. Click a card to deselect.</p>`;
 }
 function toggleSeg(i){
   segments[i].on=!segments[i].on;
