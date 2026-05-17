@@ -6498,20 +6498,23 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
         <p class="ob-hint">This tells the AI which industry conventions to write with. Pick the closest match — you can refine specifics in the next step.</p>
         <div class="field"><label>Industry</label>
           <div class="chip-row" id="f-industry">
-            <button class="chip" data-ind="music_label" onclick="setFastIndustry(this)">🎵 Record Label / Music</button>
-            <button class="chip" data-ind="restaurant" onclick="setFastIndustry(this)">🍽 Restaurant / Food</button>
-            <button class="chip" data-ind="fitness_studio" onclick="setFastIndustry(this)">💪 Fitness / Wellness Studio</button>
-            <button class="chip" data-ind="creator" onclick="setFastIndustry(this)">✦ Creator / Influencer</button>
-            <button class="chip" data-ind="ecommerce" onclick="setFastIndustry(this)">🛒 E-Commerce / Retail</button>
-            <button class="chip" data-ind="beauty" onclick="setFastIndustry(this)">💅 Beauty / Fashion</button>
-            <button class="chip" data-ind="hospitality" onclick="setFastIndustry(this)">🏨 Hospitality / Hotel</button>
-            <button class="chip" data-ind="real_estate" onclick="setFastIndustry(this)">🏠 Real Estate</button>
-            <button class="chip" data-ind="professional_services" onclick="setFastIndustry(this)">💼 Professional Services</button>
-            <button class="chip" data-ind="education" onclick="setFastIndustry(this)">🎓 Education / Coaching</button>
-            <button class="chip" data-ind="nonprofit" onclick="setFastIndustry(this)">❤ Nonprofit</button>
-            <button class="chip" data-ind="technology" onclick="setFastIndustry(this)">⚙ Technology / SaaS</button>
-            <button class="chip" data-ind="entertainment" onclick="setFastIndustry(this)">🎬 Entertainment / Media</button>
-            <button class="chip" data-ind="other" onclick="setFastIndustry(this)">Other</button>
+            <button class="chip" data-ind="music_label" data-label="Music &amp; Entertainment" onclick="setFastIndustry(this)">🎵 Record Label / Music</button>
+            <button class="chip" data-ind="restaurant" data-label="Food &amp; Beverage" onclick="setFastIndustry(this)">🍽 Restaurant / Food</button>
+            <button class="chip" data-ind="fitness_sport" data-label="Fitness &amp; Sport" onclick="setFastIndustry(this)">💪 Fitness &amp; Sport</button>
+            <button class="chip" data-ind="health_wellness" data-label="Health &amp; Wellness" onclick="setFastIndustry(this)">🧘 Health &amp; Wellness</button>
+            <button class="chip" data-ind="creator" data-label="Creator / Influencer" onclick="setFastIndustry(this)">✦ Creator / Influencer</button>
+            <button class="chip" data-ind="ecommerce" data-label="Retail &amp; E-commerce" onclick="setFastIndustry(this)">🛒 E-Commerce / Retail</button>
+            <button class="chip" data-ind="beauty_skincare" data-label="Beauty &amp; Skincare" onclick="setFastIndustry(this)">💅 Beauty &amp; Skincare</button>
+            <button class="chip" data-ind="fashion_apparel" data-label="Fashion &amp; Apparel" onclick="setFastIndustry(this)">👗 Fashion &amp; Apparel</button>
+            <button class="chip" data-ind="hospitality" data-label="Hospitality &amp; Events" onclick="setFastIndustry(this)">🏨 Hospitality / Hotel</button>
+            <button class="chip" data-ind="real_estate" data-label="Real Estate" onclick="setFastIndustry(this)">🏠 Real Estate</button>
+            <button class="chip" data-ind="professional_services" data-label="Professional Services" onclick="setFastIndustry(this)">💼 Professional Services</button>
+            <button class="chip" data-ind="education" data-label="Education &amp; Coaching" onclick="setFastIndustry(this)">🎓 Education / Coaching</button>
+            <button class="chip" data-ind="nonprofit" data-label="Nonprofit" onclick="setFastIndustry(this)">❤ Nonprofit</button>
+            <button class="chip" data-ind="technology" data-label="Technology &amp; SaaS" onclick="setFastIndustry(this)">⚙ Technology / SaaS</button>
+            <button class="chip" data-ind="entertainment" data-label="Music &amp; Entertainment" onclick="setFastIndustry(this)">🎬 Entertainment / Media</button>
+            <button class="chip" data-ind="home_interior" data-label="Home &amp; Interior" onclick="setFastIndustry(this)">🛋 Home &amp; Interior</button>
+            <button class="chip" data-ind="other" data-label="Other" onclick="setFastIndustry(this)">Other</button>
           </div>
         </div>
       </div>
@@ -10241,7 +10244,12 @@ function fSkip(){
 }
 
 function setFastIndustry(btn){
-  fastIndustry = btn.dataset.ind;
+  // NOTE-27 fix: store the dropdown-canonical display string (data-label) so
+  // BP.industry matches what Quick Start / Detailed flows store and what the
+  // worker's brain extraction prompt expects. data-ind slug is preserved on
+  // the DOM as a stable internal id for future analytics, but no longer flows
+  // into the profile. Fallback to data-ind if data-label is missing (defensive).
+  fastIndustry = btn.dataset.label || btn.dataset.ind || '';
   document.querySelectorAll('#f-industry .chip').forEach(c=>c.classList.remove('on'));
   btn.classList.add('on');
   fVal();
