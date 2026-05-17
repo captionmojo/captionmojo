@@ -6123,7 +6123,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
            since Quick Start skips the brain build entirely. -->
       <div class="ob-card" id="q-building" style="display:none">
         <h2 style="font-family:var(--serif);font-style:italic">Building your audience</h2>
-        <p class="ob-hint">We're generating starter audience segments tailored to what you just told us. About 10 seconds. You'll be redirected to the studio automatically.</p>
+        <p class="ob-hint">We're generating starter audience segments tailored to what you just told us. About 30 seconds. You'll be redirected to the studio automatically.</p>
         <div id="q-build-status" style="margin-top:24px">
           <div class="seg-loading"><div class="seg-spinner"></div>
             <div>
@@ -7706,10 +7706,16 @@ const featureUpsellCopy = {
 // Anon users (no session) get 'anon' UNLESS a dev tier override is in place
 // (so setTier('pro') works for testing without needing to sign in).
 function userTier(){
-  // Dev override always wins (set via setTier() console helper)
+  // Dev override always wins (set via setTier() console helper) — but ONLY on
+  // localhost / dev hosts. In production, any cm_dev_tier value in localStorage
+  // is ignored (anyone could write it via DevTools/XSS — the WRITE side is
+  // already gated, but we have to gate the READ too or the override leaks).
+  // _isDevHost is defined alongside the dev helpers below.
   try {
-    const devTier = localStorage.getItem('cm_dev_tier');
-    if (devTier && TIER_ORDER.includes(devTier)) return devTier;
+    if (typeof _isDevHost === 'function' && _isDevHost()) {
+      const devTier = localStorage.getItem('cm_dev_tier');
+      if (devTier && TIER_ORDER.includes(devTier)) return devTier;
+    }
   } catch(e){}
   // If not signed in, treat as anon
   if (!session && !user) return 'anon';
@@ -9591,7 +9597,7 @@ async function qFinish(){
 
   // (c) Update header label to match the new state
   const lbl = document.getElementById('q-lbl');
-  if (lbl) lbl.textContent = '~10 seconds';
+  if (lbl) lbl.textContent = '~30 seconds';
 
   // (d) Rotate reassurance copy — same pattern as Deep Setup's dFinalize.
   const primary = document.getElementById('q-build-primary');
