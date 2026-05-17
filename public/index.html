@@ -1124,6 +1124,24 @@ footer span{color:var(--mojo)}
 .seg-pchip.custom{text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px}
 .seg-pchip.custom:hover{text-decoration-color:var(--mojo)}
 .seg-pchip.custom.on{text-decoration-color:rgba(255,255,255,.7)}
+/* NOTE-33B: post-Accept highlight. Teal-green glow tied to the Manage/AI-add
+   family. Holds full color for ~1.5s, fades over the final 1s to normal styling.
+   .on variant keeps the mojo fill but adds a teal border-glow ring so selected
+   newly-added chips still pop against unselected siblings. */
+.seg-pchip.just-added{
+  animation: segChipJustAdded 2.5s ease-out forwards;
+}
+.seg-pchip.just-added.on{
+  animation: segChipJustAddedOn 2.5s ease-out forwards;
+}
+@keyframes segChipJustAdded{
+  0%, 60%{ background:#E1F5EE; border-color:#1D9E75; color:#0F6E56; }
+  100%{ background:var(--surface); border-color:var(--border); color:var(--ink2); }
+}
+@keyframes segChipJustAddedOn{
+  0%, 60%{ box-shadow:0 0 0 3px rgba(29,158,117,.35); }
+  100%{ box-shadow:none; }
+}
 .seg-picker-empty{font-family:var(--mono);font-size:12px;color:var(--muted);padding:10px 0}
 .seg-summary{font-family:var(--mono);font-size:11px;color:var(--mojo);margin-top:8px;font-weight:500}
 
@@ -12112,8 +12130,11 @@ function renderSegPicker(containerId, selectedArr, onChange){
       // visual treatment, and we override the hover tooltip with something useful
       // ("You added this") instead of repeating the same generic string everywhere.
       const isCustom = s.desc === 'Custom dimension.';
+      // NOTE-33B: chips committed via AI Add More are flagged with _justAdded for
+      // ~3s after Accept. CSS animation 'just-added' fires the teal post-accept glow.
+      const isJustAdded = s._justAdded === true;
       const tip = isCustom ? 'You added this dimension.' : (s.desc || '');
-      return `<button type="button" class="seg-pchip ${isOn?'on':''} ${isCustom?'custom':''}" data-seg="${esc(s.name)}" title="${esc(tip)}">${esc(s.name)}</button>`;
+      return `<button type="button" class="seg-pchip ${isOn?'on':''} ${isCustom?'custom':''} ${isJustAdded?'just-added':''}" data-seg="${esc(s.name)}" title="${esc(tip)}">${esc(s.name)}</button>`;
     }).join('');
     // NOTE-33B: dashed "+ AI add more" chip at end of each category. Click →
     // silent expand flow (no popup), fires /api/segments-add for THIS category.
@@ -12267,6 +12288,12 @@ function buildAiAddPayload(base){
 // direction input. Just "more of this category, please."
 async function aiAddExpandCategory(cat, chipBtn, containerId, selectedArr, onChange){
   if(!cat || !chipBtn) return;
+  // NOTE-21 tier gate: same as openSegMgr/openAiAddPopup. AI-add modifies the
+  // segment set, which is a Basic+ feature.
+  if (canUseFeature('custom_segments') !== true){
+    showUpsellModal('custom_segments');
+    return;
+  }
   // Collect existing tag names for this category — gives AI dedup context
   const existing = (segments||[])
     .filter(s => s.on && s.category === cat)
@@ -12311,6 +12338,13 @@ async function aiAddExpandCategory(cat, chipBtn, containerId, selectedArr, onCha
 
 // ENTRY 2: Top "✦ AI add more" link. Opens the popup.
 function openAiAddPopup(){
+  // NOTE-21 tier gate: same as openSegMgr — AI-add modifies the segment set,
+  // which is a Basic+ feature. Free tier can use the AI-generated baseline
+  // from their brand profile but can't expand or add new categories.
+  if (canUseFeature('custom_segments') !== true){
+    showUpsellModal('custom_segments');
+    return;
+  }
   const pop = document.getElementById('aiAddPopup');
   if(!pop) return;
   // Populate the category dropdown with current categories
@@ -12522,11 +12556,13 @@ function acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChang
 
   if(isNewCategoryFlow){
     // Remove pending tags that user deselected. For kept ones, drop the
-    // _aiAddPending marker so they become "real" segments.
+    // _aiAddPending marker so they become "real" segments and stamp _justAdded
+    // so renderSegPicker applies the post-accept teal glow.
     segments = (segments||[]).filter(s => {
       if(s._aiAddPending && s.category === cat){
         if(selectedNames.has(s.name)){
           delete s._aiAddPending;
+          s._justAdded = true;
           return true;
         }
         return false; // user deselected — drop entirely
@@ -12534,12 +12570,14 @@ function acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChang
       return true;
     });
   } else {
-    // Expand-mode: previewState items aren't in window.segments yet, append them.
+    // Expand-mode: previewState items aren't in segments yet, append them.
+    // Stamp _justAdded so renderSegPicker applies the post-accept teal glow.
     const toAdd = previewState.filter(s => s._previewSelected).map(s => ({
       name: s.name,
       desc: s.desc || '',
       category: s.category || cat,
-      on: true
+      on: true,
+      _justAdded: true
     }));
     // Dedup against existing tags by name+category (defensive)
     const existingKey = new Set((segments||[]).map(s => `${s.category}|${s.name.toLowerCase()}`));
@@ -12552,9 +12590,19 @@ function acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChang
 
   // Persist via the normal save flow if available
   if(typeof save === 'function') { try { save(); } catch(e){ console.warn('[aiAdd] save() failed:', e); } }
-  // Re-render the picker
+  // Re-render the picker — the new tags will get the .just-added class and
+  // the CSS animation will fire as they paint.
   renderSegPicker(containerId, selectedArr, onChange);
   if(typeof onChange === 'function') onChange();
+  // Clean up the _justAdded flags after the animation completes so they
+  // don't persist into storage or re-trigger on next render.
+  setTimeout(() => {
+    let changed = false;
+    (segments||[]).forEach(s => {
+      if(s._justAdded){ delete s._justAdded; changed = true; }
+    });
+    if(changed && typeof save === 'function') { try { save(); } catch(_){} }
+  }, 3000);
 }
 
 // Retry: kick off another fetch for the same category. Same flow as the
@@ -12738,9 +12786,20 @@ function save(){
     // are injected during the new-category flow so the picker renders the
     // category. They're not "real" until the user clicks Accept (which removes
     // the flag). _aiAddPlaceholder is the legacy marker from the old approach
-    // — drop those too. Filter the saved copy without mutating window.segments
-    // so the in-progress preview UI keeps working.
-    const segsToSave = (segments||[]).filter(s => !s._aiAddPending && !s._aiAddPlaceholder);
+    // — drop those too. _justAdded is a transient post-accept highlight flag;
+    // strip it from the saved copy so it doesn't re-trigger on reload.
+    // Filter the saved copy without mutating window.segments so the in-progress
+    // preview UI keeps working.
+    const segsToSave = (segments||[])
+      .filter(s => !s._aiAddPending && !s._aiAddPlaceholder)
+      .map(s => {
+        if(s._justAdded){
+          const clean = {...s};
+          delete clean._justAdded;
+          return clean;
+        }
+        return s;
+      });
     const ok=saveToStorage({caps,nId,BP,segments:segsToSave});
     setSave(ok?'saved':'error',ok?'saved':'save failed');
     // If signed in, also push to Supabase. Fire-and-forget; failures are
