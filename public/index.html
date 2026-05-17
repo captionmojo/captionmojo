@@ -7774,6 +7774,9 @@ window.setTier = function(tier){
   if (typeof updateTierBadge === 'function') updateTierBadge();
   if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
   if (typeof applyAdGating === 'function') applyAdGating();
+  // The "X / Y left today" pill reads tier from tierConfig; refresh it
+  // so the cap changes immediately without needing a page reload.
+  if (typeof updateUsagePill === 'function') updateUsagePill();
 };
 window.getTier = function(){
   console.log('Current tier:', userTier(), '| BP.tier:', BP.tier);
@@ -7788,6 +7791,7 @@ window.tierReset = function(){
   if (typeof updateTierBadge === 'function') updateTierBadge();
   if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
   if (typeof applyAdGating === 'function') applyAdGating();
+  if (typeof updateUsagePill === 'function') updateUsagePill();
 };
 
 // Restore dev tier from localStorage on load (so refreshing the page
@@ -8783,11 +8787,13 @@ function checkAnonGateBeforeGenerate(qty){
   return true;
 }
 // Free-tier signed-in users: same idea but with the higher cap and a softer
-// upgrade nudge instead of the signup wall.
+// upgrade nudge instead of the signup wall. Paid tiers (Basic/Pro/Agency)
+// skip this gate — their daily caps are anti-abuse, enforced server-side,
+// and don't show the "upgrade to Pro" modal (which only makes sense for Free).
 function checkFreeTierGateBeforeGenerate(qty){
   if(!user) return true; // anonymous goes through anon gate
-  // Pro/agency tiers (when implemented) skip this gate. For now everyone
-  // signed in is on free tier.
+  const tier = (typeof userTier === 'function') ? userTier() : 'free';
+  if(tier !== 'free') return true; // paid users skip the Free-tier nudge
   const usage = getUsage();
   if(usage.count >= DAILY_LIMIT_FREE || usage.count + (qty || 1) > DAILY_LIMIT_FREE){
     showUpgradePrompt(usage.count, qty);
@@ -8898,12 +8904,21 @@ function bumpUsage(by){
   updateUsagePill();
 }
 function updateUsagePill(){
-  // Pick the right counter and cap based on auth state.
+  // Pick the right counter and cap based on auth state + tier.
   // Anonymous: ANON counter / ANON_HARD_WALL (5)
-  // Signed-in free: daily USAGE counter / DAILY_LIMIT_FREE (10)
-  // (Paid tiers will get higher caps once Stripe is wired in.)
+  // Signed-in: daily USAGE counter / tierConfig[currentTier].captionsDay
+  //   (5 Free / 50 Basic / 150 Pro / 600 Agency)
   const isAnon = !user;
-  const cap = isAnon ? ANON_HARD_WALL : DAILY_LIMIT_FREE;
+  let cap;
+  if(isAnon){
+    cap = ANON_HARD_WALL;
+  } else {
+    // Read the daily cap from tierConfig so Basic/Pro/Agency users see their
+    // actual cap, not the Free cap. Falls back to Free if tier or value missing.
+    const tier = (typeof userTier === 'function') ? userTier() : 'free';
+    const cfg = (typeof tierConfig !== 'undefined') ? tierConfig[tier] : null;
+    cap = (cfg && typeof cfg.captionsDay === 'number') ? cfg.captionsDay : DAILY_LIMIT_FREE;
+  }
   const used = isAnon ? getAnonCount() : getUsage().count;
   const remaining = Math.max(0, cap - used);
   // Keep the runtime DAILY_LIMIT mirror in sync so other code paths see the
