@@ -7759,49 +7759,65 @@ function lowestTierForFeature(featureName){
 //   getTier()        → see what tier you're currently treated as
 //   tierReset()      → wipe and go back to default
 // These are intentionally global so they're accessible from devtools.
-window.setTier = function(tier){
-  if (!TIER_ORDER.includes(tier)){
-    console.error('Invalid tier. Use one of:', TIER_ORDER.join(', '));
-    return;
-  }
-  BP.tier = tier;
-  try { localStorage.setItem('cm_dev_tier', tier); } catch(e){}
-  if (typeof save === 'function') save();
-  console.log(`Tier set to "${tier}". Reloading UI...`);
-  // Refresh all dependent views
-  if (typeof rFolder === 'function') rFolder();
-  if (typeof rStats === 'function') rStats();
-  if (typeof updateTierBadge === 'function') updateTierBadge();
-  if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
-  if (typeof applyAdGating === 'function') applyAdGating();
-  // The "X / Y left today" pill reads tier from tierConfig; refresh it
-  // so the cap changes immediately without needing a page reload.
-  if (typeof updateUsagePill === 'function') updateUsagePill();
-};
-window.getTier = function(){
-  console.log('Current tier:', userTier(), '| BP.tier:', BP.tier);
-  return userTier();
-};
-window.tierReset = function(){
-  BP.tier = 'free';
-  try { localStorage.removeItem('cm_dev_tier'); } catch(e){}
-  if (typeof save === 'function') save();
-  console.log('Tier reset to default (free).');
-  if (typeof rFolder === 'function') rFolder();
-  if (typeof updateTierBadge === 'function') updateTierBadge();
-  if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
-  if (typeof applyAdGating === 'function') applyAdGating();
-  if (typeof updateUsagePill === 'function') updateUsagePill();
-};
+//
+// SECURITY GATE: only expose these on localhost / 127.0.0.1 / dev origins.
+// In production a bad actor could otherwise run setTier('pro') in the console
+// and unlock paywalled UI client-side (Manage, AI Add More, etc.). The real
+// enforcement boundary is the Cloudflare worker — but no reason to ship a
+// loaded weapon to production either. localStorage restore is also gated
+// (same key can be set via DevTools / XSS-y route, so we ignore it in prod).
+function _isDevHost(){
+  try {
+    const h = (location && location.hostname) || '';
+    return h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h.endsWith('.local');
+  } catch(e){ return false; }
+}
+if (_isDevHost()) {
+  window.setTier = function(tier){
+    if (!TIER_ORDER.includes(tier)){
+      console.error('Invalid tier. Use one of:', TIER_ORDER.join(', '));
+      return;
+    }
+    BP.tier = tier;
+    try { localStorage.setItem('cm_dev_tier', tier); } catch(e){}
+    if (typeof save === 'function') save();
+    console.log(`Tier set to "${tier}". Reloading UI...`);
+    // Refresh all dependent views
+    if (typeof rFolder === 'function') rFolder();
+    if (typeof rStats === 'function') rStats();
+    if (typeof updateTierBadge === 'function') updateTierBadge();
+    if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
+    if (typeof applyAdGating === 'function') applyAdGating();
+    // The "X / Y left today" pill reads tier from tierConfig; refresh it
+    // so the cap changes immediately without needing a page reload.
+    if (typeof updateUsagePill === 'function') updateUsagePill();
+  };
+  window.getTier = function(){
+    console.log('Current tier:', userTier(), '| BP.tier:', BP.tier);
+    return userTier();
+  };
+  window.tierReset = function(){
+    BP.tier = 'free';
+    try { localStorage.removeItem('cm_dev_tier'); } catch(e){}
+    if (typeof save === 'function') save();
+    console.log('Tier reset to default (free).');
+    if (typeof rFolder === 'function') rFolder();
+    if (typeof updateTierBadge === 'function') updateTierBadge();
+    if (typeof updateLockedFeatures === 'function') updateLockedFeatures();
+    if (typeof applyAdGating === 'function') applyAdGating();
+    if (typeof updateUsagePill === 'function') updateUsagePill();
+  };
 
-// Restore dev tier from localStorage on load (so refreshing the page
-// keeps you in the test tier you set)
-try {
-  const devTier = localStorage.getItem('cm_dev_tier');
-  if (devTier && TIER_ORDER.includes(devTier)){
-    BP.tier = devTier;
-  }
-} catch(e){}
+  // Restore dev tier from localStorage on load (so refreshing the page
+  // keeps you in the test tier you set). ALSO gated to dev — production
+  // ignores any cm_dev_tier value that may be lingering in localStorage.
+  try {
+    const devTier = localStorage.getItem('cm_dev_tier');
+    if (devTier && TIER_ORDER.includes(devTier)){
+      BP.tier = devTier;
+    }
+  } catch(e){}
+}
 
 // ============ END TIER SYSTEM ============
 
@@ -8904,22 +8920,24 @@ function bumpUsage(by){
   updateUsagePill();
 }
 function updateUsagePill(){
-  // Pick the right counter and cap based on auth state + tier.
-  // Anonymous: ANON counter / ANON_HARD_WALL (5)
-  // Signed-in: daily USAGE counter / tierConfig[currentTier].captionsDay
-  //   (5 Free / 50 Basic / 150 Pro / 600 Agency)
-  const isAnon = !user;
+  // Resolve effective tier FIRST. userTier() honors dev override → BP.tier →
+  // 'anon' fallback, so it gives the correct answer even when `user` is null
+  // (private browsing, signed-out testing with setTier('pro'), etc.)
+  const tier = (typeof userTier === 'function') ? userTier() : 'anon';
+  const cfg = (typeof tierConfig !== 'undefined') ? tierConfig[tier] : null;
+  // Anon real users: the hard wall is captionsTotal lifetime (3) but the daily
+  // counter uses ANON_HARD_WALL (5) — keep the existing anon behavior intact.
+  // For any non-anon tier (free/basic/pro/agency, including dev-override pros
+  // when not signed in), read captionsDay from tierConfig.
   let cap;
-  if(isAnon){
+  let used;
+  if(tier === 'anon'){
     cap = ANON_HARD_WALL;
+    used = getAnonCount();
   } else {
-    // Read the daily cap from tierConfig so Basic/Pro/Agency users see their
-    // actual cap, not the Free cap. Falls back to Free if tier or value missing.
-    const tier = (typeof userTier === 'function') ? userTier() : 'free';
-    const cfg = (typeof tierConfig !== 'undefined') ? tierConfig[tier] : null;
     cap = (cfg && typeof cfg.captionsDay === 'number') ? cfg.captionsDay : DAILY_LIMIT_FREE;
+    used = getUsage().count;
   }
-  const used = isAnon ? getAnonCount() : getUsage().count;
   const remaining = Math.max(0, cap - used);
   // Keep the runtime DAILY_LIMIT mirror in sync so other code paths see the
   // right cap (e.g. any old code still reading DAILY_LIMIT directly).
