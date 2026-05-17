@@ -951,6 +951,158 @@ footer span{color:var(--mojo)}
 .seg-filter-clear:hover{background:var(--bg2);color:var(--ink)}
 .seg-cat.filtered-empty{display:none}
 .seg-pchip.filtered-out{display:none}
+
+/* ===== AI-ADD SEGMENTS (NOTE-33B) =====
+   Three UI elements for the AI-generated segment expansion feature:
+   1. .seg-aiadd-chip — dashed orange chip at end of each category in the
+      picker. Click → fires expand request for that category.
+   2. .seg-aiadd-link — small "+ AI add more" link next to "✎ Manage" at
+      the top. Click → opens .ai-add-popup.
+   3. .ai-add-popup — modal asking "expand existing or new category?" + 
+      direction input. Confirm → fires API request, shows preview state.
+   The dashed chip's "thinking" state replaces the chip's content with a
+   small spinner. The preview state lives inside .seg-cat-body — new tags
+   appear with .is-preview styling and accept/dismiss controls. */
+.seg-aiadd-chip{
+  font-family:var(--sans);
+  font-size:12.5px;
+  font-weight:500;
+  padding:7px 14px;
+  border-radius:100px;
+  border:1.5px dashed var(--mojo);
+  background:rgba(255,91,31,.04);
+  color:var(--mojo);
+  cursor:pointer;
+  transition:all .15s var(--ease);
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.seg-aiadd-chip:hover{background:rgba(255,91,31,.10);border-style:solid}
+.seg-aiadd-chip.is-thinking{cursor:wait;opacity:.85}
+.seg-aiadd-chip.is-thinking .seg-aiadd-spinner{
+  width:10px;height:10px;border:1.5px solid var(--mojo);
+  border-top-color:transparent;border-radius:50%;
+  display:inline-block;animation:segAiAddSpin .7s linear infinite;
+}
+@keyframes segAiAddSpin{to{transform:rotate(360deg)}}
+.seg-aiadd-link{
+  font-family:var(--sans);
+  font-size:11px;
+  font-weight:500;
+  color:var(--mojo);
+  cursor:pointer;
+  margin-left:8px;
+  text-decoration:none;
+}
+.seg-aiadd-link:hover{text-decoration:underline}
+
+/* Preview state — new (unaccepted) tags appear at the end of seg-pchips with
+   a distinct fill so the user knows they're proposed, not committed. */
+.seg-pchip.is-preview{
+  background:rgba(255,91,31,.12);
+  border-color:var(--mojo);
+  color:var(--mojo);
+  font-weight:500;
+}
+.seg-pchip.is-preview::before{
+  content:'✓ ';
+  font-weight:600;
+}
+.seg-pchip.is-preview.deselected{
+  background:var(--surface);
+  color:var(--muted);
+  border-style:dashed;
+  text-decoration:line-through;
+  opacity:.55;
+}
+.seg-pchip.is-preview.deselected::before{
+  content:'';
+}
+.seg-aiadd-preview-actions{
+  display:flex;gap:8px;margin-top:10px;align-items:center;
+  padding-top:10px;border-top:1px dashed var(--border);
+}
+.seg-aiadd-preview-actions .seg-aiadd-hint{
+  font-size:11px;color:var(--muted);flex:1;margin-right:8px;
+}
+.seg-aiadd-preview-actions button{
+  font-family:var(--sans);font-size:12px;font-weight:500;
+  padding:6px 14px;border-radius:6px;cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.btn-aiadd-accept{
+  background:var(--mojo);color:#fff;border:1px solid var(--mojo);
+}
+.btn-aiadd-accept:hover{filter:brightness(1.08)}
+.btn-aiadd-retry{
+  background:var(--surface);color:var(--ink2);border:1px solid var(--border);
+}
+.btn-aiadd-retry:hover{border-color:var(--mojo);color:var(--mojo)}
+.btn-aiadd-cancel{
+  background:transparent;color:var(--muted);border:none;
+}
+.btn-aiadd-cancel:hover{color:var(--ink2)}
+
+/* The "new category" popup. Centered overlay with backdrop. Mirrors the
+   .seg-mgr-overlay pattern used elsewhere but lighter — this is a quick
+   decision, not a full management modal. */
+.ai-add-popup{
+  position:fixed;inset:0;background:rgba(0,0,0,.4);
+  display:none;align-items:center;justify-content:center;
+  z-index:1200;padding:20px;
+}
+.ai-add-popup.on{display:flex}
+.ai-add-popup-card{
+  background:var(--surface);border-radius:12px;
+  padding:20px;width:100%;max-width:440px;
+  box-shadow:0 12px 40px rgba(0,0,0,.18);
+}
+.ai-add-popup h3{
+  font-family:var(--serif);font-size:18px;font-weight:600;
+  margin:0 0 14px;color:var(--ink);
+}
+.ai-add-popup label{
+  display:block;font-family:var(--mono);font-size:10px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  margin:12px 0 6px;font-weight:600;
+}
+.ai-add-popup label:first-of-type{margin-top:0}
+.ai-add-popup .ai-mode-options{display:grid;gap:6px}
+.ai-add-popup .ai-mode-opt{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:1px solid var(--border);border-radius:8px;cursor:pointer;
+  font-size:13px;color:var(--ink2);transition:all .15s var(--ease);
+}
+.ai-add-popup .ai-mode-opt:hover{border-color:var(--mojo)}
+.ai-add-popup .ai-mode-opt.on{
+  border-color:var(--mojo);background:rgba(255,91,31,.04);color:var(--ink);
+}
+.ai-add-popup .ai-mode-opt input{margin:0;accent-color:var(--mojo)}
+.ai-add-popup select,
+.ai-add-popup input[type="text"]{
+  width:100%;padding:8px 10px;font-size:13px;
+  border:1px solid var(--border);border-radius:6px;
+  font-family:var(--sans);color:var(--ink);background:var(--surface);
+  box-sizing:border-box;
+}
+.ai-add-popup-actions{
+  display:flex;gap:8px;justify-content:flex-end;margin-top:18px;
+}
+.ai-add-popup-actions button{
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  padding:8px 16px;border-radius:6px;cursor:pointer;
+}
+.btn-aiadd-go{background:var(--mojo);color:#fff;border:1px solid var(--mojo)}
+.btn-aiadd-go:hover{filter:brightness(1.08)}
+.btn-aiadd-go:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn-aiadd-cancel-popup{background:transparent;color:var(--muted);border:none}
+.btn-aiadd-cancel-popup:hover{color:var(--ink2)}
+.ai-add-popup-err{
+  font-size:12px;color:var(--danger,#c0392b);margin-top:10px;display:none;
+}
+.ai-add-popup-err.on{display:block}
+
 .seg-pchip{
   font-family:var(--sans);
   font-size:12.5px;
@@ -6512,7 +6664,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
           <input type="text" id="gPrompt" maxlength="500" placeholder="Describe your post in your own words…">
         </div>
         <div>
-          <label>Audience dimensions <span class="lh">(select one or more — they combine)</span><a class="seg-manage-link" onclick="openSegMgr()" title="Add, rename, or delete audience dimensions">✎ Manage</a></label>
+          <label>Audience dimensions <span class="lh">(select one or more — they combine)</span><a class="seg-manage-link" onclick="openSegMgr()" title="Add, rename, or delete audience dimensions">✎ Manage</a><a class="seg-aiadd-link" onclick="openAiAddPopup()" title="Generate more audience dimensions with AI">✦ AI add more</a></label>
           <div class="seg-filter-wrap">
             <input type="text" class="seg-filter" id="gSegFilter" placeholder="Search tags…" oninput="filterSegPicker('gSeg', this.value)">
             <span class="seg-filter-clear" id="gSegFilterClear" onclick="clearSegFilter('gSeg')" style="display:none">✕</span>
@@ -7040,6 +7192,47 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
     <div class="seg-mgr-foot">
       <span class="seg-mgr-count" id="segMgrCount">0 dimensions</span>
       <button class="btn btn-mojo btn-md" onclick="closeSegMgr()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================================
+     AI ADD POPUP (NOTE-33B) — quick-decision modal for AI segment generation
+     Triggered by the "✦ AI add more" link next to "✎ Manage". Asks the user
+     whether they want to EXPAND an existing category or ADD A NEW CATEGORY,
+     plus optional direction. On confirm, fires /api/segments-add and renders
+     the returned tags as preview chips in the segment picker.
+     Separate from the per-category dashed chip flow (that one is silent —
+     click → loading → preview, no popup).
+     ============================================================================ -->
+<div class="ai-add-popup" id="aiAddPopup" onclick="if(event.target===this)closeAiAddPopup()">
+  <div class="ai-add-popup-card" role="dialog" aria-labelledby="aiAddPopupTitle">
+    <h3 id="aiAddPopupTitle">Add tags with AI</h3>
+    <label>What do you want?</label>
+    <div class="ai-mode-options">
+      <label class="ai-mode-opt on" id="aiModeExpandOpt">
+        <input type="radio" name="aiAddMode" value="expand" checked onchange="aiAddSetMode('expand')">
+        Expand an existing category
+      </label>
+      <label class="ai-mode-opt" id="aiModeNewOpt">
+        <input type="radio" name="aiAddMode" value="new" onchange="aiAddSetMode('new')">
+        Add a brand new category
+      </label>
+    </div>
+    <div id="aiAddExpandFields">
+      <label>Which category?</label>
+      <select id="aiAddCategorySelect"></select>
+    </div>
+    <div id="aiAddNewFields" style="display:none">
+      <label>New category name</label>
+      <input type="text" id="aiAddNewCatName" maxlength="60" placeholder="e.g. Dietary Restrictions, Post Format, Vibe…">
+    </div>
+    <label>Any direction? <span class="lh" style="text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></label>
+    <input type="text" id="aiAddDirection" maxlength="300" placeholder="e.g. new dessert menu, more vegan styles…">
+    <div class="ai-add-popup-err" id="aiAddPopupErr"></div>
+    <div class="ai-add-popup-actions">
+      <button class="btn-aiadd-cancel-popup" onclick="closeAiAddPopup()">Cancel</button>
+      <button class="btn-aiadd-go" id="aiAddGoBtn" onclick="aiAddSubmit()">✦ Generate</button>
     </div>
   </div>
 </div>
@@ -11906,7 +12099,7 @@ function renderSegPicker(containerId, selectedArr, onChange){
   const openCats = cont._openCats;
 
   cont.innerHTML = order.map(cat => {
-    const chips = groups[cat];
+    const chips = groups[cat].filter(s => !s._aiAddPlaceholder);
     const selectedInCat = chips.filter(s => selectedArr.includes(s.name));
     const isOpen = openCats.has(cat);
     const hasSelected = selectedInCat.length > 0;
@@ -11922,6 +12115,13 @@ function renderSegPicker(containerId, selectedArr, onChange){
       const tip = isCustom ? 'You added this dimension.' : (s.desc || '');
       return `<button type="button" class="seg-pchip ${isOn?'on':''} ${isCustom?'custom':''}" data-seg="${esc(s.name)}" title="${esc(tip)}">${esc(s.name)}</button>`;
     }).join('');
+    // NOTE-33B: dashed "+ AI add more" chip at end of each category. Click →
+    // silent expand flow (no popup), fires /api/segments-add for THIS category.
+    // Only rendered for the Generate-tab picker ('gSeg') — other contexts
+    // (cap filters, ascii write) don't need to mutate the segments array.
+    const aiAddChipHtml = (containerId === 'gSeg')
+      ? `<button type="button" class="seg-aiadd-chip" data-cat="${esc(cat)}" title="Generate more ${esc(cat)} tags with AI">✦ + AI add more</button>`
+      : '';
     // Selected preview (visible when category is COLLAPSED and has selections)
     const previewHtml = (!isOpen && hasSelected) ?
       `<div class="seg-cat-selected-preview">${selectedInCat.map(s => `<span class="seg-cat-selected-chip">${esc(s.name)}</span>`).join('')}</div>` : '';
@@ -11933,7 +12133,7 @@ function renderSegPicker(containerId, selectedArr, onChange){
           <span class="seg-cat-count">${countLabel}</span>
         </div>
         ${previewHtml}
-        <div class="seg-cat-body"><div class="seg-pchips">${chipsHtml}</div></div>
+        <div class="seg-cat-body"><div class="seg-pchips">${chipsHtml}${aiAddChipHtml}</div></div>
       </div>
     `;
   }).join('');
@@ -11964,6 +12164,16 @@ function renderSegPicker(containerId, selectedArr, onChange){
     };
   });
 
+  // NOTE-33B: Wire up dashed "+ AI add more" chip clicks — silent expand flow.
+  // Fires /api/segments-add scoped to THIS category, shows inline preview.
+  cont.querySelectorAll('.seg-aiadd-chip').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const cat = btn.getAttribute('data-cat');
+      aiAddExpandCategory(cat, btn, containerId, selectedArr, onChange);
+    };
+  });
+
   // If a filter input exists for this container and has a value, re-apply it
   // (re-render wipes the filtered-out classes, so we need to restore filter state)
   const filterInput = document.getElementById(containerId + 'Filter');
@@ -11982,6 +12192,335 @@ function updateGenSegSummary(){
   }
   sum.style.display='';
   sum.textContent = `✦ Combining ${gSegSel.length} dimension${gSegSel.length>1?'s':''}: ${gSegSel.join(' × ')}`;
+}
+
+// ============================================================================
+// NOTE-33B — AI-ADD SEGMENTS (expand existing / add new category)
+//
+// Two entry points feed into the same backend (POST /api/segments-add):
+//   1. Per-category dashed chip → aiAddExpandCategory(cat, ...) — silent
+//      click-and-go flow. Fires expand mode for that category.
+//   2. Top "✦ AI add more" link → openAiAddPopup() — popup asks expand-vs-new
+//      mode, category, optional direction. On submit, fires the same backend.
+//
+// Both paths land in renderAiAddPreview() which appends preview chips with
+// accept/dismiss controls. Accept commits new segments to window.segments
+// (so they persist via the existing save() flow on next normal save trigger).
+//
+// State scope: per-category preview state lives on the category DOM node
+// itself (via a data-aiadd-pending attribute) so multiple categories could
+// have pending previews simultaneously without interfering with each other.
+// In practice users probably only run one at a time, but the design supports
+// concurrency cleanly.
+// ============================================================================
+
+// Common: fire the API request. Returns { segments } on success, throws on error.
+async function aiAddCallApi(payload){
+  const r = await fetch('/api/segments-add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if(!r.ok){
+    let msg = 'AI add failed';
+    try { const j = await r.json(); if(j && j.error) msg = j.error; } catch(_){}
+    throw new Error(msg);
+  }
+  const data = await r.json();
+  if(!data || !Array.isArray(data.segments) || !data.segments.length){
+    throw new Error('No tags returned. Try again.');
+  }
+  return data.segments;
+}
+
+// ENTRY 1: Per-category dashed chip click. Silent flow — no popup, no
+// direction input. Just "more of this category, please."
+async function aiAddExpandCategory(cat, chipBtn, containerId, selectedArr, onChange){
+  if(!cat || !chipBtn) return;
+  // Guard: brain must exist (the worker requires it for context)
+  if(!BP.brain || typeof BP.brain !== 'object'){
+    chipBtn.title = 'Run brand setup first — AI needs your brand brain to suggest tags.';
+    chipBtn.style.borderColor = 'var(--danger,#c0392b)';
+    chipBtn.style.color = 'var(--danger,#c0392b)';
+    setTimeout(()=>{ chipBtn.style.borderColor=''; chipBtn.style.color=''; }, 2500);
+    return;
+  }
+  // Lock the chip into thinking state
+  const original = chipBtn.innerHTML;
+  chipBtn.classList.add('is-thinking');
+  chipBtn.innerHTML = '<span class="seg-aiadd-spinner"></span>Thinking…';
+  chipBtn.disabled = true;
+
+  // Collect existing tag names for this category — gives AI dedup context
+  const existing = (segments||[])
+    .filter(s => s.on && s.category === cat)
+    .map(s => s.name);
+
+  try {
+    const newSegs = await aiAddCallApi({
+      mode: 'expand',
+      brain: BP.brain,
+      category: cat,
+      existingTags: existing,
+      howMany: 5
+    });
+    // Render the preview INLINE inside the category body
+    renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange);
+  } catch(e) {
+    console.warn('[aiAdd-expand] failed:', e.message);
+    chipBtn.classList.remove('is-thinking');
+    chipBtn.innerHTML = original;
+    chipBtn.disabled = false;
+    chipBtn.title = e.message || 'Failed. Try again.';
+    chipBtn.style.borderColor = 'var(--danger,#c0392b)';
+    chipBtn.style.color = 'var(--danger,#c0392b)';
+    setTimeout(()=>{ chipBtn.style.borderColor=''; chipBtn.style.color=''; chipBtn.title='Generate more '+cat+' tags with AI'; }, 3000);
+  }
+}
+
+// ENTRY 2: Top "✦ AI add more" link. Opens the popup.
+function openAiAddPopup(){
+  const pop = document.getElementById('aiAddPopup');
+  if(!pop) return;
+  // Populate the category dropdown with current categories
+  const sel = document.getElementById('aiAddCategorySelect');
+  if(sel){
+    const cats = [];
+    (segments||[]).forEach(s => { if(s.on && s.category && !cats.includes(s.category)) cats.push(s.category); });
+    sel.innerHTML = cats.length
+      ? cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')
+      : '<option value="">(no categories yet)</option>';
+  }
+  // Reset to default state
+  aiAddSetMode('expand');
+  const nameInput = document.getElementById('aiAddNewCatName'); if(nameInput) nameInput.value = '';
+  const dirInput = document.getElementById('aiAddDirection'); if(dirInput) dirInput.value = '';
+  const err = document.getElementById('aiAddPopupErr'); if(err){ err.classList.remove('on'); err.textContent=''; }
+  const goBtn = document.getElementById('aiAddGoBtn'); if(goBtn){ goBtn.disabled=false; goBtn.textContent='✦ Generate'; }
+  pop.classList.add('on');
+}
+
+function closeAiAddPopup(){
+  const pop = document.getElementById('aiAddPopup');
+  if(pop) pop.classList.remove('on');
+}
+
+// Toggle which fields show based on selected mode
+function aiAddSetMode(mode){
+  const expandOpt = document.getElementById('aiModeExpandOpt');
+  const newOpt = document.getElementById('aiModeNewOpt');
+  const expandFields = document.getElementById('aiAddExpandFields');
+  const newFields = document.getElementById('aiAddNewFields');
+  if(mode === 'new'){
+    if(expandOpt) expandOpt.classList.remove('on');
+    if(newOpt) newOpt.classList.add('on');
+    if(expandFields) expandFields.style.display = 'none';
+    if(newFields) newFields.style.display = '';
+  } else {
+    if(expandOpt) expandOpt.classList.add('on');
+    if(newOpt) newOpt.classList.remove('on');
+    if(expandFields) expandFields.style.display = '';
+    if(newFields) newFields.style.display = 'none';
+  }
+}
+
+// Popup submit — validates inputs, fires API, closes popup, renders preview
+// in the appropriate category body.
+async function aiAddSubmit(){
+  const err = document.getElementById('aiAddPopupErr');
+  const goBtn = document.getElementById('aiAddGoBtn');
+  const setErr = (msg) => { if(err){ err.textContent = msg; err.classList.add('on'); } };
+  const clearErr = () => { if(err){ err.classList.remove('on'); err.textContent=''; } };
+  clearErr();
+
+  if(!BP.brain || typeof BP.brain !== 'object'){
+    setErr('Run brand setup first — AI needs your brand brain to suggest tags.');
+    return;
+  }
+  const modeInput = document.querySelector('input[name="aiAddMode"]:checked');
+  const mode = modeInput ? modeInput.value : 'expand';
+  const dir = (document.getElementById('aiAddDirection')||{}).value || '';
+
+  let payload;
+  let targetCategory;
+  if(mode === 'expand'){
+    const sel = document.getElementById('aiAddCategorySelect');
+    const cat = sel ? sel.value : '';
+    if(!cat){ setErr('Pick a category to expand.'); return; }
+    const existing = (segments||[]).filter(s => s.on && s.category === cat).map(s => s.name);
+    payload = { mode: 'expand', brain: BP.brain, category: cat, existingTags: existing, direction: dir, howMany: 5 };
+    targetCategory = cat;
+  } else {
+    const nameInput = document.getElementById('aiAddNewCatName');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if(!name){ setErr('Name the new category.'); return; }
+    if(name.length > 60){ setErr('Name must be 60 characters or less.'); return; }
+    // Prevent duplicate category name
+    const existingCats = new Set((segments||[]).filter(s => s.on).map(s => s.category || 'General'));
+    if(existingCats.has(name)){ setErr('That category already exists. Use expand mode instead.'); return; }
+    payload = { mode: 'new', brain: BP.brain, newCategoryName: name, direction: dir, howMany: 5 };
+    targetCategory = name;
+  }
+
+  if(goBtn){ goBtn.disabled = true; goBtn.textContent = '✦ Thinking…'; }
+
+  try {
+    const newSegs = await aiAddCallApi(payload);
+    closeAiAddPopup();
+    // For "new" mode, the category doesn't exist in the picker yet. We need
+    // to render a placeholder cat group via committing the segments as
+    // unaccepted (preview) entries. Simplest: temporarily add to window.segments
+    // with on=false + preview marker, render the picker, then call
+    // renderAiAddPreview which knows how to find/create the category body.
+    if(mode === 'new'){
+      // Pre-create category by adding ONE placeholder segment so the cat group
+      // renders. Will be removed when preview is accepted or dismissed.
+      const placeholder = { name: '__aiadd_placeholder__', desc: '', category: targetCategory, on: true, _aiAddPlaceholder: true };
+      window.segments = (window.segments||[]).concat([placeholder]);
+      // Open the new category so the preview is visible
+      const gSegEl = document.getElementById('gSeg');
+      if(gSegEl && gSegEl._openCats) gSegEl._openCats.add(targetCategory);
+      renderSegPicker('gSeg', gSegSel, updateGenSegSummary);
+    }
+    renderAiAddPreview('gSeg', targetCategory, newSegs, gSegSel, updateGenSegSummary);
+  } catch(e) {
+    console.warn('[aiAdd-popup] failed:', e.message);
+    setErr(e.message || 'Failed. Try again.');
+    if(goBtn){ goBtn.disabled = false; goBtn.textContent = '✦ Generate'; }
+  }
+}
+
+// Render the inline preview: append the new tags as .is-preview chips to the
+// target category's body, with accept/retry/cancel actions below them. Tags
+// are auto-selected by default; clicking toggles deselection. On accept,
+// they're committed to window.segments (with .on = true) and a normal
+// renderSegPicker re-renders without preview state.
+function renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange){
+  const cont = document.getElementById(containerId);
+  if(!cont) return;
+  // Find the category body for this cat
+  const catEl = cont.querySelector(`.seg-cat[data-cat="${cssEsc(cat)}"]`);
+  if(!catEl){
+    // Category not found in DOM — shouldn't happen but bail gracefully
+    console.warn('[aiAdd] target category not found in DOM:', cat);
+    return;
+  }
+  // Force-open the category if collapsed
+  if(!catEl.classList.contains('open')){
+    catEl.classList.add('open');
+    if(cont._openCats) cont._openCats.add(cat);
+  }
+  const body = catEl.querySelector('.seg-cat-body');
+  if(!body) return;
+  // Remove any existing preview UI in this category (in case of retry)
+  const existingPreview = body.querySelector('.seg-aiadd-preview-block');
+  if(existingPreview) existingPreview.remove();
+
+  // Build the preview block: chips + actions
+  const block = document.createElement('div');
+  block.className = 'seg-aiadd-preview-block';
+  // Each preview chip starts auto-selected
+  const previewState = newSegs.map(s => ({ ...s, _previewSelected: true }));
+
+  const renderChips = () => {
+    block.innerHTML = `
+      <div class="seg-pchips" style="margin-top:8px">
+        ${previewState.map((s, i) => `
+          <button type="button" class="seg-pchip is-preview ${s._previewSelected?'':'deselected'}" data-preview-idx="${i}" title="${esc(s.desc||'')}">${esc(s.name)}</button>
+        `).join('')}
+      </div>
+      <div class="seg-aiadd-preview-actions">
+        <span class="seg-aiadd-hint">Click a tag to deselect. Accept keeps what's checked.</span>
+        <button type="button" class="btn-aiadd-retry">Try again</button>
+        <button type="button" class="btn-aiadd-cancel">Cancel</button>
+        <button type="button" class="btn-aiadd-accept">Accept ${previewState.filter(s=>s._previewSelected).length} tag${previewState.filter(s=>s._previewSelected).length===1?'':'s'}</button>
+      </div>
+    `;
+    // Wire preview chip clicks (toggle preview-selected)
+    block.querySelectorAll('.seg-pchip.is-preview').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-preview-idx'));
+        if(!Number.isFinite(idx)) return;
+        previewState[idx]._previewSelected = !previewState[idx]._previewSelected;
+        renderChips();
+      };
+    });
+    // Wire action buttons
+    const acceptBtn = block.querySelector('.btn-aiadd-accept');
+    if(acceptBtn) acceptBtn.onclick = () => acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChange);
+    const retryBtn = block.querySelector('.btn-aiadd-retry');
+    if(retryBtn) retryBtn.onclick = () => retryAiAddPreview(containerId, cat, selectedArr, onChange);
+    const cancelBtn = block.querySelector('.btn-aiadd-cancel');
+    if(cancelBtn) cancelBtn.onclick = () => cancelAiAddPreview(containerId, cat, selectedArr, onChange);
+  };
+  renderChips();
+  body.appendChild(block);
+}
+
+// Accept preview: commit selected new segs to window.segments, drop any
+// placeholder, then re-render the picker normally (without preview state).
+function acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChange){
+  const toAdd = previewState.filter(s => s._previewSelected).map(s => ({
+    name: s.name,
+    desc: s.desc || '',
+    category: s.category || cat,
+    on: true
+  }));
+  // Remove placeholder if present (new-category mode)
+  window.segments = (window.segments||[]).filter(s => !s._aiAddPlaceholder);
+  // Dedup against existing tags by name+category (defensive)
+  const existingKey = new Set((window.segments||[]).map(s => `${s.category}|${s.name.toLowerCase()}`));
+  const filteredAdd = toAdd.filter(s => !existingKey.has(`${s.category}|${s.name.toLowerCase()}`));
+  window.segments = (window.segments||[]).concat(filteredAdd);
+  // Persist via the normal save flow if available
+  if(typeof save === 'function') { try { save(); } catch(e){ console.warn('[aiAdd] save() failed:', e); } }
+  // Re-render the picker
+  renderSegPicker(containerId, selectedArr, onChange);
+  if(typeof onChange === 'function') onChange();
+}
+
+// Retry: kick off another fetch for the same category. Same flow as the
+// initial expand click, replacing the preview block in place.
+async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
+  // Show thinking state in the preview block
+  const cont = document.getElementById(containerId);
+  const catEl = cont ? cont.querySelector(`.seg-cat[data-cat="${cssEsc(cat)}"]`) : null;
+  const block = catEl ? catEl.querySelector('.seg-aiadd-preview-block') : null;
+  if(block){
+    block.innerHTML = '<div style="padding:10px 0;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px"><span class="seg-aiadd-spinner"></span>Thinking…</div>';
+  }
+  const isPlaceholderMode = (window.segments||[]).some(s => s._aiAddPlaceholder && s.category === cat);
+  const existing = isPlaceholderMode
+    ? []
+    : (segments||[]).filter(s => s.on && s.category === cat && !s._aiAddPlaceholder).map(s => s.name);
+  try {
+    const payload = isPlaceholderMode
+      ? { mode: 'new', brain: BP.brain, newCategoryName: cat, howMany: 5 }
+      : { mode: 'expand', brain: BP.brain, category: cat, existingTags: existing, howMany: 5 };
+    const newSegs = await aiAddCallApi(payload);
+    renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange);
+  } catch(e){
+    if(block){
+      block.innerHTML = `<div style="padding:10px 0;font-size:11px;color:var(--danger,#c0392b)">${esc(e.message||'Retry failed.')} <button type="button" class="btn-aiadd-cancel" style="margin-left:8px">Close</button></div>`;
+      const closeBtn = block.querySelector('.btn-aiadd-cancel');
+      if(closeBtn) closeBtn.onclick = () => cancelAiAddPreview(containerId, cat, selectedArr, onChange);
+    }
+  }
+}
+
+// Cancel: drop the preview block and any placeholder. Picker re-renders clean.
+function cancelAiAddPreview(containerId, cat, selectedArr, onChange){
+  window.segments = (window.segments||[]).filter(s => !s._aiAddPlaceholder);
+  renderSegPicker(containerId, selectedArr, onChange);
+  if(typeof onChange === 'function') onChange();
+}
+
+// Small helper: CSS-escape a category name for use in attribute selectors.
+// CSS.escape() exists in all modern browsers but use a tiny fallback just in case.
+function cssEsc(s){
+  if(typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(s);
+  return String(s).replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, '\\$&');
 }
 
 // Filter the seg-picker chips by name. Categories with no matching chips collapse to hidden.
