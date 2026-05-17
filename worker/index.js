@@ -1352,6 +1352,11 @@ async function handleSegmentsAdd(request, env) {
 
   const mode = body.mode === 'new' ? 'new' : 'expand';
   const brain = (body.brain && typeof body.brain === 'object') ? body.brain : null;
+  const profile = String(body.profile || '').slice(0, MAX_PROFILE_CHARS);
+  const pastedDocs = brain ? '' : clipString(body.pastedDocs, MAX_PASTED_CHARS);
+  const { docBlocks, textParts } = brain
+    ? { docBlocks: [], textParts: [] }
+    : normalizeDocs(body.docs);
   const category = clipString(body.category, 60);
   const newCategoryName = clipString(body.newCategoryName, 60);
   const direction = clipString(body.direction, 300);
@@ -1360,8 +1365,11 @@ async function handleSegmentsAdd(request, env) {
     : [];
   const howMany = Math.min(Math.max(parseInt(body.howMany) || 5, 1), 10);
 
-  if (!brain) {
-    return jsonResp({ error: 'Brain required — run brand setup first.' }, 400);
+  // Need EITHER a brain OR a profile string. Mirrors /api/segments behavior so
+  // Quick Start brands (no brain built) can still use this feature — they have
+  // a typed profile + maybe some pasted docs, which is enough context for the AI.
+  if (!brain && !profile.trim()) {
+    return jsonResp({ error: 'Brand profile or brain required.' }, 400);
   }
   if (mode === 'expand' && !category) {
     return jsonResp({ error: 'Category required for expand mode.' }, 400);
@@ -1374,7 +1382,10 @@ async function handleSegmentsAdd(request, env) {
   }
 
   // Compose brain context the same way handleSegments does — keeps voice/tone
-  // consistent between original generation and additions.
+  // consistent between original generation and additions. When no brain exists
+  // (Quick Start brand), we fall back to the profile string + any pasted/doc
+  // content the frontend supplied. The AI still gets brand context, just less
+  // structured than from a built brain.
   let brainContext = '';
   if (brain) {
     const lines = [];
@@ -1395,6 +1406,8 @@ async function handleSegmentsAdd(request, env) {
       lines.push('', `Tone: ${brain.toneTags.join(', ')}`);
     }
     if (lines.length) brainContext = `Brand brain (distilled from the brand documents):\n${lines.join('\n')}`;
+  } else if (profile.trim()) {
+    brainContext = `Brand profile (no full brain built — Quick Start brand):\n${profile}`;
   }
 
   // Two different system prompts — expand vs new — because the AI needs
@@ -1447,7 +1460,10 @@ Format: [{"category":"${newCategoryName}","name":"...","desc":"..."}, ...]`;
   }
 
   const variablePart = `${brainContext}\n\nGenerate ${howMany} ${mode === 'expand' ? `additional "${category}" tags` : `starter "${newCategoryName}" tags`} for this brand. Return only the JSON array.`;
-  const userContent = [{ type: 'text', text: variablePart }];
+  // Use the same userContent builder as /api/segments so docs/pastedDocs (Quick
+  // Start brands may have pasted content) are included properly as cached blocks.
+  // When brain is present, docBlocks/textParts/pastedDocs are all empty arrays/strings.
+  const userContent = buildUserContent({ docBlocks, textParts, pastedDocs, postImageBlock: null, variablePart });
 
   try {
     const { response: apiResp, retriesAttempted, category: errCategory } = await callAnthropicWithRetry(env, {
