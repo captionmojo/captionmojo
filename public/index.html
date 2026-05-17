@@ -760,6 +760,43 @@ footer span{color:var(--mojo)}
 .review-typed-badge{background:var(--mojo-tint);color:#993C1D;border:0.5px solid #F0997B;border-radius:10px;padding:1px 8px;font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;font-family:var(--sans)}
 .review-section-divider{margin:20px 0 14px 0;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);font-family:var(--mono);font-style:italic;letter-spacing:.04em}
 
+.ob-paths{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+@media(max-width:640px){.ob-paths{grid-template-columns:1fr}}
+.ob-path-card{
+  border:1.5px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:24px 20px;
+  background:var(--surface);
+  cursor:pointer;
+  transition:all .2s var(--ease);
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+.ob-path-card:hover{border-color:var(--mojo);background:var(--mojo-tint)}
+.ob-path-card.recommended{border-color:var(--mojo);background:var(--mojo-tint)}
+.ob-path-card.recommended:hover{background:var(--mojo-soft)}
+.ob-path-badge{
+  font-family:var(--mono);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  background:var(--mojo);
+  color:#fff;
+  padding:3px 8px;
+  border-radius:10px;
+  align-self:flex-start;
+  margin-bottom:12px;
+}
+.ob-path-icon{font-size:24px;color:var(--mojo);margin-bottom:10px;line-height:1}
+.ob-path-card h3{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink);margin:0 0 6px 0;line-height:1.2}
+.ob-path-card p{font-size:13px;color:var(--ink2);line-height:1.5;margin:0 0 14px 0;flex:1}
+.ob-path-time{font-family:var(--mono);font-size:11px;color:var(--mojo);font-weight:600;letter-spacing:.04em}
+
+.load-clock{font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:6px;letter-spacing:.04em}
+.load-clock-num{color:var(--ink);font-weight:600}
+
 .ob-foot{background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-shrink:0}
 .step-dots{display:flex;gap:6px;align-items:center;margin-right:auto}
 .sdot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .25s var(--ease)}
@@ -781,6 +818,8 @@ footer span{color:var(--mojo)}
 .seg-card.on{border-color:var(--mojo);background:var(--mojo-tint)}
 .seg-card.on::after{content:'✓';position:absolute;top:12px;right:14px;font-size:12px;font-weight:700;color:var(--mojo);width:20px;height:20px;background:var(--mojo);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center}
 .seg-name{font-family:var(--serif);font-size:16px;font-weight:600;margin-bottom:4px;color:var(--ink);padding-right:28px;letter-spacing:-.01em;line-height:1.2}
+.seg-group{margin-bottom:18px}
+.seg-group-label{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
 .seg-desc{font-size:12px;color:var(--ink2);line-height:1.5}
 .seg-cat-tag{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mojo);background:var(--mojo-tint);border:1px solid rgba(255,91,31,.25);padding:2px 8px;border-radius:100px;margin-bottom:8px}
 .seg-cat-group{margin-bottom:18px}
@@ -5785,12 +5824,15 @@ footer span{color:var(--mojo)}
   </div>
 </div>
 
-<!-- ====== DEEP ONBOARDING (4-page docs-first restructure, session 6) ======
-     Old (session 5): 5 pages — business+customer+USP / voice / platforms / docs+screenshots+caption-examples / building
-     New (session 6): 4 pages — docs+basics (with refine expander for USP/competitors) / brain extracting / review extracted / build segments
+<!-- ====== DEEP ONBOARDING (session 7 — path-picker + dual-path restructure) ======
+     Old (session 6): 4 pages — docs+basics / brain extracting / review extracted / build segments
+     New (session 7): Path picker → branches into Path A (docs) or Path B (forms).
 
-     Rationale: users with brand docs were being asked for info that was IN the docs.
-     Now docs run first, AI extracts, user reviews on one page, segments build, studio. -->
+     Path A — Upload docs: a1-upload → a2-load (brain+segments) → a3-review-business → a4-review-voice-audience
+     Path B — Fill forms:  b1-basics  → b2-voice → b3-platforms → b4-load (segments) → b5-review-audience
+
+     Both paths end with an audience review where user can toggle segments before entering studio.
+     Cody's framing: users get ONE wait, then a controlled "Enter Studio" exit. Two load screens was friction. -->
 <div class="page" id="page-deep">
   <nav class="nav">
     <a class="logo" onclick="showPage('page-landing')">
@@ -5800,19 +5842,38 @@ footer span{color:var(--mojo)}
   </nav>
   <div class="ob-wrap">
     <div class="ob-header">
-      <button class="ob-back" onclick="goTracks()">← Back</button>
+      <button class="ob-back" onclick="dHeaderBack()">← Back</button>
       <span class="ob-title">Deep Setup</span>
-      <span class="ob-lbl" id="d-lbl">Step 1 of 4</span>
+      <span class="ob-lbl" id="d-lbl">Choose your path</span>
     </div>
-    <div class="prog-bar"><div class="prog-fill" id="d-prog" style="width:25%"></div></div>
+    <div class="prog-bar"><div class="prog-fill" id="d-prog" style="width:0%"></div></div>
     <div class="ob-body">
 
-      <div class="ob-card" id="d1">
-        <h2>Tell us about your brand</h2>
-        <p class="ob-hint">Upload docs, fill in the fields, or both — whatever works. The AI pulls everything it can from what you give us. <span style="color:var(--mojo);font-weight:500">~60 seconds</span></p>
+      <div class="ob-card" id="d-path-picker">
+        <h2>How would you like to start?</h2>
+        <p class="ob-hint">Both paths build the same premium brand brain. Pick whichever fits how you work.</p>
+        <div class="ob-paths">
+          <div class="ob-path-card recommended" onclick="dStartPath('docs')">
+            <div class="ob-path-badge">Recommended</div>
+            <div class="ob-path-icon">+</div>
+            <h3>Upload brand docs</h3>
+            <p>Business plans, brand guides, screenshots, audience research — anything. The AI reads it all and pulls out your voice, customer, USP, and competitors.</p>
+            <div class="ob-path-time">~2 minutes</div>
+          </div>
+          <div class="ob-path-card" onclick="dStartPath('forms')">
+            <div class="ob-path-icon">✍</div>
+            <h3>I'll fill it out myself</h3>
+            <p>Don't have docs? Walk through a few quick forms about your business, voice, and platforms. Same end result.</p>
+            <div class="ob-path-time">~4 minutes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-card" id="da1-upload" style="display:none">
+        <h2>Upload your brand docs</h2>
+        <p class="ob-hint">Drop in anything that describes your business — business plans, brand guides, audience research, screenshots of your best posts. The more you give, the sharper your captions.</p>
 
         <div class="field">
-          <label>Upload brand docs <span class="lh">(business plans, brand guides, screenshots, anything)</span></label>
           <div class="upload-zone" id="d-upload-zone" onclick="document.getElementById('d-files').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');handleFiles({files:event.dataTransfer.files,value:''},'d-flist')">
             <input type="file" id="d-files" multiple accept=".pdf,.docx,.txt,.md,.markdown,.png,.jpg,.jpeg,.webp,.gif" onchange="handleFiles(this,'d-flist')">
             <div style="font-size:32px;margin-bottom:8px;font-family:var(--serif);font-style:italic;color:var(--mojo);line-height:1">+</div>
@@ -5834,53 +5895,20 @@ footer span{color:var(--mojo)}
 
         <div class="field">
           <label>Or paste brand content directly <span class="lh">(optional)</span></label>
-          <textarea id="d-paste" rows="3" oninput="updateDocBudget()" placeholder="Paste sections from your business plan, audience research, brand guidelines, existing captions — anything that describes your brand."></textarea>
+          <textarea id="d-paste" rows="3" oninput="updateDocBudget();dVal()" placeholder="Paste sections from your business plan, audience research, brand guidelines, existing captions — anything that describes your brand."></textarea>
         </div>
-
-        <div style="margin:20px 0 14px 0;padding-top:18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-          <span style="font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.04em">AND / OR</span>
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-        </div>
-
-        <div class="field"><label>Business name</label><input type="text" id="d-name" placeholder="e.g. Rosa's Bakery" oninput="dVal()"></div>
-        <div class="field"><label>What you sell or offer</label><textarea id="d-what" rows="3" placeholder="Describe what you offer. e.g. Handmade sourdough and seasonal pastries. Heritage grain wheat from local farms." oninput="dVal()"></textarea></div>
-        <div class="field"><label>Describe your customer <span class="lh">(one sentence is fine)</span></label><textarea id="d-aud" rows="2" placeholder="e.g. Women 28–45 who care about quality and provenance. They treat food as self-care." oninput="dVal()"></textarea></div>
-        <div class="field"><label>Industry <span class="lh">(optional)</span></label><select id="d-ind"><option value="">Select your industry</option><option>Food &amp; Beverage</option><option>Retail &amp; E-commerce</option><option>Health &amp; Wellness</option><option>Beauty &amp; Skincare</option><option>Fitness &amp; Sport</option><option>Music &amp; Entertainment</option><option>Fashion &amp; Apparel</option><option>Real Estate</option><option>Professional Services</option><option>Hospitality &amp; Events</option><option>Technology &amp; SaaS</option><option>Education &amp; Coaching</option><option>Nonprofit</option><option>Home &amp; Interior</option><option>Other</option></select></div>
-
-        <div class="refine-expander" id="d-refine-expander">
-          <div class="refine-expander-toggle" onclick="toggleRefineExpander()">
-            <span class="rx-left"><span class="rx-chev">▶</span>Add more detail</span>
-            <span class="rx-hint">USP, competitors, voice notes — sharper captions if you have it</span>
-          </div>
-          <div class="refine-expander-body">
-            <div class="field"><label>Your unique selling point <span class="lh">(USP)</span></label><textarea id="d-usp" rows="2" placeholder="What's the one thing only you can say? Not a marketing claim — a real fact about what makes you different.&#10;&#10;e.g. We're the only bakery in the city using heritage grain from local farms."></textarea></div>
-            <div class="field"><label>Competitors / lookalikes</label><textarea id="d-comp" rows="2" placeholder="Name your main competitors, or brands your customers also follow. e.g. Tartine, Boudin, La Brea Bakery"></textarea></div>
-            <div class="field"><label>Brand voice notes</label><textarea id="d-voice" rows="3" placeholder="Describe how your brand sounds. e.g. 'We sound like a knowledgeable friend. Short sentences. No jargon. We never do urgency tactics.'"></textarea></div>
-            <div class="field"><label>Words or phrases to NEVER use</label><input type="text" id="d-avoid" placeholder="e.g. hustle, grind, limited time"></div>
-            <div class="field"><label>Tone <span class="lh">(pick up to 5)</span></label><div class="chip-grp" id="d-tones"><button class="chip" onclick="toggleChip(this,'d-tones',5)">Warm &amp; friendly</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Professional</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Playful &amp; fun</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Bold &amp; confident</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Inspirational</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Educational</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Casual &amp; honest</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Luxury &amp; refined</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Edgy &amp; direct</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Mindful &amp; calm</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Witty &amp; dry</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Raw &amp; unfiltered</button></div></div>
-            <div class="field"><label>Platforms you post on</label><div class="chip-grp" id="d-plats"><button class="chip" onclick="toggleChip(this)">Instagram</button><button class="chip" onclick="toggleChip(this)">TikTok</button><button class="chip" onclick="toggleChip(this)">Twitter / X</button><button class="chip" onclick="toggleChip(this)">Facebook</button><button class="chip" onclick="toggleChip(this)">LinkedIn</button></div></div>
-            <div class="field"><label>Captions you love <span class="lh">(paste 3–10, one per line)</span></label><textarea id="d-good" rows="4" placeholder="Paste captions that feel exactly like your brand — yours or from accounts whose voice you want to match. Don't edit them. Paste raw."></textarea></div>
-            <div class="field"><label>Captions you hate <span class="lh">(optional)</span></label><textarea id="d-bad" rows="2" placeholder="Paste captions that feel completely wrong for your brand."></textarea></div>
-          </div>
-        </div>
-
-        <!-- Legacy hidden fields preserved for /api/brain prompt compatibility -->
-        <input type="hidden" id="d-web" value="">
-        <input type="hidden" id="d-look" value="">
-        <input type="hidden" id="d-freq" value="">
-        <input type="hidden" id="d-plat-rules" value="">
       </div>
 
-      <div class="ob-card" id="d2" style="display:none">
+      <div class="ob-card" id="da2-load" style="display:none">
         <h2 style="font-family:var(--serif);font-style:italic">Reading your brand</h2>
-        <p class="ob-hint">Extracting voice, customer details, USP, and competitors from what you gave us. Takes about 30 seconds. <strong style="color:var(--ink);font-weight:600">After this: you'll see what we found on a review page</strong> — you can edit anything that looks off before captions start.</p>
+        <p class="ob-hint">Extracting voice, customer details, USP, and competitors from your docs. Also building your audience segments. <strong style="color:var(--ink);font-weight:600">After this: you'll review what we found and edit anything that looks off.</strong></p>
 
         <div id="d-extract-status" style="margin-top:24px">
           <div class="seg-loading"><div class="seg-spinner"></div>
             <div>
               <div style="font-weight:600;color:var(--ink)" id="d-extract-primary">Reading your brand documents and screenshots…</div>
               <div style="font-size:12.5px;color:var(--mojo);margin-top:6px;font-family:var(--sans);font-weight:500" id="d-extract-trust">No credit card required.</div>
+              <div class="load-clock" id="d-extract-clock"><span class="load-clock-num" id="d-extract-elapsed">00:00</span> elapsed</div>
             </div>
           </div>
         </div>
@@ -5917,21 +5945,21 @@ footer span{color:var(--mojo)}
         </div>
       </div>
 
-      <div class="ob-card" id="d3" style="display:none">
-        <h2 style="font-family:var(--serif);font-style:italic">Review what we found</h2>
-        <p class="ob-hint" id="d-review-hint">Everything below was pulled from your docs and what you typed. Edit anything that's off. The optional fields are skippable.</p>
+      <div class="ob-card" id="da3-review-business" style="display:none">
+        <h2 style="font-family:var(--serif);font-style:italic">Your business</h2>
+        <p class="ob-hint" id="da3-hint">Here's what we pulled from your docs. Edit anything that's off.</p>
 
         <div class="review-field">
           <div class="review-field-label">Business name <span id="d-review-name-badge"></span></div>
-          <input type="text" id="d-review-name" placeholder="Business name">
+          <input type="text" id="d-review-name" placeholder="Business name" oninput="dVal()">
         </div>
         <div class="review-field">
           <div class="review-field-label">What you sell <span id="d-review-what-badge"></span></div>
-          <textarea id="d-review-what" rows="3" placeholder="What you sell or offer"></textarea>
+          <textarea id="d-review-what" rows="3" placeholder="What you sell or offer" oninput="dVal()"></textarea>
         </div>
         <div class="review-field">
           <div class="review-field-label">Customer <span id="d-review-aud-badge"></span></div>
-          <textarea id="d-review-aud" rows="3" placeholder="Your ideal customer"></textarea>
+          <textarea id="d-review-aud" rows="3" placeholder="Your ideal customer" oninput="dVal()"></textarea>
         </div>
         <div class="review-field">
           <div class="review-field-label">USP / positioning <span id="d-review-usp-badge"></span></div>
@@ -5941,8 +5969,15 @@ footer span{color:var(--mojo)}
           <div class="review-field-label">Competitors / lookalikes <span id="d-review-comp-badge"></span></div>
           <textarea id="d-review-comp" rows="2" placeholder="Competing brands or similar accounts"></textarea>
         </div>
+        <div class="review-field">
+          <div class="review-field-label">Industry</div>
+          <select id="d-review-ind"><option value="">Select your industry</option><option>Food &amp; Beverage</option><option>Retail &amp; E-commerce</option><option>Health &amp; Wellness</option><option>Beauty &amp; Skincare</option><option>Fitness &amp; Sport</option><option>Music &amp; Entertainment</option><option>Fashion &amp; Apparel</option><option>Real Estate</option><option>Professional Services</option><option>Hospitality &amp; Events</option><option>Technology &amp; SaaS</option><option>Education &amp; Coaching</option><option>Nonprofit</option><option>Home &amp; Interior</option><option>Other</option></select>
+        </div>
+      </div>
 
-        <div class="review-section-divider">Optional — skippable</div>
+      <div class="ob-card" id="da4-review-voice-audience" style="display:none">
+        <h2 style="font-family:var(--serif);font-style:italic">Voice &amp; audience</h2>
+        <p class="ob-hint">How you sound and who's listening. Toggle segments on or off — the orange ones power your captions.</p>
 
         <div class="review-field">
           <div class="review-field-label">Brand voice <span id="d-review-voice-badge"></span></div>
@@ -5953,36 +5988,81 @@ footer span{color:var(--mojo)}
           <input type="text" id="d-review-avoid" placeholder="Off-brand words to avoid">
         </div>
         <div class="review-field">
-          <div class="review-field-label">Industry</div>
-          <select id="d-review-ind"><option value="">Select your industry</option><option>Food &amp; Beverage</option><option>Retail &amp; E-commerce</option><option>Health &amp; Wellness</option><option>Beauty &amp; Skincare</option><option>Fitness &amp; Sport</option><option>Music &amp; Entertainment</option><option>Fashion &amp; Apparel</option><option>Real Estate</option><option>Professional Services</option><option>Hospitality &amp; Events</option><option>Technology &amp; SaaS</option><option>Education &amp; Coaching</option><option>Nonprofit</option><option>Home &amp; Interior</option><option>Other</option></select>
-        </div>
-        <div class="review-field">
           <div class="review-field-label">Platforms</div>
           <div class="chip-grp" id="d-review-plats"><button class="chip" onclick="toggleChip(this)">Instagram</button><button class="chip" onclick="toggleChip(this)">TikTok</button><button class="chip" onclick="toggleChip(this)">Twitter / X</button><button class="chip" onclick="toggleChip(this)">Facebook</button><button class="chip" onclick="toggleChip(this)">LinkedIn</button></div>
         </div>
+
+        <div class="review-section-divider">Audience segments — tap to toggle</div>
+        <div id="d-review-seg-container"></div>
       </div>
 
-      <div class="ob-card" id="d4" style="display:none">
+      <div class="ob-card" id="db1-basics" style="display:none">
+        <h2>Your business</h2>
+        <p class="ob-hint">The fundamentals. Just a few minutes.</p>
+
+        <div class="field"><label>Business name</label><input type="text" id="d-name" placeholder="e.g. Rosa's Bakery" oninput="dVal()"></div>
+        <div class="field"><label>What you sell or offer</label><textarea id="d-what" rows="3" placeholder="e.g. Handmade sourdough and seasonal pastries. Heritage grain wheat from local farms." oninput="dVal()"></textarea></div>
+        <div class="field"><label>Describe your customer</label><textarea id="d-aud" rows="3" placeholder="e.g. Women 28–45 who care about quality and provenance. They treat food as self-care." oninput="dVal()"></textarea></div>
+        <div class="field"><label>Industry <span class="lh">(optional)</span></label><select id="d-ind"><option value="">Select your industry</option><option>Food &amp; Beverage</option><option>Retail &amp; E-commerce</option><option>Health &amp; Wellness</option><option>Beauty &amp; Skincare</option><option>Fitness &amp; Sport</option><option>Music &amp; Entertainment</option><option>Fashion &amp; Apparel</option><option>Real Estate</option><option>Professional Services</option><option>Hospitality &amp; Events</option><option>Technology &amp; SaaS</option><option>Education &amp; Coaching</option><option>Nonprofit</option><option>Home &amp; Interior</option><option>Other</option></select></div>
+        <div class="field"><label>Your USP <span class="lh">(optional but powerful)</span></label><textarea id="d-usp" rows="2" placeholder="What's the one thing only you can say? A real fact about what makes you different.&#10;&#10;e.g. We're the only bakery in the city using heritage grain from local farms."></textarea></div>
+        <div class="field"><label>Competitors / lookalikes <span class="lh">(optional)</span></label><textarea id="d-comp" rows="2" placeholder="Name your main competitors, or brands your customers also follow. e.g. Tartine, Boudin, La Brea Bakery"></textarea></div>
+      </div>
+
+      <div class="ob-card" id="db2-voice" style="display:none">
+        <h2>Brand voice</h2>
+        <p class="ob-hint">How your brand sounds is as important as what it says. Be honest — pick what genuinely fits.</p>
+
+        <div class="field"><label>Tone <span class="lh">(pick up to 5)</span></label><div class="chip-grp" id="d-tones"><button class="chip" onclick="toggleChip(this,'d-tones',5)">Warm &amp; friendly</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Professional</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Playful &amp; fun</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Bold &amp; confident</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Inspirational</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Educational</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Casual &amp; honest</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Luxury &amp; refined</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Edgy &amp; direct</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Mindful &amp; calm</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Witty &amp; dry</button><button class="chip" onclick="toggleChip(this,'d-tones',5)">Raw &amp; unfiltered</button></div></div>
+        <div class="field"><label>Describe your voice in your own words <span class="lh">(optional)</span></label><textarea id="d-voice" rows="3" placeholder="e.g. 'We sound like a knowledgeable friend. Short sentences. No jargon. We never do urgency tactics.'"></textarea></div>
+        <div class="field"><label>Words or phrases to NEVER use <span class="lh">(optional)</span></label><input type="text" id="d-avoid" placeholder="e.g. hustle, grind, limited time, unlock your potential"></div>
+        <div class="field"><label>Captions you love <span class="lh">(paste 3–10, one per line — optional but high-value)</span></label><textarea id="d-good" rows="4" placeholder="Paste captions that feel exactly like your brand. Don't edit them. Paste raw."></textarea></div>
+        <div class="field"><label>Captions you hate <span class="lh">(optional)</span></label><textarea id="d-bad" rows="2" placeholder="Paste captions that feel completely wrong for your brand."></textarea></div>
+      </div>
+
+      <div class="ob-card" id="db3-platforms" style="display:none">
+        <h2>Platforms</h2>
+        <p class="ob-hint">Where you post. Helps the AI tune length and style per platform.</p>
+
+        <div class="field"><label>Platforms you post on</label><div class="chip-grp" id="d-plats"><button class="chip" onclick="toggleChip(this)">Instagram</button><button class="chip" onclick="toggleChip(this)">TikTok</button><button class="chip" onclick="toggleChip(this)">Twitter / X</button><button class="chip" onclick="toggleChip(this)">Facebook</button><button class="chip" onclick="toggleChip(this)">LinkedIn</button></div></div>
+        <div class="field"><label>Platform-specific rules <span class="lh">(optional)</span></label><textarea id="d-plat-rules" rows="3" placeholder="e.g.&#10;— Instagram: always end with a CTA, 3 sentences max before the break&#10;— TikTok: hook in the first line, casual language"></textarea></div>
+      </div>
+
+      <div class="ob-card" id="db4-load" style="display:none">
         <h2 style="font-family:var(--serif);font-style:italic">Building your audience</h2>
-        <p class="ob-hint">Generating starter audience segments tailored to your brand. About 10 seconds. You'll land in the studio automatically.</p>
-        <div id="d-final-build-status" style="margin-top:24px">
+        <p class="ob-hint">Generating audience segments tailored to what you told us. <strong style="color:var(--ink);font-weight:600">After this: you'll review your segments and pick which to use.</strong></p>
+
+        <div id="d-build-status" style="margin-top:24px">
           <div class="seg-loading"><div class="seg-spinner"></div>
             <div>
               <div style="font-weight:600;color:var(--ink)" id="d-build-primary">Building your audience dimensions…</div>
               <div style="font-size:12.5px;color:var(--mojo);margin-top:6px;font-family:var(--sans);font-weight:500" id="d-build-trust">Mix-and-match when generating. Always free to use.</div>
+              <div class="load-clock" id="d-build-clock"><span class="load-clock-num" id="d-build-elapsed">00:00</span> elapsed</div>
             </div>
           </div>
         </div>
-
-        <!-- Hidden — kept for compatibility with existing segment-management code paths -->
-        <div id="d-seg-container" style="display:none"></div>
-        <div class="seg-add-row" style="display:none"><input type="text" id="d-seg-input"><button onclick="addSeg('d')">+ Add</button></div>
       </div>
+
+      <div class="ob-card" id="db5-review-audience" style="display:none">
+        <h2 style="font-family:var(--serif);font-style:italic">Your audience</h2>
+        <p class="ob-hint">Toggle segments on or off — the orange ones power your captions. You can rename, add custom segments, and tweak these anytime from the studio.</p>
+
+        <div id="db-review-seg-container" style="margin-top:18px"></div>
+      </div>
+
+      <!-- Hidden — kept for compatibility with existing segment-management code paths -->
+      <div id="d-seg-container" style="display:none"></div>
+      <div class="seg-add-row" style="display:none"><input type="text" id="d-seg-input"><button onclick="addSeg('d')">+ Add</button></div>
+
+      <!-- Legacy hidden fields preserved for /api/brain prompt compatibility -->
+      <input type="hidden" id="d-web" value="">
+      <input type="hidden" id="d-look" value="">
+      <input type="hidden" id="d-freq" value="">
+
     </div>
     <div class="ob-foot">
       <div class="step-dots" id="d-dots"></div>
       <button class="btn btn-ghost btn-md" id="d-back-btn" onclick="dBack()" style="display:none">← Back</button>
-      <button class="btn btn-mojo btn-md" id="d-next-btn" onclick="dNext()">Continue →</button>
+      <button class="btn btn-mojo btn-md" id="d-next-btn" onclick="dNext()" style="display:none">Continue →</button>
     </div>
   </div>
 </div>
@@ -8964,7 +9044,7 @@ let qS=1; const Q_TOT=1;
 function startOnboard(track){
   if(track==='quick'){qS=1;qUI();qVal();showPage('page-quick');}
   else if(track==='fast'){fS=1;fUI();showPage('page-fast');}
-  else{dS=1;dUI();showPage('page-deep');}
+  else{dPath=null;dStep=1;dUI();showPage('page-deep');}
 }
 function qUI(){
   // On a 1-page flow, the label shows time estimate not "Step X of N"
@@ -9059,147 +9139,276 @@ async function qFinish(){
 }
 // ============ END QUICK START ============
 
-// ============ DEEP SETUP (session 6 — 4-page docs-first restructure) ============
-// Old (session 5): 5 pages — business / voice / platforms / brand-content / build
-// New (session 6): 4 pages — docs+basics+refine / brain-extracting / review / build
+// ============ DEEP SETUP (session 7 — path picker + dual-path) ============
+// Architecture:
+//   d-path-picker (shared) → user picks Path A (docs) or Path B (forms)
 //
-// Page transitions:
-//   d1 → d2: kick off brain build in background, show extraction loading screen
-//   d2 → d3: brain build complete, populate review form with extracted+typed fields
-//   d3 → d4: commit reviewed fields to BP, kick off segments build, show segments loading
-//   d4 → studio: segments built, launchApp()
+//   Path A — docs:    da1-upload → da2-load → da3-review-business → da4-review-voice-audience → studio
+//   Path B — forms:   db1-basics → db2-voice → db3-platforms → db4-load → db5-review-audience → studio
 //
-// d-refine-expander on d1 holds USP, competitors, voice, tones, platforms, captions.
-// These remain editable on d3 review page. Hidden fields (d-web, d-look, d-freq,
-// d-plat-rules) are preserved for /api/brain prompt compat but not exposed.
-let dS=1; const D_TOT=4;
+// Both paths end with audience-segment review (toggleable chips) before Enter Studio.
+// dPath holds the active path ('docs' | 'forms' | null on picker page).
+// dStep is the current step within the active path (1-indexed).
+// dPagesByPath maps path name → ordered array of card IDs.
 
-function dUI(){
-  document.getElementById('d-lbl').textContent=`Step ${dS} of ${D_TOT}`;
-  document.getElementById('d-prog').style.width=(dS/D_TOT*100)+'%';
-  // Back is hidden on d1, d2 (mid-extract, no-going-back), and d4 (auto-redirect)
-  document.getElementById('d-back-btn').style.display=(dS===3)?'':'none';
-  const nb=document.getElementById('d-next-btn');
-  // Button text and state by page
-  if(dS===1){ nb.textContent='Continue →'; nb.style.display=''; }
-  else if(dS===2){ nb.textContent='Extracting…'; nb.disabled=true; nb.style.display='none'; }
-  else if(dS===3){ nb.textContent='Looks good — continue →'; nb.disabled=false; nb.style.display=''; }
-  else if(dS===4){ nb.textContent='Building…'; nb.disabled=true; nb.style.display='none'; }
-  // Step dots
-  let d='';
-  for(let i=1;i<=D_TOT;i++) d+=`<div class="sdot ${i<dS?'done':i===dS?'cur':''}"></div>`;
-  document.getElementById('d-dots').innerHTML=d;
-  // Show only the current card
-  for(let i=1;i<=D_TOT;i++){
-    const el=document.getElementById('d'+i);
-    if(el) el.style.display=i===dS?'':'none';
-  }
-  // Side effects per page
-  if(dS===1){ renderDocList(); dVal(); }
-  if(dS===2) dExtractStart();
-  if(dS===4) dBuildSegments();
+let dPath = null;
+let dStep = 1;
+const dPagesByPath = {
+  docs:  ['da1-upload', 'da2-load', 'da3-review-business', 'da4-review-voice-audience'],
+  forms: ['db1-basics', 'db2-voice', 'db3-platforms', 'db4-load', 'db5-review-audience'],
+};
+
+// All cards we might show. Page-picker is the implicit step 0 for both paths.
+const dAllCards = ['d-path-picker', ...dPagesByPath.docs, ...dPagesByPath.forms];
+
+function dCurrentCardId(){
+  if(!dPath) return 'd-path-picker';
+  return dPagesByPath[dPath][dStep - 1] || dPagesByPath[dPath][0];
 }
 
-function dVal(){
-  const nb=document.getElementById('d-next-btn');
-  if(dS===1){
-    // d1 unlocks when EITHER:
-    //   - user has uploaded at least one doc (or pasted >50 chars), OR
-    //   - user has typed name+what+customer
-    const hasDocs = (BP.docs||[]).some(d=>!d.error && !d.processing);
-    const hasPaste = (V('d-paste')||'').length > 50;
-    const hasTyped = !!(V('d-name') && V('d-what') && V('d-aud'));
-    nb.disabled = !(hasDocs || hasPaste || hasTyped);
-  } else if(dS===3){
-    // d3 review — name, what, customer required (extracted or typed)
-    nb.disabled = !(V('d-review-name') && V('d-review-what') && V('d-review-aud'));
+function dShowOnly(cardId){
+  for(const id of dAllCards){
+    const el = document.getElementById(id);
+    if(el) el.style.display = (id === cardId) ? '' : 'none';
   }
+}
+
+function dUI(){
+  const lbl = document.getElementById('d-lbl');
+  const prog = document.getElementById('d-prog');
+  const dots = document.getElementById('d-dots');
+  const backBtn = document.getElementById('d-back-btn');
+  const nextBtn = document.getElementById('d-next-btn');
+
+  if(!dPath){
+    // Path-picker page
+    lbl.textContent = 'Choose your path';
+    prog.style.width = '0%';
+    dots.innerHTML = '';
+    backBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+    dShowOnly('d-path-picker');
+    return;
+  }
+
+  const pages = dPagesByPath[dPath];
+  const total = pages.length;
+  const cardId = pages[dStep - 1];
+
+  lbl.textContent = `Step ${dStep} of ${total}`;
+  prog.style.width = (dStep / total * 100) + '%';
+
+  // Step dots
+  let dotsHtml = '';
+  for(let i = 1; i <= total; i++){
+    dotsHtml += `<div class="sdot ${i < dStep ? 'done' : i === dStep ? 'cur' : ''}"></div>`;
+  }
+  dots.innerHTML = dotsHtml;
+
+  // Back button: visible whenever we're past step 1 OR on step 1 (returning to picker)
+  backBtn.style.display = '';
+
+  // Per-card button config
+  configureNextButton(cardId, nextBtn);
+
+  // Show the card
+  dShowOnly(cardId);
+
+  // Per-card side effects
+  if(cardId === 'da1-upload'){ renderDocList(); dVal(); }
+  if(cardId === 'da2-load'){ daRunExtractAndBuild(); }
+  if(cardId === 'da3-review-business'){ daPopulateBusinessReview(); }
+  if(cardId === 'da4-review-voice-audience'){ daPopulateVoiceAudienceReview(); }
+  if(cardId === 'db1-basics'){ dVal(); }
+  if(cardId === 'db2-voice'){ dVal(); }
+  if(cardId === 'db3-platforms'){ dVal(); }
+  if(cardId === 'db4-load'){ dbRunSegmentsBuild(); }
+  if(cardId === 'db5-review-audience'){ dbPopulateAudienceReview(); }
+}
+
+function configureNextButton(cardId, nextBtn){
+  // Default: show Continue
+  nextBtn.style.display = '';
+  nextBtn.disabled = false;
+  // Load screens hide the next button (auto-advance)
+  if(cardId === 'da2-load' || cardId === 'db4-load'){
+    nextBtn.style.display = 'none';
+    return;
+  }
+  // Final review screens use "Enter Studio →" copy
+  if(cardId === 'da4-review-voice-audience' || cardId === 'db5-review-audience'){
+    nextBtn.textContent = 'Enter Studio →';
+  } else if(cardId === 'da3-review-business'){
+    nextBtn.textContent = 'Continue →';
+  } else {
+    nextBtn.textContent = 'Continue →';
+  }
+}
+
+// Validation per card. Sets nextBtn.disabled.
+function dVal(){
+  const nextBtn = document.getElementById('d-next-btn');
+  if(!nextBtn) return;
+  const cardId = dCurrentCardId();
+  if(cardId === 'da1-upload'){
+    // Need either a valid doc OR >50 chars pasted
+    const hasDocs = (BP.docs || []).some(d => !d.error && !d.processing);
+    const hasPaste = (V('d-paste') || '').length > 50;
+    nextBtn.disabled = !(hasDocs || hasPaste);
+  } else if(cardId === 'db1-basics'){
+    nextBtn.disabled = !(V('d-name') && V('d-what') && V('d-aud'));
+  } else if(cardId === 'da3-review-business'){
+    nextBtn.disabled = !(V('d-review-name') && V('d-review-what') && V('d-review-aud'));
+  } else {
+    nextBtn.disabled = false;
+  }
+}
+
+// Called when user clicks one of the path cards on d-path-picker.
+function dStartPath(path){
+  if(path !== 'docs' && path !== 'forms') return;
+  dPath = path;
+  dStep = 1;
+  dUI();
+  document.querySelector('#page-deep .ob-body').scrollTop = 0;
 }
 
 async function dNext(){
-  if(dS===1){ dS=2; dUI(); document.querySelector('#page-deep .ob-body').scrollTop=0; return; }
-  if(dS===3){ dS=4; dUI(); document.querySelector('#page-deep .ob-body').scrollTop=0; return; }
-  // d2 and d4 auto-advance, no manual click
+  const cardId = dCurrentCardId();
+  // From review-business → review-voice-audience
+  if(cardId === 'da3-review-business'){
+    // Commit the business review fields back to BP before moving on
+    BP.name = V('d-review-name') || BP.name;
+    BP.what = V('d-review-what') || BP.what;
+    BP.customer = V('d-review-aud') || BP.customer;
+    BP.usp = V('d-review-usp') || BP.usp;
+    BP.competitors = V('d-review-comp') || BP.competitors;
+    BP.industry = V('d-review-ind') || BP.industry;
+    dStep++; dUI(); document.querySelector('#page-deep .ob-body').scrollTop = 0;
+    return;
+  }
+  // From the final review pages → studio (Enter Studio button)
+  if(cardId === 'da4-review-voice-audience'){
+    // Commit voice/avoid/platforms/segments back to BP, then launch
+    BP.voice = V('d-review-voice') || BP.voice;
+    BP.avoid = V('d-review-avoid') || BP.avoid || '';
+    BP.platforms = getChips('d-review-plats') || BP.platforms || [];
+    daCommitSegmentToggles();
+    launchApp();
+    return;
+  }
+  if(cardId === 'db5-review-audience'){
+    // Path B's final review — commit toggles and launch
+    dbCommitSegmentToggles();
+    launchApp();
+    return;
+  }
+  // Path B form pages — commit and advance
+  if(cardId === 'db1-basics'){
+    BP.name = V('d-name'); BP.what = V('d-what'); BP.customer = V('d-aud');
+    BP.industry = V('d-ind'); BP.usp = V('d-usp') || ''; BP.competitors = V('d-comp') || '';
+    dStep++; dUI(); document.querySelector('#page-deep .ob-body').scrollTop = 0;
+    return;
+  }
+  if(cardId === 'db2-voice'){
+    BP.tones = getChips('d-tones'); BP.voice = V('d-voice') || '';
+    BP.avoid = V('d-avoid') || ''; BP.goodEx = V('d-good') || ''; BP.badEx = V('d-bad') || '';
+    dStep++; dUI(); document.querySelector('#page-deep .ob-body').scrollTop = 0;
+    return;
+  }
+  if(cardId === 'db3-platforms'){
+    BP.platforms = getChips('d-plats'); BP.platRules = V('d-plat-rules') || '';
+    dStep++; dUI(); document.querySelector('#page-deep .ob-body').scrollTop = 0;
+    return;
+  }
+  // Generic advance (path A: upload page)
+  if(cardId === 'da1-upload'){
+    // Commit pasted docs to BP
+    BP.pastedDocs = V('d-paste') || '';
+    dStep++; dUI(); document.querySelector('#page-deep .ob-body').scrollTop = 0;
+    return;
+  }
 }
+
+// Back button. Always visible once a path is chosen. On step 1, goes back to path picker.
 function dBack(){
-  // Only meaningful on d3 — go back to d1 to add more docs/edit basics
-  if(dS===3){ dS=1; dUI(); document.querySelector('#page-deep .ob-body').scrollTop=0; }
+  if(!dPath) return;
+  if(dStep > 1){
+    dStep--;
+    dUI();
+    document.querySelector('#page-deep .ob-body').scrollTop = 0;
+    // Special case: going back to a load screen would re-trigger the load — instead
+    // go back another step to the page before the load.
+    const cardId = dCurrentCardId();
+    if(cardId === 'da2-load' || cardId === 'db4-load'){
+      if(dStep > 1){ dStep--; dUI(); }
+    }
+  } else {
+    // dStep === 1, go back to path picker
+    dPath = null;
+    dStep = 1;
+    dUI();
+  }
 }
 
-// Refine expander toggle on d1
-function toggleRefineExpander(){
-  const el=document.getElementById('d-refine-expander');
-  if(el) el.classList.toggle('open');
+// The header back arrow — same as dBack at any step, returns to landing if on picker
+function dHeaderBack(){
+  if(!dPath){
+    goTracks();
+  } else {
+    dBack();
+  }
 }
 
-// d1 → d2: extraction. Start the brain build in background, rotate reassurance copy.
-let dExtractTicker = null;
-async function dExtractStart(){
-  // Commit d1 form data to BP first (so brain build has what user typed)
-  BP.name=V('d-name'); BP.what=V('d-what'); BP.industry=V('d-ind'); BP.customer=V('d-aud');
-  BP.usp=V('d-usp')||''; BP.competitors=V('d-comp')||'';
-  BP.voice=V('d-voice')||''; BP.avoid=V('d-avoid')||'';
-  BP.tones=getChips('d-tones'); BP.platforms=getChips('d-plats');
-  BP.goodEx=V('d-good')||''; BP.badEx=V('d-bad')||'';
-  BP.pastedDocs=V('d-paste')||'';
-  // BP.docs already maintained live by handleFiles/removeDoc
+// ============ Path A — load screen (brain + segments together) ============
+let daLoadTicker = null;
+let daLoadStartedAt = null;
 
-  // Rotate reassurance copy
-  const primary = document.getElementById('d-extract-primary');
-  const trust = document.getElementById('d-extract-trust');
-  let i = 0;
-  const frames = ONBOARDING_REASSURANCE.brain;
-  if(dExtractTicker) clearInterval(dExtractTicker);
-  dExtractTicker = setInterval(() => {
-    i++;
-    const f = frames[i % frames.length];
-    if (primary) primary.textContent = f.primary;
-    if (trust) trust.textContent = f.trust;
-  }, 4000);
+async function daRunExtractAndBuild(){
+  // Commit any d1 inputs to BP (mostly pasted docs)
+  BP.pastedDocs = V('d-paste') || '';
 
-  // Build the brain. If user provided no docs and no pasted content, skip brain
-  // build entirely and synthesize a minimal brain from typed fields. Either way
-  // we advance to d3 review.
+  // Start the elapsed-time clock and copy rotation
+  daLoadStartedAt = Date.now();
+  if(daLoadTicker) clearInterval(daLoadTicker);
+  daLoadTicker = setInterval(daUpdateLoadCopy, 1000);
+  daUpdateLoadCopy();
+
+  // Step 1: build the brain
   try {
     await deepBuildBrain();
-  } catch(e) {
+  } catch(e){
     console.warn('Deep extract: brain build failed:', e);
   }
 
-  clearInterval(dExtractTicker); dExtractTicker = null;
+  // Step 2: build segments (uses the brain if it was built)
+  try {
+    await generateSegments('d');
+  } catch(e){
+    console.warn('Deep extract: segments build failed:', e);
+  }
 
-  // Populate the review page with extracted + typed data
-  dPopulateReview();
-  // Advance to d3
-  dS=3; dUI(); document.querySelector('#page-deep .ob-body').scrollTop=0;
+  // Stop the ticker and auto-advance to the business review
+  if(daLoadTicker){ clearInterval(daLoadTicker); daLoadTicker = null; }
+  dStep++;
+  dUI();
+  document.querySelector('#page-deep .ob-body').scrollTop = 0;
 }
 
-// Build brain for Deep flow. Calls /api/brain with profile (typed fields) + docs + paste.
-// On success: BP.brain is populated. On failure: BP.brain=null, BP.brainFailReason set.
+// Build the brain from BP.docs / BP.pastedDocs (path A only — path B has no docs).
 async function deepBuildBrain(){
-  const docs = (BP.docs||[]).filter(d=>!d.error && !d.processing);
+  const docs = (BP.docs || []).filter(d => !d.error && !d.processing);
   const pastedDocs = BP.pastedDocs || '';
 
-  // Build profile from what the user typed on d1 (basics + optional refine fields)
-  const parts = [];
-  if(BP.name) parts.push(`Business: ${BP.name}`);
-  if(BP.what) parts.push(`What we sell: ${BP.what}`);
-  if(BP.customer) parts.push(`Customer: ${BP.customer}`);
-  if(BP.industry) parts.push(`Industry: ${BP.industry}`);
-  if(BP.usp) parts.push(`USP: ${BP.usp}`);
-  if(BP.competitors) parts.push(`Competitors: ${BP.competitors}`);
-  if(BP.voice) parts.push(`Voice notes: ${BP.voice}`);
-  if(BP.avoid) parts.push(`Never use: ${BP.avoid}`);
-  if(BP.tones && BP.tones.length) parts.push(`Tone: ${BP.tones.join(', ')}`);
-  if(BP.platforms && BP.platforms.length) parts.push(`Platforms: ${BP.platforms.join(', ')}`);
-  if(BP.goodEx) parts.push(`Captions they love:\n${BP.goodEx}`);
-  if(BP.badEx) parts.push(`Captions they hate:\n${BP.badEx}`);
-  const profile = parts.join('\n\n');
+  if(docs.length === 0 && pastedDocs.length < 50){
+    BP.brain = null; BP.brainFailReason = 'no content provided'; return;
+  }
 
-  // No content at all? Skip the API call, leave brain null. Review page will use
-  // typed values directly.
-  const hasContent = docs.length > 0 || pastedDocs.length > 50 || profile.length > 50;
-  if(!hasContent){ BP.brain = null; BP.brainFailReason = 'no content provided'; return; }
+  // Minimal profile — what we have at this point is mostly empty since the user
+  // hasn't typed anything in path A. The docs do all the work.
+  const parts = [];
+  if(BP.industry) parts.push(`Industry: ${BP.industry}`);
+  const profile = parts.join('\n\n');
 
   BP.brainFailReason = null;
   try {
@@ -9218,35 +9427,59 @@ async function deepBuildBrain(){
     if(data && data.brain){
       BP.brain = data.brain;
       BP.brainDocsDropped = (typeof data.docsDropped === 'number') ? data.docsDropped : 0;
-      console.log('[brain] Deep brain built successfully', BP.brain);
-      if(BP.brainDocsDropped > 0){
-        console.warn(`[brain] ${BP.brainDocsDropped} docs dropped (size cap). Brain still extracted from the rest.`);
-      }
+      console.log('[brain] Deep brain built', BP.brain);
+      // Promote brain.industry into BP if user didn't select one
+      if(BP.brain.industry && !BP.industry) BP.industry = BP.brain.industry;
     } else {
-      BP.brain = null; BP.brainFailReason = 'empty response from server';
+      BP.brain = null; BP.brainFailReason = 'empty response';
     }
-  } catch(e) {
+  } catch(e){
     console.warn('[brain] Deep brain exception:', e);
     BP.brain = null;
     BP.brainFailReason = (e && e.name === 'TimeoutError') ? 'timeout' : (e && e.message) || 'unknown error';
   }
 }
 
-// Populate the d3 review form. For each field, prefer the typed value (user
-// authored it themselves); fall back to brain-extracted value. Tag each field
-// with an "extracted" or "you typed" badge.
-function dPopulateReview(){
+// Update the load screen copy based on elapsed time. Escalates honestly rather
+// than cycling through generic frames. Also updates the elapsed-time clock.
+const DA_LOAD_FRAMES = [
+  { atSec: 0,  primary: 'Reading your brand documents and screenshots…',   trust: 'Your data stays yours. We don\'t train AI on it.' },
+  { atSec: 12, primary: 'Extracting voice, customer details, and USP…',     trust: 'No demo call. No waiting for sales.' },
+  { atSec: 30, primary: 'Distilling your tone, references, and CTAs…',      trust: 'You\'re minutes from your first captions.' },
+  { atSec: 55, primary: 'Building your audience segments now…',             trust: 'Almost done — just laying out the dimensions.' },
+  { atSec: 90, primary: 'Rich brand profiles take a moment — hang tight…',  trust: 'We\'re combing through every proof point.' },
+  { atSec: 120,primary: 'Wrapping up the extraction…',                       trust: 'Good docs make for great captions.' },
+];
+
+function daUpdateLoadCopy(){
+  const elapsedMs = Date.now() - (daLoadStartedAt || Date.now());
+  const elapsedSec = Math.floor(elapsedMs / 1000);
+  const mm = Math.floor(elapsedSec / 60).toString().padStart(2,'0');
+  const ss = (elapsedSec % 60).toString().padStart(2,'0');
+  const clock = document.getElementById('d-extract-elapsed');
+  if(clock) clock.textContent = `${mm}:${ss}`;
+
+  // Pick the latest frame whose atSec is <= elapsedSec
+  let frame = DA_LOAD_FRAMES[0];
+  for(const f of DA_LOAD_FRAMES){
+    if(elapsedSec >= f.atSec) frame = f;
+  }
+  const primary = document.getElementById('d-extract-primary');
+  const trust = document.getElementById('d-extract-trust');
+  if(primary) primary.textContent = frame.primary;
+  if(trust) trust.textContent = frame.trust;
+}
+
+// ============ Path A — review-business page ============
+function daPopulateBusinessReview(){
   const brain = BP.brain;
   const setField = (fieldId, badgeId, typedValue, extractedValue) => {
     const el = document.getElementById(fieldId);
     const badge = document.getElementById(badgeId);
     let value = '', source = '';
-    if(typedValue && typedValue.trim()){
-      value = typedValue; source = 'typed';
-    } else if(extractedValue){
-      value = extractedValue; source = 'extracted';
-    }
-    if(el) el.value = value;
+    if(typedValue && typedValue.trim()){ value = typedValue; source = 'typed'; }
+    else if(extractedValue){ value = extractedValue; source = 'extracted'; }
+    if(el && !el.value) el.value = value; // preserve user edits on Back
     if(badge){
       if(source === 'extracted') badge.innerHTML = '<span class="review-extracted-badge">✨ extracted</span>';
       else if(source === 'typed') badge.innerHTML = '<span class="review-typed-badge">you typed</span>';
@@ -9254,7 +9487,6 @@ function dPopulateReview(){
     }
   };
 
-  // Brand name: try brain.identity for a name extraction
   let extractedName = '';
   if(brain && brain.identity){
     const m = brain.identity.match(/^([A-Z][A-Za-z0-9 &'.\-]+?)(?:\s+is\b|\s+\(|\s+—|,|\.)/);
@@ -9262,122 +9494,172 @@ function dPopulateReview(){
   }
   setField('d-review-name', 'd-review-name-badge', BP.name, extractedName);
 
-  // What we sell: brain.identity is the closest summary
   const extractedWhat = brain && brain.identity ? brain.identity : '';
   setField('d-review-what', 'd-review-what-badge', BP.what, extractedWhat);
 
-  // Customer: brain.customerPortraits (array of sentences) joined
   let extractedCustomer = '';
   if(brain && brain.customerPortraits && brain.customerPortraits.length){
     extractedCustomer = brain.customerPortraits.join(' ');
   }
   setField('d-review-aud', 'd-review-aud-badge', BP.customer, extractedCustomer);
 
-  // USP: brain.proofPoints (array of {claim,evidence?}) — surface as a sentence
   let extractedUsp = '';
   if(brain && brain.proofPoints && brain.proofPoints.length){
     extractedUsp = brain.proofPoints.slice(0,3).map(p => typeof p === 'string' ? p : (p.claim || '')).filter(Boolean).join(' · ');
   }
   setField('d-review-usp', 'd-review-usp-badge', BP.usp, extractedUsp);
 
-  // Competitors: not in brain spec — surface only what the user typed
   setField('d-review-comp', 'd-review-comp-badge', BP.competitors, '');
 
-  // Voice: brain.voiceRules — show as a paragraph
-  let extractedVoice = '';
-  if(brain && brain.voiceRules && brain.voiceRules.length){
-    extractedVoice = brain.voiceRules.slice(0,5).join(' · ');
-  }
-  setField('d-review-voice', 'd-review-voice-badge', BP.voice, extractedVoice);
-
-  // Avoid words: user-typed only
-  const avoidEl = document.getElementById('d-review-avoid');
-  if(avoidEl) avoidEl.value = BP.avoid || '';
-
-  // Industry dropdown
   const indEl = document.getElementById('d-review-ind');
-  if(indEl) indEl.value = BP.industry || '';
+  if(indEl && !indEl.value) indEl.value = BP.industry || '';
 
-  // Platforms — re-render chip-grp state to match BP.platforms
-  const platsContainer = document.getElementById('d-review-plats');
-  if(platsContainer && BP.platforms){
-    [...platsContainer.querySelectorAll('.chip')].forEach(chip => {
-      const label = chip.textContent.trim();
-      chip.classList.toggle('active', BP.platforms.includes(label));
-    });
-  }
-
-  // Update review hint based on extraction success
-  const hint = document.getElementById('d-review-hint');
+  // Hint reflects extraction success
+  const hint = document.getElementById('da3-hint');
   if(hint){
     if(brain){
       const dropped = BP.brainDocsDropped || 0;
-      const droppedNote = dropped > 0 ? ` (${dropped} oversized doc${dropped===1?'':'s'} skipped — rest were used)` : '';
-      hint.innerHTML = `Everything below was pulled from your docs and what you typed${droppedNote}. Edit anything that's off. The optional fields are skippable.`;
-    } else if(BP.brainFailReason === 'no content provided'){
-      hint.textContent = `Just confirming what you typed. Edit anything that needs tweaking. The optional fields are skippable.`;
+      const droppedNote = dropped > 0 ? ` (${dropped} oversized doc${dropped===1?'':'s'} skipped)` : '';
+      hint.innerHTML = `Here's what we pulled from your docs${droppedNote}. Edit anything that's off.`;
     } else {
-      hint.innerHTML = `Couldn't fully read your docs — using what you typed instead. Fill in any gaps and continue.`;
+      hint.innerHTML = `Couldn't fully read your docs — fill in what we missed.`;
     }
   }
 
   dVal();
 }
 
-// d3 → d4: commit reviewed fields to BP, then build segments.
-async function dBuildSegments(){
-  // Commit reviewed fields back to BP (overrides anything from d1/extraction)
-  BP.name = V('d-review-name') || BP.name;
-  BP.what = V('d-review-what') || BP.what;
-  BP.customer = V('d-review-aud') || BP.customer;
-  BP.usp = V('d-review-usp') || BP.usp;
-  BP.competitors = V('d-review-comp') || BP.competitors;
-  BP.voice = V('d-review-voice') || BP.voice;
-  BP.avoid = V('d-review-avoid') || BP.avoid;
-  BP.industry = V('d-review-ind') || BP.industry;
-  BP.platforms = getChips('d-review-plats');
-  if(!BP.platforms.length) BP.platforms = getChips('d-plats');
-
-  // Rotate reassurance copy for the segments build
-  const primary = document.getElementById('d-build-primary');
-  const trust = document.getElementById('d-build-trust');
-  let i = 0;
-  const frames = ONBOARDING_REASSURANCE.segments;
-  const ticker = setInterval(() => {
-    i++;
-    const f = frames[i % frames.length];
-    if (primary) primary.textContent = f.primary;
-    if (trust) trust.textContent = f.trust;
-  }, 4000);
-
-  // Mirror reviewed values into the legacy d-* form fields so generateSegments('d')
-  // reads the right values when it builds its profile string.
-  const mirror = (srcId, dstId) => {
-    const dst = document.getElementById(dstId);
-    if(dst) dst.value = V(srcId) || '';
+// ============ Path A — review-voice-audience page ============
+function daPopulateVoiceAudienceReview(){
+  const brain = BP.brain;
+  const setField = (fieldId, badgeId, typedValue, extractedValue) => {
+    const el = document.getElementById(fieldId);
+    const badge = document.getElementById(badgeId);
+    let value = '', source = '';
+    if(typedValue && typedValue.trim()){ value = typedValue; source = 'typed'; }
+    else if(extractedValue){ value = extractedValue; source = 'extracted'; }
+    if(el && !el.value) el.value = value;
+    if(badge){
+      if(source === 'extracted') badge.innerHTML = '<span class="review-extracted-badge">✨ extracted</span>';
+      else if(source === 'typed') badge.innerHTML = '<span class="review-typed-badge">you typed</span>';
+      else badge.innerHTML = '';
+    }
   };
-  mirror('d-review-name','d-name');
-  mirror('d-review-what','d-what');
-  mirror('d-review-aud','d-aud');
-  mirror('d-review-usp','d-usp');
-  mirror('d-review-voice','d-voice');
-  mirror('d-review-ind','d-ind');
 
-  try {
-    await generateSegments('d');
-  } catch(e) {
-    console.warn('Deep finalize: segment generation failed, falling back:', e);
+  let extractedVoice = '';
+  if(brain && brain.voiceRules && brain.voiceRules.length){
+    extractedVoice = brain.voiceRules.slice(0,5).join(' · ');
+  }
+  setField('d-review-voice', 'd-review-voice-badge', BP.voice, extractedVoice);
+
+  const avoidEl = document.getElementById('d-review-avoid');
+  if(avoidEl && !avoidEl.value) avoidEl.value = BP.avoid || '';
+
+  // Platforms — show chips active state matching BP.platforms (empty by default in path A)
+  const platsContainer = document.getElementById('d-review-plats');
+  if(platsContainer){
+    [...platsContainer.querySelectorAll('.chip')].forEach(chip => {
+      const label = chip.textContent.trim();
+      chip.classList.toggle('active', (BP.platforms || []).includes(label));
+    });
   }
 
-  clearInterval(ticker);
-  launchApp();
+  // Render the segment toggles
+  renderReviewSegments('d-review-seg-container');
 }
 
-// Legacy compatibility — old code paths may still call dFinish/dFinalize. Route to dBuildSegments.
-function dFinish(){ dBuildSegments(); }
-async function dFinalize(){ await dBuildSegments(); }
-// dSkip removed — new flow has no skippable mid-pages. Kept as no-op for any leftover handlers.
-function dSkip(){ console.warn('dSkip called — Deep Setup no longer has skip pages'); }
+// Render segments as toggleable chips. Reuses the global `segments` array
+// (populated by generateSegments). Each segment has {category, name, desc, on}.
+function renderReviewSegments(containerId){
+  const cont = document.getElementById(containerId);
+  if(!cont) return;
+  if(!segments || !segments.length){
+    cont.innerHTML = '<p style="color:var(--muted);font-size:13px">No segments yet — add your own from the studio after entering.</p>';
+    return;
+  }
+  // Group by category
+  const groups = {};
+  const order = [];
+  segments.forEach((s, i) => {
+    const cat = s.category || 'General';
+    if(!groups[cat]){ groups[cat] = []; order.push(cat); }
+    groups[cat].push({s, i});
+  });
+  const html = order.map(cat => {
+    const cards = groups[cat].map(({s, i}) =>
+      `<div class="seg-card ${s.on ? 'on' : ''}" onclick="toggleSeg(${i})"><div class="seg-name">${esc(s.name)}</div><div class="seg-desc">${esc(s.desc || '')}</div></div>`
+    ).join('');
+    return `<div class="seg-group"><div class="seg-group-label">${esc(cat)}</div><div class="seg-grid">${cards}</div></div>`;
+  }).join('');
+  cont.innerHTML = html;
+}
+
+// Commit toggled segments from path A's review. Segments array is mutated by
+// toggleSeg, so just leaving it as-is gets carried forward into the studio.
+function daCommitSegmentToggles(){ /* no-op — segments array is already current */ }
+
+// ============ Path B — load screen (segments only — no brain) ============
+let dbLoadTicker = null;
+let dbLoadStartedAt = null;
+
+async function dbRunSegmentsBuild(){
+  dbLoadStartedAt = Date.now();
+  if(dbLoadTicker) clearInterval(dbLoadTicker);
+  dbLoadTicker = setInterval(dbUpdateLoadCopy, 1000);
+  dbUpdateLoadCopy();
+
+  try {
+    // Path B has no brain (no docs); generateSegments will skip buildBrain() because
+    // we make sure BP.brain stays null. generateSegments uses the d-name/d-what/etc.
+    // fields directly — these are already populated from db1-basics commit.
+    BP.brain = null;
+    await generateSegments('d');
+  } catch(e){
+    console.warn('Path B segments build failed:', e);
+  }
+
+  if(dbLoadTicker){ clearInterval(dbLoadTicker); dbLoadTicker = null; }
+  dStep++;
+  dUI();
+  document.querySelector('#page-deep .ob-body').scrollTop = 0;
+}
+
+// Path B load screen rotates simpler/faster messages — no brain, just segments
+const DB_LOAD_FRAMES = [
+  { atSec: 0,  primary: 'Building your audience dimensions…',  trust: 'Mix-and-match when generating. Always free.' },
+  { atSec: 8,  primary: 'Finding segments that match your brand…', trust: 'No card required to test how it fits.' },
+  { atSec: 20, primary: 'Almost done — laying out the categories…', trust: 'Your data stays yours.' },
+  { atSec: 45, primary: 'Wrapping up — a little longer than usual…', trust: 'Hang tight.' },
+];
+
+function dbUpdateLoadCopy(){
+  const elapsedMs = Date.now() - (dbLoadStartedAt || Date.now());
+  const elapsedSec = Math.floor(elapsedMs / 1000);
+  const mm = Math.floor(elapsedSec / 60).toString().padStart(2,'0');
+  const ss = (elapsedSec % 60).toString().padStart(2,'0');
+  const clock = document.getElementById('d-build-elapsed');
+  if(clock) clock.textContent = `${mm}:${ss}`;
+
+  let frame = DB_LOAD_FRAMES[0];
+  for(const f of DB_LOAD_FRAMES){
+    if(elapsedSec >= f.atSec) frame = f;
+  }
+  const primary = document.getElementById('d-build-primary');
+  const trust = document.getElementById('d-build-trust');
+  if(primary) primary.textContent = frame.primary;
+  if(trust) trust.textContent = frame.trust;
+}
+
+// ============ Path B — review-audience page ============
+function dbPopulateAudienceReview(){
+  renderReviewSegments('db-review-seg-container');
+}
+function dbCommitSegmentToggles(){ /* no-op — segments array is already current */ }
+
+// Legacy compatibility — old code paths
+function dFinish(){ launchApp(); }
+async function dFinalize(){ launchApp(); }
+function dSkip(){ console.warn('dSkip called — Deep Setup has no skip pages'); }
 // ============ END DEEP SETUP ============
 
 // ============ FAST ONBOARDING (streamlined: docs → industry → notes → build) ============
@@ -10152,7 +10434,15 @@ function renderSegments(contId){
   }).join('');
   cont.innerHTML = `${groupHTML}<p style="font-size:12px;color:var(--muted);margin-top:12px;font-family:var(--mono)">These are your audience dimensions. You'll mix and match them when generating captions. Click any name to rename. Click a card to deselect.</p>`;
 }
-function toggleSeg(i){segments[i].on=!segments[i].on;renderSegments(qS===Q_TOT?'q-seg-container':'d-seg-container');}
+function toggleSeg(i){
+  segments[i].on=!segments[i].on;
+  // Re-render whichever container is visible. The legacy hidden containers
+  // (q-seg-container, d-seg-container) are always re-rendered for data-flow
+  // compatibility; the new review-page containers only re-render if mounted.
+  renderSegments(qS===Q_TOT?'q-seg-container':'d-seg-container');
+  if(document.getElementById('d-review-seg-container')) renderReviewSegments('d-review-seg-container');
+  if(document.getElementById('db-review-seg-container')) renderReviewSegments('db-review-seg-container');
+}
 function startRename(nameEl,i,contId){
   const input=document.createElement('input');
   input.className='rename-input';
