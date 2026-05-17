@@ -5108,6 +5108,13 @@ footer span{color:var(--mojo)}
   letter-spacing:0;
 }
 #page-app.on .mojo-fab{display:flex}
+/* When the TD catalog drawer is open, the Spotify embed (~104px tall) sits
+   above the slim footer, covering the FAB's default bottom:80px slot. Lift
+   the FAB to bottom:180px so it sits above the embed with breathing room.
+   .is-open is added to .cm-td-footer by the existing TD drawer open/close
+   logic — no new JS needed. Using :has() because the FAB sits earlier in
+   the DOM than the TD footer (sibling combinator wouldn't reach backward). */
+body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s var(--ease)}
 .mojo-fab:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(255,91,31,.42), 0 4px 8px rgba(0,0,0,.14)}
 .mojo-fab:active{transform:translateY(0)}
 .mojo-fab.open{transform:rotate(45deg)} /* spins to ✕ feeling when panel is open */
