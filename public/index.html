@@ -6007,13 +6007,13 @@ footer span{color:var(--mojo)}
             <div class="ob-path-icon">+</div>
             <h3>Upload brand docs</h3>
             <p>Business plans, brand guides, screenshots, audience research — anything. The AI reads it all and pulls out your voice, customer, USP, and competitors.</p>
-            <div class="ob-path-time">~2 minutes</div>
+            <div class="ob-path-time">~3–5 minutes</div>
           </div>
           <div class="ob-path-card" onclick="dStartPath('forms')">
             <div class="ob-path-icon">✍</div>
             <h3>I'll fill it out myself</h3>
             <p>Don't have docs? Walk through a few quick forms about your business, voice, and platforms. Same end result.</p>
-            <div class="ob-path-time">~4 minutes</div>
+            <div class="ob-path-time">~2–3 minutes</div>
           </div>
         </div>
       </div>
@@ -6043,6 +6043,7 @@ footer span{color:var(--mojo)}
         </div>
 
         <div class="field">
+          <p style="font-size:12px;color:var(--muted);font-style:italic;margin:0 0 6px;font-family:var(--serif)">Tip: pasting brand content is faster than uploading PDFs — skips the extraction step.</p>
           <label>Or paste brand content directly <span class="lh">(optional)</span></label>
           <textarea id="d-paste" rows="3" oninput="updateDocBudget();dVal()" placeholder="Paste sections from your business plan, audience research, brand guidelines, existing captions — anything that describes your brand."></textarea>
         </div>
@@ -9615,6 +9616,7 @@ async function deepBuildBrain(){
     const data = await resp.json();
     if(data && data.brain){
       BP.brain = data.brain;
+      BP.brainFailReason = null; // clear any stale failure from prior runs (other brain builders may have set it)
       BP.brainDocsDropped = (typeof data.docsDropped === 'number') ? data.docsDropped : 0;
       console.log('[brain] Deep brain built', BP.brain);
       // Promote brain.industry into BP if user didn't select one
@@ -10370,6 +10372,7 @@ async function fastBuildBrain(){
     const data = await resp.json();
     if(data && data.brain){
       BP.brain = data.brain;
+      BP.brainFailReason = null; // clear any stale failure from prior runs (other brain builders may have set it)
       BP.brainDocsDropped = (typeof data.docsDropped === 'number') ? data.docsDropped : 0;
       console.log('[brain] built successfully', BP.brain);
       if(BP.brainDocsDropped > 0){
