@@ -1461,7 +1461,7 @@ THE BRAND BRAIN MUST CAPTURE:
    - "Independent record label, archivist-leaning. Roots in jazz, boom bap, lofi, afrobeats, dub, jazz house. Listener-first, never explains the music."
    - "Brooklyn pizzeria — third-generation family-owned, late-night oriented. Beloved by locals who treat the slice as a ritual, not just food."
 
-2. industry — One of: music_label, restaurant, fitness_studio, wellness, creator, ecommerce, beauty, fashion, hospitality, professional_services, education, nonprofit, real_estate, technology, other
+2. industry — One of: Food & Beverage, Retail & E-commerce, Health & Wellness, Beauty & Skincare, Fitness & Sport, Music & Entertainment, Fashion & Apparel, Real Estate, Professional Services, Creator / Influencer, Hospitality & Events, Technology & SaaS, Education & Coaching, Nonprofit, Home & Interior, Other
 
 3. industryStyleNote — Industry-specific style layer. The kind of language and conventions native to this industry. Specific.
 
