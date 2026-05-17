@@ -12423,7 +12423,7 @@ async function aiAddSubmit(){
         on: true,
         _aiAddPending: true
       }));
-      window.segments = (window.segments||[]).concat(previewInjected);
+      segments = (segments||[]).concat(previewInjected);
       // Open the new category so the preview is visible
       const gSegEl = document.getElementById('gSeg');
       if(gSegEl){
@@ -12517,13 +12517,13 @@ function renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange){
 //     with _aiAddPending: true (injected at submit time so the category renders).
 //     We remove the pending flag for selected ones and delete the rest.
 function acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChange){
-  const isNewCategoryFlow = (window.segments||[]).some(s => s._aiAddPending && s.category === cat);
+  const isNewCategoryFlow = (segments||[]).some(s => s._aiAddPending && s.category === cat);
   const selectedNames = new Set(previewState.filter(s => s._previewSelected).map(s => s.name));
 
   if(isNewCategoryFlow){
     // Remove pending tags that user deselected. For kept ones, drop the
     // _aiAddPending marker so they become "real" segments.
-    window.segments = (window.segments||[]).filter(s => {
+    segments = (segments||[]).filter(s => {
       if(s._aiAddPending && s.category === cat){
         if(selectedNames.has(s.name)){
           delete s._aiAddPending;
@@ -12542,13 +12542,13 @@ function acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChang
       on: true
     }));
     // Dedup against existing tags by name+category (defensive)
-    const existingKey = new Set((window.segments||[]).map(s => `${s.category}|${s.name.toLowerCase()}`));
+    const existingKey = new Set((segments||[]).map(s => `${s.category}|${s.name.toLowerCase()}`));
     const filteredAdd = toAdd.filter(s => !existingKey.has(`${s.category}|${s.name.toLowerCase()}`));
-    window.segments = (window.segments||[]).concat(filteredAdd);
+    segments = (segments||[]).concat(filteredAdd);
   }
 
   // Clear out any leftover placeholders (legacy from older runs)
-  window.segments = (window.segments||[]).filter(s => !s._aiAddPlaceholder);
+  segments = (segments||[]).filter(s => !s._aiAddPlaceholder);
 
   // Persist via the normal save flow if available
   if(typeof save === 'function') { try { save(); } catch(e){ console.warn('[aiAdd] save() failed:', e); } }
@@ -12570,7 +12570,7 @@ async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
     block.innerHTML = '<div style="padding:10px 0;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px"><span class="seg-aiadd-spinner"></span>Thinking…</div>';
   }
   // Detect new-category flow by presence of pending segments for this cat
-  const isNewCategoryFlow = (window.segments||[]).some(s => s._aiAddPending && s.category === cat);
+  const isNewCategoryFlow = (segments||[]).some(s => s._aiAddPending && s.category === cat);
   const existing = isNewCategoryFlow
     ? []
     : (segments||[]).filter(s => s.on && s.category === cat && !s._aiAddPlaceholder && !s._aiAddPending).map(s => s.name);
@@ -12584,7 +12584,7 @@ async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
     // For new-category flow: swap pending segments in window.segments with the
     // fresh batch so the picker re-renders correctly.
     if(isNewCategoryFlow){
-      window.segments = (window.segments||[]).filter(s => !(s._aiAddPending && s.category === cat));
+      segments = (segments||[]).filter(s => !(s._aiAddPending && s.category === cat));
       const fresh = newSegs.map(s => ({
         name: s.name,
         desc: s.desc || '',
@@ -12592,7 +12592,7 @@ async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
         on: true,
         _aiAddPending: true
       }));
-      window.segments = (window.segments||[]).concat(fresh);
+      segments = (segments||[]).concat(fresh);
       renderSegPicker(containerId, selectedArr, onChange);
     }
     renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange);
@@ -12608,7 +12608,7 @@ async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
 // Cancel: drop the preview block, any placeholder, and any pending injected
 // segments (from the new-category flow). Picker re-renders clean.
 function cancelAiAddPreview(containerId, cat, selectedArr, onChange){
-  window.segments = (window.segments||[]).filter(s => !s._aiAddPlaceholder && !(s._aiAddPending && s.category === cat));
+  segments = (segments||[]).filter(s => !s._aiAddPlaceholder && !(s._aiAddPending && s.category === cat));
   renderSegPicker(containerId, selectedArr, onChange);
   if(typeof onChange === 'function') onChange();
 }
