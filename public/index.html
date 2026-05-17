@@ -12099,7 +12099,7 @@ function renderSegPicker(containerId, selectedArr, onChange){
   const openCats = cont._openCats;
 
   cont.innerHTML = order.map(cat => {
-    const chips = groups[cat].filter(s => !s._aiAddPlaceholder);
+    const chips = groups[cat].filter(s => !s._aiAddPlaceholder && !s._aiAddPending);
     const selectedInCat = chips.filter(s => selectedArr.includes(s.name));
     const isOpen = openCats.has(cat);
     const hasSelected = selectedInCat.length > 0;
@@ -12404,19 +12404,32 @@ async function aiAddSubmit(){
   try {
     const newSegs = await aiAddCallApi(payload);
     closeAiAddPopup();
-    // For "new" mode, the category doesn't exist in the picker yet. We need
-    // to render a placeholder cat group via committing the segments as
-    // unaccepted (preview) entries. Simplest: temporarily add to window.segments
-    // with on=false + preview marker, render the picker, then call
-    // renderAiAddPreview which knows how to find/create the category body.
+    // For "new" mode, the category doesn't exist in the picker yet. Inject the
+    // new tags into window.segments as PREVIEW-marked entries (on: false so
+    // they don't pollute selections). Renders the picker — which creates the
+    // category group via groupSegsByCategory — then renderAiAddPreview can
+    // find the DOM node and append the accept/dismiss UI.
+    // (Previously used a placeholder segment for this — that was fragile and
+    // caused the "target category not found in DOM" bug when the placeholder
+    // got filtered out before render.)
     if(mode === 'new'){
-      // Pre-create category by adding ONE placeholder segment so the cat group
-      // renders. Will be removed when preview is accepted or dismissed.
-      const placeholder = { name: '__aiadd_placeholder__', desc: '', category: targetCategory, on: true, _aiAddPlaceholder: true };
-      window.segments = (window.segments||[]).concat([placeholder]);
+      // Inject preview segments so the category exists in the picker.
+      // Marker `_aiAddPending: true` lets cancelAiAddPreview clean them up
+      // if the user dismisses without accepting.
+      const previewInjected = newSegs.map(s => ({
+        name: s.name,
+        desc: s.desc || '',
+        category: targetCategory,
+        on: true,
+        _aiAddPending: true
+      }));
+      window.segments = (window.segments||[]).concat(previewInjected);
       // Open the new category so the preview is visible
       const gSegEl = document.getElementById('gSeg');
-      if(gSegEl && gSegEl._openCats) gSegEl._openCats.add(targetCategory);
+      if(gSegEl){
+        if(!gSegEl._openCats) gSegEl._openCats = new Set();
+        gSegEl._openCats.add(targetCategory);
+      }
       renderSegPicker('gSeg', gSegSel, updateGenSegSummary);
     }
     renderAiAddPreview('gSeg', targetCategory, newSegs, gSegSel, updateGenSegSummary);
@@ -12495,21 +12508,48 @@ function renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange){
   body.appendChild(block);
 }
 
-// Accept preview: commit selected new segs to window.segments, drop any
-// placeholder, then re-render the picker normally (without preview state).
+// Accept preview: commit selected new segs to window.segments, drop pending
+// markers, then re-render the picker normally (without preview state).
+// Handles both flows:
+//   - expand mode: previewState items don't exist in window.segments yet,
+//     so we APPEND the selected ones as fresh entries
+//   - new-category mode: previewState items ALREADY exist in window.segments
+//     with _aiAddPending: true (injected at submit time so the category renders).
+//     We remove the pending flag for selected ones and delete the rest.
 function acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChange){
-  const toAdd = previewState.filter(s => s._previewSelected).map(s => ({
-    name: s.name,
-    desc: s.desc || '',
-    category: s.category || cat,
-    on: true
-  }));
-  // Remove placeholder if present (new-category mode)
+  const isNewCategoryFlow = (window.segments||[]).some(s => s._aiAddPending && s.category === cat);
+  const selectedNames = new Set(previewState.filter(s => s._previewSelected).map(s => s.name));
+
+  if(isNewCategoryFlow){
+    // Remove pending tags that user deselected. For kept ones, drop the
+    // _aiAddPending marker so they become "real" segments.
+    window.segments = (window.segments||[]).filter(s => {
+      if(s._aiAddPending && s.category === cat){
+        if(selectedNames.has(s.name)){
+          delete s._aiAddPending;
+          return true;
+        }
+        return false; // user deselected — drop entirely
+      }
+      return true;
+    });
+  } else {
+    // Expand-mode: previewState items aren't in window.segments yet, append them.
+    const toAdd = previewState.filter(s => s._previewSelected).map(s => ({
+      name: s.name,
+      desc: s.desc || '',
+      category: s.category || cat,
+      on: true
+    }));
+    // Dedup against existing tags by name+category (defensive)
+    const existingKey = new Set((window.segments||[]).map(s => `${s.category}|${s.name.toLowerCase()}`));
+    const filteredAdd = toAdd.filter(s => !existingKey.has(`${s.category}|${s.name.toLowerCase()}`));
+    window.segments = (window.segments||[]).concat(filteredAdd);
+  }
+
+  // Clear out any leftover placeholders (legacy from older runs)
   window.segments = (window.segments||[]).filter(s => !s._aiAddPlaceholder);
-  // Dedup against existing tags by name+category (defensive)
-  const existingKey = new Set((window.segments||[]).map(s => `${s.category}|${s.name.toLowerCase()}`));
-  const filteredAdd = toAdd.filter(s => !existingKey.has(`${s.category}|${s.name.toLowerCase()}`));
-  window.segments = (window.segments||[]).concat(filteredAdd);
+
   // Persist via the normal save flow if available
   if(typeof save === 'function') { try { save(); } catch(e){ console.warn('[aiAdd] save() failed:', e); } }
   // Re-render the picker
@@ -12518,7 +12558,9 @@ function acceptAiAddPreview(containerId, cat, previewState, selectedArr, onChang
 }
 
 // Retry: kick off another fetch for the same category. Same flow as the
-// initial expand click, replacing the preview block in place.
+// initial expand click, replacing the preview block in place. For new-category
+// flow, also swaps the _aiAddPending segments in window.segments to match the
+// fresh AI response (so the picker stays in sync).
 async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
   // Show thinking state in the preview block
   const cont = document.getElementById(containerId);
@@ -12527,17 +12569,32 @@ async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
   if(block){
     block.innerHTML = '<div style="padding:10px 0;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px"><span class="seg-aiadd-spinner"></span>Thinking…</div>';
   }
-  const isPlaceholderMode = (window.segments||[]).some(s => s._aiAddPlaceholder && s.category === cat);
-  const existing = isPlaceholderMode
+  // Detect new-category flow by presence of pending segments for this cat
+  const isNewCategoryFlow = (window.segments||[]).some(s => s._aiAddPending && s.category === cat);
+  const existing = isNewCategoryFlow
     ? []
-    : (segments||[]).filter(s => s.on && s.category === cat && !s._aiAddPlaceholder).map(s => s.name);
+    : (segments||[]).filter(s => s.on && s.category === cat && !s._aiAddPlaceholder && !s._aiAddPending).map(s => s.name);
   try {
-    const basePayload = isPlaceholderMode
+    const basePayload = isNewCategoryFlow
       ? { mode: 'new', newCategoryName: cat, howMany: 5 }
       : { mode: 'expand', category: cat, existingTags: existing, howMany: 5 };
     const payload = buildAiAddPayload(basePayload);
     if(!payload) throw new Error('Add brand details first so AI has context.');
     const newSegs = await aiAddCallApi(payload);
+    // For new-category flow: swap pending segments in window.segments with the
+    // fresh batch so the picker re-renders correctly.
+    if(isNewCategoryFlow){
+      window.segments = (window.segments||[]).filter(s => !(s._aiAddPending && s.category === cat));
+      const fresh = newSegs.map(s => ({
+        name: s.name,
+        desc: s.desc || '',
+        category: cat,
+        on: true,
+        _aiAddPending: true
+      }));
+      window.segments = (window.segments||[]).concat(fresh);
+      renderSegPicker(containerId, selectedArr, onChange);
+    }
     renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange);
   } catch(e){
     if(block){
@@ -12548,9 +12605,10 @@ async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
   }
 }
 
-// Cancel: drop the preview block and any placeholder. Picker re-renders clean.
+// Cancel: drop the preview block, any placeholder, and any pending injected
+// segments (from the new-category flow). Picker re-renders clean.
 function cancelAiAddPreview(containerId, cat, selectedArr, onChange){
-  window.segments = (window.segments||[]).filter(s => !s._aiAddPlaceholder);
+  window.segments = (window.segments||[]).filter(s => !s._aiAddPlaceholder && !(s._aiAddPending && s.category === cat));
   renderSegPicker(containerId, selectedArr, onChange);
   if(typeof onChange === 'function') onChange();
 }
@@ -12676,7 +12734,14 @@ function save(){
   setSave('saving','saving…');
   clearTimeout(saveTO);
   saveTO=setTimeout(()=>{
-    const ok=saveToStorage({caps,nId,BP,segments});
+    // NOTE-33B: Don't persist AI-add preview segments. _aiAddPending segments
+    // are injected during the new-category flow so the picker renders the
+    // category. They're not "real" until the user clicks Accept (which removes
+    // the flag). _aiAddPlaceholder is the legacy marker from the old approach
+    // — drop those too. Filter the saved copy without mutating window.segments
+    // so the in-progress preview UI keeps working.
+    const segsToSave = (segments||[]).filter(s => !s._aiAddPending && !s._aiAddPlaceholder);
+    const ok=saveToStorage({caps,nId,BP,segments:segsToSave});
     setSave(ok?'saved':'error',ok?'saved':'save failed');
     // If signed in, also push to Supabase. Fire-and-forget; failures are
     // logged but don't affect the local save status. pushOnSave is debounced
