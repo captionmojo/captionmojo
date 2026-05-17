@@ -1325,6 +1325,184 @@ Format: [{"category":"Genre","name":"Chill Lofi","desc":"Warm, mellow instrument
   }
 }
 
+// ====== Handler: POST /api/segments-add ======
+// Generates additional segments for an existing brand brain. Two modes:
+//   - 'expand': add N new tags to an EXISTING category (e.g. user clicked
+//     "+ AI add more" inside the "Menu / Pizza Style" category and wants
+//     ~5 more pizza style tags that aren't already in the list)
+//   - 'new': create a brand new category with N starter tags (e.g. user
+//     wants a "Dietary Restrictions" category that didn't come out of the
+//     initial brain build)
+// Reuses parseSegmentsJson + the same response shape as /api/segments so
+// the frontend can merge results into the existing segment picker easily.
+// Rate-limited under the same ipBucketsSeg pool as /api/segments since both
+// produce segment data of similar cost.
+async function handleSegmentsAdd(request, env) {
+  const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('x-forwarded-for') || 'unknown';
+  if (!rateLimitOk(ipBucketsSeg, ip, RATE_LIMIT_SEG)) {
+    return jsonResp({ error: 'Rate limit exceeded.' }, 429);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return jsonResp({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const mode = body.mode === 'new' ? 'new' : 'expand';
+  const brain = (body.brain && typeof body.brain === 'object') ? body.brain : null;
+  const category = clipString(body.category, 60);
+  const newCategoryName = clipString(body.newCategoryName, 60);
+  const direction = clipString(body.direction, 300);
+  const existingTags = Array.isArray(body.existingTags)
+    ? body.existingTags.slice(0, 80).map(t => clipString(String(t), 80)).filter(Boolean)
+    : [];
+  const howMany = Math.min(Math.max(parseInt(body.howMany) || 5, 1), 10);
+
+  if (!brain) {
+    return jsonResp({ error: 'Brain required — run brand setup first.' }, 400);
+  }
+  if (mode === 'expand' && !category) {
+    return jsonResp({ error: 'Category required for expand mode.' }, 400);
+  }
+  if (mode === 'new' && !newCategoryName) {
+    return jsonResp({ error: 'New category name required.' }, 400);
+  }
+  if (!env.ANTHROPIC_API_KEY) {
+    return jsonResp({ error: 'Server not configured' }, 500);
+  }
+
+  // Compose brain context the same way handleSegments does — keeps voice/tone
+  // consistent between original generation and additions.
+  let brainContext = '';
+  if (brain) {
+    const lines = [];
+    if (brain.identity) { lines.push('Identity:', brain.identity, ''); }
+    if (brain.industry) lines.push(`Industry: ${brain.industry}`);
+    if (brain.customerPortraits && brain.customerPortraits.length) {
+      lines.push('', 'Customer portraits (the brand\'s actual audience):');
+      brain.customerPortraits.forEach(c => lines.push(`- ${c}`));
+    }
+    if (brain.proofPoints && brain.proofPoints.length) {
+      lines.push('', 'Proof points / authentic specifics:');
+      brain.proofPoints.forEach(p => lines.push(`- ${p.name}: ${p.what || ''}`));
+    }
+    if (brain.culturalReferences && brain.culturalReferences.length) {
+      lines.push('', `Cultural references the brand uses: ${brain.culturalReferences.join(', ')}`);
+    }
+    if (brain.toneTags && brain.toneTags.length) {
+      lines.push('', `Tone: ${brain.toneTags.join(', ')}`);
+    }
+    if (lines.length) brainContext = `Brand brain (distilled from the brand documents):\n${lines.join('\n')}`;
+  }
+
+  // Two different system prompts — expand vs new — because the AI needs
+  // different framing for each task. Expand mode emphasizes "DON'T repeat
+  // these existing tags." New-category mode emphasizes "invent tags for
+  // a brand-new dimension this brand doesn't have yet."
+  let systemPrompt;
+  if (mode === 'expand') {
+    systemPrompt = `You are a senior marketing strategist helping a brand expand their audience tag set.
+
+The brand already has a category called "${category}" with these existing tags:
+${existingTags.length ? existingTags.map(t => `- ${t}`).join('\n') : '(no existing tags listed)'}
+
+YOUR JOB: Generate ${howMany} ADDITIONAL tags for the "${category}" category that:
+- Are genuinely useful for this specific brand (based on the brand brain context provided in the user message)
+- Do NOT duplicate or near-duplicate any of the existing tags above
+- Are SPECIFIC and reusable across many social posts
+- Fit the same conceptual dimension as the existing tags (if existing tags are "Genres," return more genres — not moods)
+- Are distinct from each other
+
+${direction ? `User's direction: "${direction}". Honor this — if they ask for "more vegan styles" or "fewer mainstream genres", reflect that in your additions.` : ''}
+
+Each tag must have:
+- name: short and memorable, 2-5 words
+- desc: one sentence on who they are / what it means
+- category: must be exactly "${category}" — do not invent variations
+
+Return ONLY a valid JSON array of exactly ${howMany} new tags (no preamble, no markdown, no code fences). All tags must have category "${category}".
+Format: [{"category":"${category}","name":"...","desc":"..."}, ...]`;
+  } else {
+    systemPrompt = `You are a senior marketing strategist helping a brand add a new audience dimension to their tag system.
+
+The brand wants to add a brand new category called "${newCategoryName}".
+
+YOUR JOB: Generate ${howMany} starter tags for this new "${newCategoryName}" category that:
+- Make sense as a new DIMENSION of marketing for this specific brand (different from their existing dimensions)
+- Are SPECIFIC and grounded in the brand brain context provided in the user message
+- Are MIXABLE with the brand's other tag categories (Genre + Mood + this new category should all combine)
+- Are distinct from each other
+
+${direction ? `User's direction: "${direction}". Use this to shape the tags. If they say "dietary restrictions" the tags should be specific diets the brand serves; if they say "post format types" the tags should be specific formats.` : ''}
+
+Each tag must have:
+- name: short and memorable, 2-5 words
+- desc: one sentence on who they are / what it means
+- category: must be exactly "${newCategoryName}" — do not invent variations
+
+Return ONLY a valid JSON array of exactly ${howMany} starter tags (no preamble, no markdown, no code fences). All tags must have category "${newCategoryName}".
+Format: [{"category":"${newCategoryName}","name":"...","desc":"..."}, ...]`;
+  }
+
+  const variablePart = `${brainContext}\n\nGenerate ${howMany} ${mode === 'expand' ? `additional "${category}" tags` : `starter "${newCategoryName}" tags`} for this brand. Return only the JSON array.`;
+  const userContent = [{ type: 'text', text: variablePart }];
+
+  try {
+    const { response: apiResp, retriesAttempted, category: errCategory } = await callAnthropicWithRetry(env, {
+      model: MODEL,
+      max_tokens: 1500,
+      system: [{ type: 'text', text: systemPrompt }],
+      messages: [{ role: 'user', content: userContent }]
+    }, 'seg-add');
+
+    if (!apiResp.ok) {
+      const errText = await apiResp.text();
+      console.error(`Anthropic API error (segments-add) after ${retriesAttempted} retries:`, apiResp.status, errCategory, errText);
+      return jsonResp({
+        error: 'AI segment generation failed',
+        category: errCategory || 'worker_error',
+        upstream_status: apiResp.status,
+        retries_attempted: retriesAttempted
+      }, apiResp.status >= 500 ? 502 : apiResp.status);
+    }
+
+    const data = await apiResp.json();
+    const text = (data.content || []).find(b => b.type === 'text')?.text || '';
+    let segments = parseSegmentsJson(text);
+
+    // Force the category on every returned segment — defensive guard against
+    // the AI inventing variant category names like "Pizza Styles" instead of
+    // "Menu / Pizza Style". The user's UI expects exact category match.
+    const targetCategory = mode === 'expand' ? category : newCategoryName;
+    segments = segments.map(s => ({ ...s, category: targetCategory }));
+
+    // Belt-and-suspenders: filter out any segments whose names exactly match
+    // existing tags (case-insensitive). The prompt already says don't dup,
+    // but the AI is non-deterministic — better to silently drop dupes than
+    // surface a "Margherita" suggestion when the user already has "Margherita".
+    if (mode === 'expand' && existingTags.length) {
+      const lower = new Set(existingTags.map(t => t.toLowerCase().trim()));
+      segments = segments.filter(s => !lower.has(s.name.toLowerCase().trim()));
+    }
+
+    if (data.usage) {
+      const u = data.usage;
+      console.log(`[seg-add] mode=${mode} in=${u.input_tokens||0} out=${u.output_tokens||0}`);
+    }
+
+    if (!segments.length) {
+      return jsonResp({ error: 'AI returned no usable new tags. Try again.' }, 502);
+    }
+
+    return jsonResp({ segments });
+  } catch (e) {
+    console.error('Segments-add exception:', e);
+    return jsonResp({ error: 'Server error.' }, 500);
+  }
+}
+
 // ====== Brand Brain extraction ======
 // Reads all docs + onboarding form + paste, returns a structured "Brand Brain":
 // a tight, authoritative distillation of what the brand IS, how it sounds,
@@ -1827,6 +2005,9 @@ export default {
     }
     if (url.pathname === '/api/segments' && request.method === 'POST') {
       return handleSegments(request, env);
+    }
+    if (url.pathname === '/api/segments-add' && request.method === 'POST') {
+      return handleSegmentsAdd(request, env);
     }
     if (url.pathname === '/api/brain' && request.method === 'POST') {
       return handleBrain(request, env);
