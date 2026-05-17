@@ -837,7 +837,7 @@ footer span{color:var(--mojo)}
    When /api/segments fails, the renderer prepends this amber banner above the
    segment chips so the user knows they're seeing placeholders, not real
    brand-tailored output. Retry button calls retrySegmentBuild() which re-runs
-   whichever builder fired most recently (Quick/Path A/Path B/Fast). Fallback
+   whichever builder fired most recently (Quick/Path A/Path B). Fallback
    chips themselves also pick up the .is-fallback modifier — dashed border +
    grayed-out fill — so the placeholder state is visible at a glance even if
    the banner is scrolled out of view. */
@@ -2658,7 +2658,7 @@ footer span{color:var(--mojo)}
   /* Mobile-only: hide the redundant outer logo nav on onboarding pages.
      .ob-header already shows the navigation (Back + Step counter), so
      the extra logo bar at top just eats valuable vertical space on phones. */
-  #page-quick > .nav, #page-deep > .nav, #page-fast > .nav {
+  #page-quick > .nav, #page-deep > .nav {
     display: none;
   }
 }
@@ -2673,7 +2673,7 @@ footer span{color:var(--mojo)}
    desktop window chrome alike), prevent it from overflowing, and let
    .ob-body handle internal scroll while .ob-header and .ob-foot stay pinned.
    This rule lives outside the mobile @media block so desktop benefits too. */
-#page-quick, #page-deep, #page-fast {
+#page-quick, #page-deep {
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
@@ -3953,7 +3953,7 @@ footer span{color:var(--mojo)}
 .cm-td-brain.is-open .td-brain-expanded{display:block}
 /* Highlight the "play one →" / "hide the player ←" link when module is open.
    Uses an attribute selector to catch any id starting with "tdBrainExpand-"
-   so it works across all instances (fast/quick/deep). */
+   so it works across all instances (quick/deep). */
 .cm-td-brain.is-open [id^="tdBrainExpand-"]{
   color:var(--td-yellow);
   text-decoration-color:var(--td-yellow);
@@ -6457,132 +6457,6 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
   </div>
 </div>
 
-<!-- ====== FAST SETUP (new streamlined onboarding) ====== -->
-<div class="page" id="page-fast">
-  <nav class="nav">
-    <a class="logo" onclick="showPage('page-landing')">
-      <div class="logo-mark">m</div>
-      <div class="logo-name">Caption<em>Mojo</em></div>
-    </a>
-  </nav>
-  <div class="ob-wrap">
-    <div class="ob-header">
-      <button class="ob-back" onclick="goTracks()">← Back</button>
-      <span class="ob-title">Setup</span>
-      <span class="ob-lbl" id="f-lbl">Step 1 of 4</span>
-    </div>
-    <div class="prog-bar"><div class="prog-fill" id="f-prog" style="width:25%"></div></div>
-    <div class="ob-body">
-
-      <!-- Step 1: Drop your brand docs -->
-      <div class="ob-card" id="f1">
-        <h2>Drop your brand docs</h2>
-        <p class="ob-hint"><strong>Screenshots of your best posts work great.</strong> The AI reads caption text from your screenshots and learns your voice. Also accepts brand guides, past captions, About pages, decks, product info — the more you give, the better the output.</p>
-        <div class="field"><label>Upload documents <span class="lh">(Screenshots, PDF, DOCX, TXT, Markdown)</span></label>
-          <div class="upload-zone" onclick="document.getElementById('f-files').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');handleFiles({files:event.dataTransfer.files,value:''},'f-flist')">
-            <input type="file" id="f-files" multiple accept=".pdf,.docx,.txt,.md,.markdown,.png,.jpg,.jpeg,.webp,.gif" onchange="handleFiles(this,'f-flist')">
-            <div style="font-size:40px;margin-bottom:12px;font-family:var(--serif);font-style:italic;color:var(--mojo)">+</div>
-            <div style="font-size:14px;color:var(--ink2)"><strong style="color:var(--mojo)">Click to upload</strong> or drag and drop<br><span style="font-size:12px;color:var(--muted)">Screenshots · PDF · DOCX · TXT · Markdown · Max 10MB per file · Up to 5 files</span></div>
-          </div>
-          <div class="file-list" id="f-flist"></div>
-          <div class="doc-budget" id="f-budget">≈ 0 tokens of brand context</div>
-          <div class="doc-budget-track"><div class="doc-budget-bar" id="f-budget-bar" style="width:0%"></div></div>
-          <div class="field-hint" style="margin-top:8px;font-size:12px;color:var(--mojo);font-family:var(--sans);font-weight:500">💡 Tip: 3-5 screenshots of your best posts teach the AI more than any description.</div>
-        </div>
-        <div class="field"><label>Or paste brand content directly <span class="lh">(optional)</span></label><textarea id="f-paste" rows="6" oninput="updateDocBudgetF()" placeholder="Paste anything here that captures your brand — existing captions, about page text, product descriptions, email newsletters, brand guidelines, customer reviews, anything.&#10;&#10;The more you give the AI, the more accurate every caption will be."></textarea></div>
-      </div>
-
-      <!-- Step 2: Industry -->
-      <div class="ob-card" id="f2" style="display:none">
-        <h2>What kind of business?</h2>
-        <p class="ob-hint">This tells the AI which industry conventions to write with. Pick the closest match — you can refine specifics in the next step.</p>
-        <div class="field"><label>Industry</label>
-          <div class="chip-row" id="f-industry">
-            <button class="chip" data-ind="music_label" data-label="Music &amp; Entertainment" onclick="setFastIndustry(this)">🎵 Record Label / Music</button>
-            <button class="chip" data-ind="restaurant" data-label="Food &amp; Beverage" onclick="setFastIndustry(this)">🍽 Restaurant / Food</button>
-            <button class="chip" data-ind="fitness_sport" data-label="Fitness &amp; Sport" onclick="setFastIndustry(this)">💪 Fitness &amp; Sport</button>
-            <button class="chip" data-ind="health_wellness" data-label="Health &amp; Wellness" onclick="setFastIndustry(this)">🧘 Health &amp; Wellness</button>
-            <button class="chip" data-ind="creator" data-label="Creator / Influencer" onclick="setFastIndustry(this)">✦ Creator / Influencer</button>
-            <button class="chip" data-ind="ecommerce" data-label="Retail &amp; E-commerce" onclick="setFastIndustry(this)">🛒 E-Commerce / Retail</button>
-            <button class="chip" data-ind="beauty_skincare" data-label="Beauty &amp; Skincare" onclick="setFastIndustry(this)">💅 Beauty &amp; Skincare</button>
-            <button class="chip" data-ind="fashion_apparel" data-label="Fashion &amp; Apparel" onclick="setFastIndustry(this)">👗 Fashion &amp; Apparel</button>
-            <button class="chip" data-ind="hospitality" data-label="Hospitality &amp; Events" onclick="setFastIndustry(this)">🏨 Hospitality / Hotel</button>
-            <button class="chip" data-ind="real_estate" data-label="Real Estate" onclick="setFastIndustry(this)">🏠 Real Estate</button>
-            <button class="chip" data-ind="professional_services" data-label="Professional Services" onclick="setFastIndustry(this)">💼 Professional Services</button>
-            <button class="chip" data-ind="education" data-label="Education &amp; Coaching" onclick="setFastIndustry(this)">🎓 Education / Coaching</button>
-            <button class="chip" data-ind="nonprofit" data-label="Nonprofit" onclick="setFastIndustry(this)">❤ Nonprofit</button>
-            <button class="chip" data-ind="technology" data-label="Technology &amp; SaaS" onclick="setFastIndustry(this)">⚙ Technology / SaaS</button>
-            <button class="chip" data-ind="entertainment" data-label="Music &amp; Entertainment" onclick="setFastIndustry(this)">🎬 Entertainment / Media</button>
-            <button class="chip" data-ind="home_interior" data-label="Home &amp; Interior" onclick="setFastIndustry(this)">🛋 Home &amp; Interior</button>
-            <button class="chip" data-ind="other" data-label="Other" onclick="setFastIndustry(this)">Other</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 3: Optional notes -->
-      <div class="ob-card" id="f3" style="display:none">
-        <h2>Anything we should know?</h2>
-        <p class="ob-hint">Optional. Things that aren't in your docs but the AI should know — voice rules, words to avoid, posting style preferences, specific things to lean into or away from. Skip if everything's already in your docs.</p>
-        <div class="field"><label>Notes <span class="lh">(optional)</span></label><textarea id="f-notes" rows="8" placeholder="e.g.&#10;&#10;- Never use exclamation marks or emojis&#10;- Don't mention competitor brands by name&#10;- Our voice is mindful, never preachy&#10;- We always lowercase everything&#10;- Avoid the word 'hustle' and 'grind'&#10;&#10;Anything that would help the AI write captions that feel exactly like your brand."></textarea></div>
-      </div>
-
-      <!-- Step 4: Building (loader) -->
-      <div class="ob-card" id="f4" style="display:none">
-        <h2>Building your brand brain</h2>
-        <p class="ob-hint">The AI is reading everything you've given it and distilling your brand. Voice rules, proof points, references, CTAs — all extracted once so every future caption sounds like you.</p>
-        <div id="f-build-status" style="margin-top:24px"></div>
-
-        <!-- ====== TD SPONSOR — quote-led, gentle, collapsible ======
-             Two rows: pull-quote + TD logo on row 1, meta links on row 2.
-             Click "play one while you wait →" to expand the mood chips +
-             Spotify embed. Hidden for Pro users via .is-pro CSS class.
-             Playlist names per truedialect.com (May 2026). -->
-        <div class="cm-td-brain" id="tdBrainModule-fast">
-          <div class="td-brain-content">
-          <div class="td-brain-row1">
-            <span class="td-brain-pill"><span class="td-brain-pill-true">true</span><span class="td-brain-pill-dialect">dialect</span></span>
-            <span class="td-brain-kicker">radio · while you wait</span>
-          </div>
-          <div class="td-brain-quote">lo-fi playlists in every genre, every vibe.</div>
-          <div class="td-brain-meta">
-            18 curated playlists · <a class="td-brain-link" href="https://open.spotify.com/user/31pag53eczxjfgwjyqw6jgs65kmq" target="_blank" rel="noopener">browse the catalog ↗</a>
-          </div>
-          <div class="td-brain-expanded">
-            <div class="td-brain-chips" id="tdBrainChips-fast" data-brain-suffix="fast">
-              <button class="td-brain-chip active" type="button" data-playlist-id="4Aea547SpBcBWlCXaHzqfc"><span class="td-brain-chip-dot"></span>deep focus</button>
-              <button class="td-brain-chip" type="button" data-playlist-id="7i2Zca6FfoVFajdjSLrLj9"><span class="td-brain-chip-dot"></span>writing</button>
-              <button class="td-brain-chip" type="button" data-playlist-id="1Sdo0TELts9qALUCLE8si7"><span class="td-brain-chip-dot"></span>reading</button>
-              <button class="td-brain-chip" type="button" data-playlist-id="0qm8pj0yfKqd9xFgdO3IFw"><span class="td-brain-chip-dot"></span>flow</button>
-              <button class="td-brain-chip" type="button" data-playlist-id="2LoO6StTHWRcc6dPpXUMQC"><span class="td-brain-chip-dot"></span>creating</button>
-              <button class="td-brain-chip" type="button" data-playlist-id="5rpODqX0KVHKWBVVNET8eZ"><span class="td-brain-chip-dot"></span>late night</button>
-              <button class="td-brain-chip" type="button" data-playlist-id="3TLmPkei8FtOIqYIentnPw"><span class="td-brain-chip-dot"></span>early morning</button>
-            </div>
-            <div class="td-brain-embed">
-              <div class="td-brain-embed-hint">tap spotify's <span class="td-brain-embed-hint-mark">▶</span> below to start audio</div>
-              <iframe id="tdBrainEmbed-fast"
-                src="https://open.spotify.com/embed/playlist/4Aea547SpBcBWlCXaHzqfc?utm_source=generator&theme=0"
-                width="100%" height="80" frameborder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-                referrerpolicy="strict-origin-when-cross-origin"></iframe>
-            </div>
-          </div>
-          </div>
-          <button type="button" class="td-brain-play-btn" id="tdBrainPlayBtn-fast" onclick="tdBrainToggle('fast')" aria-label="Play music"><span class="td-brain-play-icon" aria-hidden="true">▶</span><span>play</span></button>
-        </div>
-
-      </div>
-
-    </div>
-    <div class="ob-foot">
-      <div class="step-dots" id="f-dots"></div>
-      <button class="btn btn-ghost btn-md" id="f-skip-btn" onclick="fSkip()">Skip</button>
-      <button class="btn btn-ghost btn-md" id="f-back-btn" onclick="fBack()" style="display:none">← Back</button>
-      <button class="btn btn-mojo btn-md" id="f-next-btn" onclick="fNext()">Continue →</button>
-    </div>
-  </div>
-</div>
-
 <!-- ====== STUDIO ====== -->
 <div class="app-page" id="page-app">
   <div class="topbar">
@@ -7864,7 +7738,7 @@ function applyAdGating(){
   document.querySelectorAll('.cm-td-footer').forEach(el => {
     el.classList.toggle('is-pro', hideAds);
   });
-  // TD radio modules embedded in onboarding (quick/deep/fast tracks)
+  // TD radio modules embedded in onboarding (quick/deep tracks)
   document.querySelectorAll('.cm-td-brain').forEach(el => {
     el.classList.toggle('is-pro', hideAds);
   });
@@ -9226,7 +9100,6 @@ function totalDocChars(){
   }
   // Count whichever paste textarea is visible
   t += (V('d-paste')||'').length;
-  t += (V('f-paste')||'').length;
   return Math.floor(t);
 }
 
@@ -9321,12 +9194,10 @@ function updateDocBudget(){
     if(bar){ bar.style.width = pct+'%'; bar.dataset.tone = tone; }
   });
 }
-// Alias for inline oninput call on f-paste textarea
-function updateDocBudgetF(){ updateDocBudget(); if(typeof fVal === 'function') fVal(); }
 
 function renderDocList(){
-  // Render into whichever doc list is on the page (Deep Setup: d-flist; Fast: f-flist)
-  ['d-flist','f-flist'].forEach(id => {
+  // Render into the Deep Setup doc list (#d-flist)
+  ['d-flist'].forEach(id => {
     const list = document.getElementById(id);
     if(!list) return;
     if(!BP.docs.length){
@@ -9375,7 +9246,7 @@ function renderDocList(){
 
 // Focus the paste textarea on the current page (used by error-row "paste instead" link)
 function focusPasteArea(){
-  const ids = ['d-paste','f-paste'];
+  const ids = ['d-paste'];
   for(const id of ids){
     const el = document.getElementById(id);
     if(el && el.offsetParent !== null){ el.focus(); el.scrollIntoView({behavior:'smooth',block:'center'}); return; }
@@ -9383,7 +9254,7 @@ function focusPasteArea(){
 }
 
 // Update the upload counter (files used, total MB used, headroom).
-// Renders into #d-upload-counter and #f-upload-counter if they exist.
+// Renders into #d-upload-counter if it exists.
 function updateUploadCounter(){
   const valid = (BP.docs||[]).filter(d => !d.error);
   const fileCount = valid.length;
@@ -9425,7 +9296,6 @@ function updateUploadCounter(){
 function removeDoc(i){
   BP.docs.splice(i,1);
   renderDocList();
-  if(typeof fVal === 'function') fVal();
   if(typeof dVal === 'function') dVal();
 }
 
@@ -9511,14 +9381,12 @@ async function handleFiles(input, listId){
       }
       stub.processing = false;
       renderDocList();
-      if(typeof fVal === 'function') fVal();
       if(typeof dVal === 'function') dVal();
     }catch(e){
       console.error('File processing failed', e);
       stub.processing = false;
       stub.error = 'Read failed — try a different file.';
       renderDocList();
-      if(typeof fVal === 'function') fVal();
       if(typeof dVal === 'function') dVal();
     }
   }
@@ -9533,7 +9401,6 @@ async function handleFiles(input, listId){
 let qS=1; const Q_TOT=1;
 function startOnboard(track){
   if(track==='quick'){qS=1;qUI();qVal();showPage('page-quick');}
-  else if(track==='fast'){fS=1;fUI();showPage('page-fast');}
   else{dPath=null;dStep=1;dUI();showPage('page-deep');}
 }
 function qUI(){
@@ -10153,127 +10020,6 @@ async function dFinalize(){ launchApp(); }
 function dSkip(){ console.warn('dSkip called — Deep Setup has no skip pages'); }
 // ============ END DEEP SETUP ============
 
-// ============ FAST ONBOARDING (streamlined: docs → industry → notes → build) ============
-let fS=1; const F_TOT=4;
-let fastIndustry='';
-
-function fUI(){
-  const lbl = document.getElementById('f-lbl');
-  if(lbl) lbl.textContent = `Step ${fS} of ${F_TOT}`;
-  const prog = document.getElementById('f-prog');
-  if(prog) prog.style.width = (fS/F_TOT*100)+'%';
-  document.getElementById('f-back-btn').style.display = fS>1 ? '' : 'none';
-  // Skip button: shown on steps 1 (docs optional if pasting) and 3 (notes)
-  document.getElementById('f-skip-btn').style.display = (fS===1 || fS===3) ? '' : 'none';
-  const next = document.getElementById('f-next-btn');
-  next.style.display = fS<F_TOT ? '' : 'none';
-  if(fS===F_TOT) next.style.display = 'none';
-  // Render dot indicators
-  let dots = '';
-  for(let i=1;i<=F_TOT;i++) dots += `<div class="sdot ${i<fS?'done':i===fS?'cur':''}"></div>`;
-  document.getElementById('f-dots').innerHTML = dots;
-  // Show/hide step cards
-  for(let i=1;i<=F_TOT;i++){
-    const el=document.getElementById('f'+i);
-    if(el) el.style.display = i===fS ? '' : 'none';
-  }
-  // Step 1: render existing docs (in case user came back to this step)
-  if(fS===1) renderDocList();
-  // Step 3: PRE-POPULATE notes textarea with existing BP.notes.
-  // CRITICAL: prevents re-onboarding from wiping previously-saved studio notes.
-  // If the user came in from a fresh session and never had notes, this is empty.
-  // If they're re-onboarding and had studio notes from before, those are preserved
-  // and shown — they can edit, leave alone, or clear. Without this, fNext() at
-  // step 3 would overwrite BP.notes with an empty f-notes value, silently wiping
-  // any in-studio Notes panel edits made between onboardings.
-  if(fS===3){
-    const notesField = document.getElementById('f-notes');
-    if(notesField && BP.notes) notesField.value = BP.notes;
-  }
-  // Validate continue button enabled state
-  fVal();
-  // Step 4 triggers the build process automatically
-  if(fS===F_TOT) fBuildAndLaunch();
-}
-
-function fVal(){
-  const next = document.getElementById('f-next-btn');
-  if(fS===1){
-    // Need at least one doc OR some pasted text (>50 chars to avoid empty fluff)
-    const validDocs = (BP.docs||[]).filter(d=>!d.error && !d.processing).length;
-    const paste = (V('f-paste')||'').length;
-    next.disabled = !(validDocs > 0 || paste > 50);
-  } else if(fS===2){
-    next.disabled = !fastIndustry;
-  } else {
-    next.disabled = false;
-  }
-}
-
-function fNext(){
-  // Save step data and advance
-  if(fS===1){
-    BP.pastedDocs = V('f-paste') || '';
-  }
-  if(fS===2){
-    BP.industry = fastIndustry || '';
-  }
-  if(fS===3){
-    BP.notes = V('f-notes') || '';
-  }
-  if(fS < F_TOT){
-    fS++;
-    fUI();
-    const body = document.querySelector('#page-fast .ob-body');
-    if(body) body.scrollTop = 0;
-  }
-}
-function fBack(){ if(fS>1){ fS--; fUI(); } }
-function fSkip(){
-  // Allowed on step 1 (skip docs — but we should refuse if no paste either) and step 3 (notes)
-  if(fS===1){
-    // Refuse skip if nothing to work with — user needs SOME content for Brain to extract
-    const validDocs = (BP.docs||[]).filter(d=>!d.error && !d.processing).length;
-    const paste = (V('f-paste')||'').length;
-    if(validDocs === 0 && paste < 50){
-      alert('Upload at least one document or paste some brand content to continue. The AI needs something to read.');
-      return;
-    }
-  }
-  fNext();
-}
-
-function setFastIndustry(btn){
-  // NOTE-27 fix: store the dropdown-canonical display string (data-label) so
-  // BP.industry matches what Quick Start / Detailed flows store and what the
-  // worker's brain extraction prompt expects. data-ind slug is preserved on
-  // the DOM as a stable internal id for future analytics, but no longer flows
-  // into the profile. Fallback to data-ind if data-label is missing (defensive).
-  fastIndustry = btn.dataset.label || btn.dataset.ind || '';
-  document.querySelectorAll('#f-industry .chip').forEach(c=>c.classList.remove('on'));
-  btn.classList.add('on');
-  fVal();
-}
-
-// Render a single build-step row. The `state` parameter is one of:
-//   'pending' — gray dot, gray title (queued, hasn't run yet)
-//   'active'  — orange spinner (currently running)
-//   'done'    — green checkmark (succeeded)
-//   'error'   — red bang (hard failure, build stopped)
-//   'warning' — amber bang (soft failure, build continued — see brain timeout
-//                fallback path)
-//
-// The 4th arg `detail` is a plain text string by default. If `detailIsHtml`
-// is true, the detail is rendered as HTML — used for warning rows that
-// contain a "try again" button. Plain-text path uses esc() to prevent XSS;
-// HTML path trusts the caller to have escaped any user-supplied substrings.
-function fSetBuildStep(stepEl, state, title, detail, detailIsHtml){
-  stepEl.className = 'f-build-step ' + state;
-  const icon = state==='done' ? '✓' : (state==='error' || state==='warning') ? '!' : state==='active' ? '' : '';
-  const detailHTML = detailIsHtml ? detail : esc(detail);
-  stepEl.innerHTML = `<div class="f-build-icon">${icon}</div><div class="f-build-step-text"><div class="f-build-step-title">${esc(title)}</div><div class="f-build-step-detail">${detailHTML}</div></div>`;
-}
-
 // ====== TD Brain Module — quote-led design with collapsible chips + embed ======
 // Anonymous + Free users see the module; Pro users have it hidden via .is-pro class.
 // Default state: just the pull-quote + attribution + meta line. User clicks
@@ -10281,12 +10027,12 @@ function fSetBuildStep(stepEl, state, title, detail, detailIsHtml){
 // and Spotify embed appear. Clicking any mood chip swaps the embed src so
 // music plays inline. No external redirects (except "browse the catalog ↗"
 // which goes to TD's Spotify profile — wired inline).
-// Brain module supports multiple instances (one per onboarding flow: fast,
-// quick, deep). Each instance is identified by a suffix like "fast", "quick",
-// "deep" which gets appended to the element IDs:
+// Brain module supports multiple instances (one per onboarding flow: quick,
+// deep, deepB). Each instance is identified by a suffix like "quick", "deep",
+// "deepB" which gets appended to the element IDs:
 //   tdBrainModule-{suffix}, tdBrainChips-{suffix}, tdBrainEmbed-{suffix},
 //   tdBrainExpand-{suffix}
-// onclick handlers in HTML call tdBrainToggle("fast"), etc.
+// onclick handlers in HTML call tdBrainToggle("quick"), etc.
 function tdBrainToggle(suffix){
   if(!suffix) return;
   const m = document.getElementById('tdBrainModule-' + suffix);
@@ -10465,283 +10211,6 @@ if(document.readyState !== 'loading'){
   document.addEventListener('DOMContentLoaded', tdFooterSetupHandlers);
 }
 
-async function fBuildAndLaunch(){
-  // Persist all state to BP before building
-  BP.pastedDocs = V('f-paste') || '';
-  BP.industry = fastIndustry || '';
-  BP.notes = V('f-notes') || '';
-
-  const cont = document.getElementById('f-build-status');
-  cont.innerHTML = `
-    <div class="f-build-step pending" id="fbs-1"><div class="f-build-icon"></div><div class="f-build-step-text"><div class="f-build-step-title">Reading your brand documents</div><div class="f-build-step-detail">PDFs · images · pasted text · notes</div></div></div>
-    <div class="f-build-step pending" id="fbs-2"><div class="f-build-icon"></div><div class="f-build-step-text"><div class="f-build-step-title">Distilling your brand brain</div><div class="f-build-step-detail">Voice rules · proof points · CTAs · references</div></div></div>
-    <div class="f-build-step pending" id="fbs-3"><div class="f-build-icon"></div><div class="f-build-step-text"><div class="f-build-step-title">Building your audience dimensions</div><div class="f-build-step-detail">Categories you can mix-and-match when generating</div></div></div>
-    <div class="f-build-step pending" id="fbs-4"><div class="f-build-icon"></div><div class="f-build-step-text"><div class="f-build-step-title">Entering studio</div><div class="f-build-step-detail">Just a moment…</div></div></div>
-  `;
-
-  const s1 = document.getElementById('fbs-1');
-  const s2 = document.getElementById('fbs-2');
-  const s3 = document.getElementById('fbs-3');
-  const s4 = document.getElementById('fbs-4');
-
-  // Step 1: Reading (this is instant — just a visual confirm)
-  fSetBuildStep(s1, 'active', 'Reading your brand documents', 'PDFs · images · pasted text · notes');
-  await new Promise(r => setTimeout(r, 350));
-  const docCount = (BP.docs||[]).filter(d=>!d.error && !d.processing).length;
-  fSetBuildStep(s1, 'done', 'Read your brand documents', `${docCount} file${docCount===1?'':'s'} · ${approxTokens(totalDocChars()).toLocaleString()} tokens`);
-
-  // Step 2: Brain extraction with progressive reassurance ticker
-  // The Brain call can take 30-120 seconds for rich docs. Without updates,
-  // users assume the page is broken and bounce. We update the detail line
-  // every few seconds with both a live elapsed timer AND rotating reassurance.
-  const brainReassurance = [
-    { at: 0,   msg: 'Extracting voice, proof points, CTAs (~15-60s)…' },
-    { at: 12,  msg: 'Still reading — rich brand profiles take a moment.' },
-    { at: 30,  msg: 'Almost there — pulling artists, references, and CTAs.' },
-    { at: 50,  msg: 'Your docs are detailed — extracting comprehensively (1-2 min total is normal).' },
-    { at: 75,  msg: 'Finalizing — combing through every proof point. Hang tight.' },
-    { at: 100, msg: 'Wrapping up the brain extraction…' },
-    { at: 130, msg: 'Still working — Claude is processing your full brand catalog.' },
-    { at: 160, msg: 'Almost done. Please don\'t close the tab.' }
-  ];
-  fSetBuildStep(s2, 'active', 'Distilling your brand brain', brainReassurance[0].msg);
-  const brainStartTime = Date.now();
-  const brainTicker = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - brainStartTime) / 1000);
-    // Find the latest reassurance message that applies
-    let currentMsg = brainReassurance[0].msg;
-    for(const r of brainReassurance){ if(elapsed >= r.at) currentMsg = r.msg; }
-    fSetBuildStep(s2, 'active', 'Distilling your brand brain', `${currentMsg}  ·  ${elapsed}s elapsed`);
-  }, 1000);
-
-  try { await fastBuildBrain(); } finally { clearInterval(brainTicker); }
-
-  if(BP.brain){
-    const pp = (BP.brain.proofPoints||[]).length;
-    const ct = (BP.brain.ctas||[]).length;
-    const vr = (BP.brain.voiceRules||[]).length;
-    const elapsed = Math.floor((Date.now() - brainStartTime) / 1000);
-    const dropped = BP.brainDocsDropped || 0;
-    const droppedNote = dropped > 0 ? `  ·  ${dropped} doc${dropped===1?'':'s'} skipped (over size limit — rest were used)` : '';
-    fSetBuildStep(s2, 'done', 'Brain distilled', `${pp} proof points · ${ct} CTAs · ${vr} voice rules  ·  took ${elapsed}s${droppedNote}`);
-  } else if(BP.brainFailReason === 'timeout'){
-    // Soft fallback: brain timed out at 120s but the build CONTINUES. The user
-    // gets dropped into studio with docs as the brand source instead of the
-    // distilled brain. Inline "try again" link lets them retry without leaving
-    // the wait screen — fires tdRetryBrain('fbs-2') which re-runs fastBuildBrain.
-    // We embed HTML (the 4th arg `true` enables HTML detail), so the title is
-    // pre-escaped by fSetBuildStep but the detail is trusted (no user input here).
-    fSetBuildStep(s2, 'warning', 'Took longer than expected — using docs directly',
-      `brain distillation timed out at 120s · <button type="button" class="f-build-step-retry" onclick="tdRetryBrain('fbs-2')">try again</button> or continue — your docs still inform every caption`,
-      true);
-  } else {
-    // Hard failure: server error, network error, malformed response. The brain
-    // wasn't going to come back regardless of retrying. Stay with red error
-    // state and a clear message that docs still get used.
-    const reason = BP.brainFailReason ? ` (${BP.brainFailReason})` : '';
-    fSetBuildStep(s2, 'error', 'Brain extraction failed' + reason, 'Your notes and docs will still be used — captions will still respect your rules. (Try regenerating if quality drops.)');
-  }
-
-  // Step 3: Build segments with same reassurance pattern (lighter, since this is usually quick)
-  const segReassurance = [
-    { at: 0,  msg: 'Categories tailored to your brand…' },
-    { at: 15, msg: 'Generating comprehensive tag set — every genre/mood/audience your docs reference.' },
-    { at: 35, msg: 'Almost there — finalizing tag list.' },
-    { at: 60, msg: 'Still working. Comprehensive segments take a moment.' }
-  ];
-  fSetBuildStep(s3, 'active', 'Building your audience dimensions', segReassurance[0].msg);
-  const segStartTime = Date.now();
-  const segTicker = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - segStartTime) / 1000);
-    let currentMsg = segReassurance[0].msg;
-    for(const r of segReassurance){ if(elapsed >= r.at) currentMsg = r.msg; }
-    fSetBuildStep(s3, 'active', 'Building your audience dimensions', `${currentMsg}  ·  ${elapsed}s elapsed`);
-  }, 1000);
-
-  try { await fastBuildSegments(); } finally { clearInterval(segTicker); }
-
-  if(segments && segments.length){
-    const cats = [...new Set(segments.map(s=>s.category||'General'))];
-    const elapsed = Math.floor((Date.now() - segStartTime) / 1000);
-    fSetBuildStep(s3, 'done', 'Built your audience dimensions', `${segments.length} tags across ${cats.length} categor${cats.length===1?'y':'ies'}  ·  took ${elapsed}s`);
-  } else {
-    fSetBuildStep(s3, 'error', 'No segments generated', 'Using fallback set — you can edit in studio');
-  }
-
-  // Step 4: launch
-  fSetBuildStep(s4, 'active', 'Entering studio', 'Just a moment…');
-  await new Promise(r => setTimeout(r, 600));
-  fSetBuildStep(s4, 'done', 'Ready to generate', 'Welcome to your studio.');
-  await new Promise(r => setTimeout(r, 400));
-  launchApp();
-}
-
-// Retry the brain build after a timeout warning. Called from the inline
-// "try again" link inside the warning row's detail. Updates the same step
-// row through its lifecycle: active (with elapsed ticker) → done/warning/error.
-//
-// This is fire-and-forget from the user's perspective — they click the link,
-// the row reverts to spinner, and either resolves to a checkmark or back to
-// a warning. The main fBuildAndLaunch flow has already moved past brain at
-// this point (segments may be running or studio may be loading), so retrying
-// brain doesn't block anything else. If the retry SUCCEEDS, BP.brain gets
-// populated and any subsequent caption generation will use it.
-//
-// Guards against double-clicks via a module-level lock. If the build step
-// row no longer exists (user clicked very late, after fBuildAndLaunch finished
-// and the page navigated away), the function silently does nothing.
-let tdBrainRetryInFlight = false;
-async function tdRetryBrain(stepId){
-  if(tdBrainRetryInFlight) return;
-  const stepEl = document.getElementById(stepId);
-  if(!stepEl) return; // Wait screen unmounted (user already in studio) — bail
-  tdBrainRetryInFlight = true;
-
-  // Mark active with a fresh ticker — same UX as the original brain step
-  const brainReassurance = [
-    { at: 0,   msg: 'Retrying — extracting voice, proof points, CTAs…' },
-    { at: 15,  msg: 'Still reading — rich brand profiles take a moment.' },
-    { at: 35,  msg: 'Almost there — pulling artists, references, and CTAs.' },
-    { at: 60,  msg: 'Wrapping up the brain extraction…' },
-    { at: 100, msg: 'Almost done. Please don\'t close the tab.' }
-  ];
-  fSetBuildStep(stepEl, 'active', 'Distilling your brand brain', brainReassurance[0].msg);
-  const startTime = Date.now();
-  const ticker = setInterval(() => {
-    if(!document.getElementById(stepId)){ clearInterval(ticker); return; }
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    let currentMsg = brainReassurance[0].msg;
-    for(const r of brainReassurance){ if(elapsed >= r.at) currentMsg = r.msg; }
-    fSetBuildStep(stepEl, 'active', 'Distilling your brand brain', `${currentMsg}  ·  ${elapsed}s elapsed`);
-  }, 1000);
-
-  try {
-    await fastBuildBrain();
-  } finally {
-    clearInterval(ticker);
-    tdBrainRetryInFlight = false;
-  }
-
-  // The step element might have been removed during the retry if the user
-  // got dropped into studio. Re-check before writing the result.
-  const stillThere = document.getElementById(stepId);
-  if(!stillThere) return;
-
-  if(BP.brain){
-    const pp = (BP.brain.proofPoints||[]).length;
-    const ct = (BP.brain.ctas||[]).length;
-    const vr = (BP.brain.voiceRules||[]).length;
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    fSetBuildStep(stillThere, 'done', 'Brain distilled', `${pp} proof points · ${ct} CTAs · ${vr} voice rules  ·  took ${elapsed}s`);
-  } else if(BP.brainFailReason === 'timeout'){
-    fSetBuildStep(stillThere, 'warning', 'Took longer than expected — using docs directly',
-      `brain distillation timed out again at 120s · <button type="button" class="f-build-step-retry" onclick="tdRetryBrain('${stepId}')">try once more</button> or continue — your docs still inform every caption`,
-      true);
-  } else {
-    const reason = BP.brainFailReason ? ` (${BP.brainFailReason})` : '';
-    fSetBuildStep(stillThere, 'error', 'Brain extraction failed' + reason, 'Your notes and docs will still be used — captions will still respect your rules.');
-  }
-}
-
-// Brain build for fast flow (uses docs + paste + notes + industry).
-async function fastBuildBrain(){
-  const docs = (BP.docs||[]).filter(d=>!d.error && !d.processing);
-  const pastedDocs = V('f-paste') || '';
-  const notes = V('f-notes') || '';
-  const industry = fastIndustry || '';
-
-  const hasContent = docs.length > 0 || pastedDocs.length > 50 || notes.length > 30;
-  if(!hasContent){ BP.brain = null; BP.brainFailReason = 'no content provided'; return; }
-
-  // Profile is minimal — just industry + notes. The docs do the heavy lifting.
-  const profile = `Industry: ${industry || 'unknown'}${notes ? `\n\nAdditional notes from owner:\n${notes}` : ''}`;
-  BP.brainFailReason = null; // reset
-  try{
-    const resp = await fetchWithTimeout('/api/brain', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ profile, docs, pastedDocs })
-    }, 120000);
-    if(!resp.ok){
-      // Try to read the error body so we can surface a useful message
-      let errMsg = `HTTP ${resp.status}`;
-      try {
-        const errData = await resp.json();
-        if(errData && errData.error) errMsg = `${resp.status}: ${errData.error}`;
-      } catch(_){ /* response wasn't JSON, keep status code */ }
-      console.warn('[brain] Brain build failed:', errMsg);
-      BP.brain = null;
-      BP.brainFailReason = errMsg;
-      return;
-    }
-    const data = await resp.json();
-    if(data && data.brain){
-      BP.brain = data.brain;
-      BP.brainFailReason = null; // clear any stale failure from prior runs (other brain builders may have set it)
-      BP.brainDocsDropped = (typeof data.docsDropped === 'number') ? data.docsDropped : 0;
-      console.log('[brain] built successfully', BP.brain);
-      if(BP.brainDocsDropped > 0){
-        console.warn(`[brain] ${BP.brainDocsDropped} docs were dropped to stay under size limits — Brain still extracted from the rest.`);
-      }
-      // Promote brain fields into BP for compat with the rest of the app
-      if(BP.brain.identity && !BP.name){
-        // Try to extract a brand name from the identity sentence — best-effort, harmless if it fails
-        const m = BP.brain.identity.match(/^([A-Z][A-Za-z0-9 &'.\-]+?)(?:\s+is\b|\s+\(|\s+—|,|\.)/);
-        if(m) BP.name = m[1].trim();
-      }
-      if(BP.brain.industry && !BP.industry) BP.industry = BP.brain.industry;
-    } else {
-      BP.brain = null;
-      BP.brainFailReason = 'empty response from server';
-      console.warn('[brain] Empty response from /api/brain');
-    }
-  }catch(e){
-    console.warn('[brain] Brain build exception:', e);
-    BP.brain = null;
-    // Mark timeouts distinctly so the UI can show a retry link instead of a
-    // generic failure message. Other errors (network, parsing) fall through
-    // to the generic message — retrying those usually doesn't help.
-    BP.brainFailReason = e && e.name === 'TimeoutError'
-      ? 'timeout'
-      : `network error: ${e.message || e}`;
-  }
-}
-
-// Segments build for fast flow (uses brain if present).
-async function fastBuildSegments(){
-  // Remember this build for the silent-failure banner's Retry button.
-  lastSegmentBuilder = () => fastBuildSegments();
-  // No specific contId for fastBuildSegments (renders happen elsewhere in
-  // the fast flow); leave lastSegmentContId untouched so the retry path uses
-  // the most-recent value if any.
-  const brainPresent = BP.brain && typeof BP.brain === 'object';
-  // Lean profile string from what we have
-  const profile = `Industry: ${BP.industry||fastIndustry||'unknown'}\nBrand name: ${BP.name||'(see brain)'}\nNotes: ${V('f-notes')||'(none)'}`;
-  const docs = brainPresent ? [] : (BP.docs||[]).filter(d=>!d.error && !d.processing);
-  const pastedDocs = brainPresent ? '' : (V('f-paste')||'');
-  try{
-    const resp = await fetchWithTimeout('/api/segments', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ profile, docs, pastedDocs, brain: brainPresent ? BP.brain : null })
-    }, 120000);
-    if(!resp.ok){
-      console.warn('Segments build failed (status '+resp.status+')');
-      segments = fallbackSegments();
-      return;
-    }
-    const data = await resp.json();
-    segments = (data.segments||[]).map(s=>({...s,category:s.category||'General',on:true}));
-    if(!segments.length){ segments = fallbackSegments(); }
-  }catch(e){
-    // Timeout or network error — fall back to default segments so the user
-    // still gets an audience picker. The 449s hang in prod that motivated
-    // this fix is now capped at 120s + immediate fallback.
-    console.warn('Segments error:', e && e.name === 'TimeoutError' ? 'timeout' : e);
-    segments = fallbackSegments();
-  }
-}
-
 // ============ SEGMENTS via backend ============
 // Brain extraction: silent background call.
 // Reads docs + onboarding form, returns a structured Brand Brain stored on BP.brain.
@@ -10781,7 +10250,7 @@ async function buildBrain(track){
     BP.brain = null;
     return null;
   }catch(e){
-    // Same pattern as the Fast path — distinguish timeout in logs.
+    // Distinguish timeout in logs so the UI can branch on it.
     console.warn('Brain build error, continuing without it:', e && e.name === 'TimeoutError' ? 'timeout' : e);
     BP.brain = null;
     return null;
@@ -10858,8 +10327,8 @@ function stopOnboardingReassurance(){
 // ============ END ONBOARDING REASSURANCE COPY ============
 
 // ============ SEGMENT FALLBACK RETRY (silent-failure UX) ============
-// When /api/segments fails, generateSegments() and fastBuildSegments() set
-// segments = fallbackSegments() (each tagged isFallback:true) and call
+// When /api/segments fails, generateSegments() sets
+// segments = fallbackSegments() (each tagged isFallback:true) and calls
 // renderSegments(). The renderer prepends a banner with a Retry button that
 // invokes whichever builder was last used — stored on lastSegmentBuilder
 // when each entry point fires, so the banner doesn't have to know which flow
@@ -10868,7 +10337,6 @@ function stopOnboardingReassurance(){
 //   - Quick Start  → () => generateSegments('q')
 //   - Deep Path A  → () => generateSegments('d')   (uses brain if present)
 //   - Deep Path B  → () => { BP.brain = null; return generateSegments('d'); }
-//   - Fast Setup   → () => fastBuildSegments()
 //
 // retrySegmentBuild() pulls from this and is wired to the banner's onclick.
 let lastSegmentBuilder = null;
@@ -12308,8 +11776,8 @@ async function aiAddCallApi(payload){
   return data.segments;
 }
 
-// Build the API payload. Includes brain when present (Path A / Fast Setup
-// brands) OR profile + docs + pastedDocs as fallback (Quick Start brands).
+// Build the API payload. Includes brain when present (Deep Setup brands with
+// docs) OR profile + docs + pastedDocs as fallback (Quick Start brands).
 // The worker accepts either — same pattern as /api/segments. Returns null
 // if there's not enough context to call at all.
 function buildAiAddPayload(base){
@@ -13666,7 +13134,7 @@ function stopAllSpotifyEmbedsExcept(keepId){
   document.querySelectorAll('iframe[src*="open.spotify.com"]').forEach(f => candidates.add(f));
   // Belt-and-suspenders: also explicitly check known iframe ID patterns.
   // The footer has one iframe; brain modules have one per onboarding flow
-  // (fast/quick/deep), so we use a prefix-based id selector to catch them all.
+  // (quick/deep), so we use a prefix-based id selector to catch them all.
   const knownEl = document.getElementById('tdFooterEmbed');
   if(knownEl && knownEl.tagName === 'IFRAME') candidates.add(knownEl);
   document.querySelectorAll('[id^="tdBrainEmbed-"]').forEach(el => {
