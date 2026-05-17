@@ -3189,7 +3189,7 @@ footer span{color:var(--mojo)}
 }
 .conv-card.pro .conv-card-cta:hover{ background:var(--mojo-dark); }
 
-/* Upgrade modal — used when a signed-in free user hits 10 captions/day.
+/* Upgrade modal — used when a signed-in free user hits 5 captions/day.
    Same overlay pattern as .signup-wall but distinct so we can show both. */
 .upgrade-modal{
   position:fixed;
@@ -5712,9 +5712,9 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
               <div class="feature-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               </div>
-              <div class="feature-title"><em>5x</em> more captions</div>
-              <div class="feature-desc">50 captions a day — enough headroom for serious posters who run multiple platforms or want to A/B test variants without rationing.</div>
-              <div class="feature-tags"><span class="feature-tag">50/day</span><span class="feature-tag">No rationing</span></div>
+              <div class="feature-title"><em>10x</em> more captions</div>
+              <div class="feature-desc">100 captions a month — enough headroom for serious posters who run multiple platforms or want to A/B test variants without rationing. Up to 50 in a single day.</div>
+              <div class="feature-tags"><span class="feature-tag">100/mo</span><span class="feature-tag">No rationing</span></div>
             </div>
             <div class="feature basic">
               <span class="feature-tier-pill basic">Basic</span>
@@ -5803,9 +5803,9 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
               <div class="feature-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
               </div>
-              <div class="feature-title">250 captions <em>per day</em></div>
-              <div class="feature-desc">Generate first, edit second, ship third. 250 daily is enough for a creator running multiple campaigns, an artist doing weekly releases, or a brand testing voice variations.</div>
-              <div class="feature-tags"><span class="feature-tag">250/day</span><span class="feature-tag">High volume</span></div>
+              <div class="feature-title">400 captions <em>a month</em></div>
+              <div class="feature-desc">Generate first, edit second, ship third. 400 a month is enough for a creator running multiple campaigns, an artist doing weekly releases, or a brand testing voice variations. Up to 150 in a single day.</div>
+              <div class="feature-tags"><span class="feature-tag">400/mo</span><span class="feature-tag">High volume</span></div>
             </div>
             <div class="feature pro">
               <span class="feature-tier-pill pro">Pro</span>
@@ -5951,7 +5951,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
             <div class="price-desc">See how it works. 10 captions a month to get a feel for the workflow.</div>
             <ul class="price-features">
               <li>5 captions to try, no signup</li>
-              <li>10 captions a month with signup</li>
+              <li>10 captions a month with signup<br><span style="font-size:11.5px;color:var(--muted)">Up to 5 per day</span></li>
               <li>Full brand brain build</li>
               <li>Real captions, real workflow</li>
             </ul>
@@ -5962,7 +5962,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
             <div class="price-amount">$9<span>/mo</span></div>
             <div class="price-desc">For solo creators who post often and want more headroom.</div>
             <ul class="price-features">
-              <li>50 captions/day</li>
+              <li>100 captions a month<br><span style="font-size:11.5px;color:var(--muted)">Up to 50 per day</span></li>
               <li>Up to 2 audience tags</li>
               <li>Saved past generations</li>
               <li>Everything in Free</li>
@@ -5986,7 +5986,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
               <li>Folders &amp; workflow (Final / WIP / Liked)</li>
               <li>Schedule to calendar</li>
               <li>Tell AI why feedback</li>
-              <li>250 captions/day, no ads</li>
+              <li>400 captions a month, no ads<br><span style="font-size:11.5px;color:var(--muted)">Up to 150 per day</span></li>
             </ul>
             <button class="price-cta" onclick="goTracks()">Go Pro →</button>
           </div>
@@ -5997,6 +5997,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
             <ul class="price-features">
               <li><strong>Unlimited brands</strong></li>
               <li>5 team seats</li>
+              <li>2,000 captions a month<br><span style="font-size:11.5px;color:var(--muted)">Up to 600 per day</span></li>
               <li>API access</li>
               <li>Bulk operations</li>
               <li>Private Agency Discord</li>
@@ -6618,7 +6619,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
        ============================================================================ -->
   <div class="soft-prompt" id="softPrompt">
     <div class="soft-prompt-text">
-      Getting somewhere? <strong>Sign up free</strong> for 10/day + brand brain saved across devices. Or <strong>go Pro ($29/mo)</strong> — 250 captions/day, AI that learns your taste from 👍/👎, schedule to calendar, 3 brand profiles, quality scoring + CSV export, ad-free.
+      Getting somewhere? <strong>Sign up free</strong> for 10 captions a month + brand brain saved across devices. Or <strong>go Pro ($29/mo)</strong> — 400 captions a month, AI that learns your taste from 👍/👎, schedule to calendar, 3 brand profiles, quality scoring + CSV export, ad-free.
     </div>
     <button class="soft-prompt-cta" onclick="openAuthModal()">Sign up free</button>
     <button class="soft-prompt-dismiss" onclick="dismissSoftPrompt()" title="Dismiss">×</button>
@@ -7287,7 +7288,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
     <div class="auth-msg" id="authMsg"></div>
 
     <p class="auth-footnote">
-      <strong>Free forever.</strong> No credit card required. 10 captions per day on the free plan.
+      <strong>Free forever.</strong> No credit card required. 10 captions a month on the free plan.
     </p>
   </div>
 </div>
@@ -7309,7 +7310,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
         <div class="conv-card-price">$0<span class="small"> / mo</span></div>
         <div class="conv-card-tagline">For testing the waters</div>
         <ul class="conv-card-perks">
-          <li><strong>10 captions/day</strong></li>
+          <li><strong>10 captions a month</strong><br><span style="font-size:11px;color:var(--muted);font-weight:400">Up to 5 per day</span></li>
           <li>Save brand across devices</li>
           <li>All audience dimensions</li>
           <li>Brand brain persists</li>
@@ -7321,7 +7322,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
         <div class="conv-card-price">$9<span class="small"> / mo</span></div>
         <div class="conv-card-tagline">For getting consistent</div>
         <ul class="conv-card-perks">
-          <li><strong>50 captions/day</strong></li>
+          <li><strong>100 captions a month</strong><br><span style="font-size:11px;color:var(--muted);font-weight:400">Up to 50 per day</span></li>
           <li>Combine up to 2 tags</li>
           <li>1 brand profile</li>
           <li>All audience dimensions</li>
@@ -7334,7 +7335,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
         <div class="conv-card-price">$29<span class="small"> / mo</span></div>
         <div class="conv-card-tagline">For actually shipping</div>
         <ul class="conv-card-perks">
-          <li><strong>250 captions/day</strong></li>
+          <li><strong>400 captions a month</strong><br><span style="font-size:11px;color:var(--muted);font-weight:400">Up to 150 per day</span></li>
           <li>AI learns from 👍 / 👎</li>
           <li>Schedule to calendar</li>
           <li>3 brand profiles</li>
@@ -7348,7 +7349,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
   </div>
 </div>
 
-<!-- Upgrade modal: shown when a signed-in FREE user hits the 10/day cap.
+<!-- Upgrade modal: shown when a signed-in FREE user hits the 5/day cap.
      Same two-card layout but the FREE path is "you're already here" so we
      emphasize Pro as the next step. -->
 <div class="upgrade-modal" id="upgradeModal">
@@ -7356,11 +7357,11 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
     <button class="upgrade-modal-dismiss" onclick="hideUpgradeModal()" title="Close">×</button>
     <div class="upgrade-modal-icon">✦</div>
     <h2 class="upgrade-modal-title">You've outgrown free.</h2>
-    <p class="upgrade-modal-text" id="upgradeModalText">10 captions a day is for testing. You're past that — time to ship.</p>
+    <p class="upgrade-modal-text" id="upgradeModalText">5 captions a day is for testing. You're past that — time to ship.</p>
     <div class="conv-card-wrap">
       <div class="conv-card free">
         <div class="conv-card-label">Your current plan</div>
-        <div class="conv-card-price">Free<span class="small"> · 10/day</span></div>
+        <div class="conv-card-price">Free<span class="small"> · 5/day</span></div>
         <div class="conv-card-tagline">Comes back tomorrow at midnight UTC</div>
         <ul class="conv-card-perks">
           <li>You've hit today's cap</li>
@@ -7374,7 +7375,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
         <div class="conv-card-price">$9<span class="small"> / mo</span></div>
         <div class="conv-card-tagline">For getting consistent</div>
         <ul class="conv-card-perks">
-          <li><strong>50 captions/day</strong></li>
+          <li><strong>100 captions a month</strong><br><span style="font-size:11px;color:var(--muted);font-weight:400">Up to 50 per day</span></li>
           <li>Combine up to 2 tags</li>
           <li>1 brand profile</li>
           <li>All audience dimensions</li>
@@ -7387,7 +7388,7 @@ body:has(.cm-td-footer.is-open) .mojo-fab{bottom:180px;transition:bottom .25s va
         <div class="conv-card-price">$29<span class="small"> / mo</span></div>
         <div class="conv-card-tagline">For actually shipping</div>
         <ul class="conv-card-perks">
-          <li><strong>250 captions/day</strong></li>
+          <li><strong>400 captions a month</strong><br><span style="font-size:11px;color:var(--muted);font-weight:400">Up to 150 per day</span></li>
           <li>AI learns from 👍 / 👎</li>
           <li>Schedule to calendar</li>
           <li>3 brand profiles</li>
@@ -7696,7 +7697,7 @@ const featureUpsellCopy = {
   daily_cap: {
     minTier: 'basic',
     title: 'You\'ve hit today\'s cap',
-    desc: 'Free is 5 captions a day. Resets at midnight. Or upgrade now to keep working.',
+    desc: 'Free is 5 captions a day (out of 10 a month). Resets at midnight UTC. Or upgrade now to keep working.',
     cta: 'See plans',
   },
 };
@@ -8139,9 +8140,15 @@ let segments=[];
 let caps=[],nId=0,pF='all',fTab='final',fEId=null,saveTO=null,rdy=false;
 // CAPTION LIMITS (free tier business model)
 // Anonymous: 5 total captions/day before the signup wall (NOT batches — actual captions).
-// Free signed-in: 10 total captions/day before the upgrade prompt.
+// Free signed-in: 5/day, 10/month before the upgrade prompt. The studio header
+// shows "X / 5 left today" — this constant is what that math reads from.
 // Both counters increment by the quantity returned, not by 1 per request.
-const DAILY_LIMIT_FREE = 10;
+//
+// NOTE: kept in sync with tierConfig.free.captionsDay (line ~7563). If the
+// product changes, update BOTH. Marketing copy frames everything in monthly
+// terms (10/mo for Free); daily caps are anti-abuse mentioned only at the
+// moment the user hits them.
+const DAILY_LIMIT_FREE = 5;
 const DAILY_LIMIT_ANON = 5;
 // DAILY_LIMIT is the cap for the current user — set at runtime based on auth state.
 let DAILY_LIMIT = DAILY_LIMIT_ANON;
@@ -8822,11 +8829,11 @@ function showUpgradePrompt(currentCount, requestedQty){
     const remaining = Math.max(0, DAILY_LIMIT_FREE - currentCount);
     if(!requestedQty){
       // Voluntary invocation (from user menu) — no batch context
-      txt.innerHTML = `You're on the <strong>Free</strong> plan: ${DAILY_LIMIT_FREE} captions/day. Pro is for shipping at volume — 250/day, AI that learns, scheduling.`;
+      txt.innerHTML = `You're on the <strong>Free</strong> plan: ${DAILY_LIMIT_FREE}/day, 10/month. Pro is for shipping at volume — 400/month, AI that learns, scheduling.`;
     } else if(remaining === 0){
-      txt.innerHTML = `You've used all <strong>${DAILY_LIMIT_FREE}</strong> captions on the free plan today. Resets at midnight UTC — or unlock Pro and ship now.`;
+      txt.innerHTML = `You've used all <strong>${DAILY_LIMIT_FREE}</strong> daily captions on the free plan. Resets at midnight UTC — or unlock Pro and ship now.`;
     } else {
-      txt.innerHTML = `You're at <strong>${currentCount} of ${DAILY_LIMIT_FREE}</strong>. This batch of ${requestedQty} would push you over. Smaller batch — or unlock Pro for 250/day.`;
+      txt.innerHTML = `You're at <strong>${currentCount} of ${DAILY_LIMIT_FREE}</strong> today. This batch of ${requestedQty} would push you over. Smaller batch — or unlock Pro for 150/day, 400/month.`;
     }
   }
   if(modal) modal.classList.add('show');
