@@ -1546,7 +1546,7 @@ footer span{color:var(--mojo)}
   display:inline-block;
   font-family:var(--mono);
   font-size:11px;
-  color:var(--muted);
+  color:#1D9E75;
   text-decoration:none;
   cursor:pointer;
   padding:2px 6px;
@@ -1555,8 +1555,8 @@ footer span{color:var(--mojo)}
   margin-left:8px;
 }
 .seg-manage-link:hover{
-  color:var(--mojo);
-  background:var(--mojo-tint);
+  color:#0F6E56;
+  background:rgba(29,158,117,.08);
 }
 
 /* ============================================================================
@@ -12233,13 +12233,55 @@ async function aiAddCallApi(payload){
   return data.segments;
 }
 
+// Build the API payload. Includes brain when present (Path A / Fast Setup
+// brands) OR profile + docs + pastedDocs as fallback (Quick Start brands).
+// The worker accepts either — same pattern as /api/segments. Returns null
+// if there's not enough context to call at all.
+function buildAiAddPayload(base){
+  const brainPresent = BP.brain && typeof BP.brain === 'object';
+  const out = { ...base };
+  if(brainPresent){
+    out.brain = BP.brain;
+  } else {
+    // Reconstruct a Quick Start profile string from BP fields. Mirrors what
+    // generateSegments('q') builds during onboarding, but pulls from BP (post-
+    // onboarding state) instead of DOM form values which no longer exist.
+    const bits = [];
+    if(BP.name || BP.what) bits.push(`Business: ${BP.name||''}${BP.what ? ' — ' + BP.what : ''}`);
+    if(BP.industry) bits.push(`Industry: ${BP.industry}`);
+    if(BP.customer) bits.push(`Customer: ${BP.customer}`);
+    if(BP.usp) bits.push(`What makes them different: ${BP.usp}`);
+    if(Array.isArray(BP.tones) && BP.tones.length) bits.push(`Tone: ${BP.tones.join(', ')}`);
+    out.profile = bits.join('\n');
+    out.docs = (BP.docs||[]).filter(d => !d.error && !d.processing);
+    out.pastedDocs = '';
+  }
+  // Need EITHER a brain OR a non-empty profile/docs to proceed
+  const hasContext = brainPresent
+    || (out.profile && out.profile.trim())
+    || (out.docs && out.docs.length);
+  return hasContext ? out : null;
+}
+
 // ENTRY 1: Per-category dashed chip click. Silent flow — no popup, no
 // direction input. Just "more of this category, please."
 async function aiAddExpandCategory(cat, chipBtn, containerId, selectedArr, onChange){
   if(!cat || !chipBtn) return;
-  // Guard: brain must exist (the worker requires it for context)
-  if(!BP.brain || typeof BP.brain !== 'object'){
-    chipBtn.title = 'Run brand setup first — AI needs your brand brain to suggest tags.';
+  // Collect existing tag names for this category — gives AI dedup context
+  const existing = (segments||[])
+    .filter(s => s.on && s.category === cat)
+    .map(s => s.name);
+  // Build payload (handles brain vs Quick Start fallback)
+  const payload = buildAiAddPayload({
+    mode: 'expand',
+    category: cat,
+    existingTags: existing,
+    howMany: 5
+  });
+  if(!payload){
+    // No brain AND no profile context — extremely unlikely (would mean the
+    // brand has no name, no docs, no industry — basically not a brand yet)
+    chipBtn.title = 'Add brand details first so AI has context.';
     chipBtn.style.borderColor = 'var(--danger,#c0392b)';
     chipBtn.style.color = 'var(--danger,#c0392b)';
     setTimeout(()=>{ chipBtn.style.borderColor=''; chipBtn.style.color=''; }, 2500);
@@ -12251,19 +12293,8 @@ async function aiAddExpandCategory(cat, chipBtn, containerId, selectedArr, onCha
   chipBtn.innerHTML = '<span class="seg-aiadd-spinner"></span>Thinking…';
   chipBtn.disabled = true;
 
-  // Collect existing tag names for this category — gives AI dedup context
-  const existing = (segments||[])
-    .filter(s => s.on && s.category === cat)
-    .map(s => s.name);
-
   try {
-    const newSegs = await aiAddCallApi({
-      mode: 'expand',
-      brain: BP.brain,
-      category: cat,
-      existingTags: existing,
-      howMany: 5
-    });
+    const newSegs = await aiAddCallApi(payload);
     // Render the preview INLINE inside the category body
     renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange);
   } catch(e) {
@@ -12333,22 +12364,22 @@ async function aiAddSubmit(){
   const clearErr = () => { if(err){ err.classList.remove('on'); err.textContent=''; } };
   clearErr();
 
-  if(!BP.brain || typeof BP.brain !== 'object'){
-    setErr('Run brand setup first — AI needs your brand brain to suggest tags.');
+  if(!BP.brain && !(BP.name || BP.what || BP.industry)){
+    setErr('Add some brand details first so AI has context to work from.');
     return;
   }
   const modeInput = document.querySelector('input[name="aiAddMode"]:checked');
   const mode = modeInput ? modeInput.value : 'expand';
   const dir = (document.getElementById('aiAddDirection')||{}).value || '';
 
-  let payload;
+  let basePayload;
   let targetCategory;
   if(mode === 'expand'){
     const sel = document.getElementById('aiAddCategorySelect');
     const cat = sel ? sel.value : '';
     if(!cat){ setErr('Pick a category to expand.'); return; }
     const existing = (segments||[]).filter(s => s.on && s.category === cat).map(s => s.name);
-    payload = { mode: 'expand', brain: BP.brain, category: cat, existingTags: existing, direction: dir, howMany: 5 };
+    basePayload = { mode: 'expand', category: cat, existingTags: existing, direction: dir, howMany: 5 };
     targetCategory = cat;
   } else {
     const nameInput = document.getElementById('aiAddNewCatName');
@@ -12358,8 +12389,14 @@ async function aiAddSubmit(){
     // Prevent duplicate category name
     const existingCats = new Set((segments||[]).filter(s => s.on).map(s => s.category || 'General'));
     if(existingCats.has(name)){ setErr('That category already exists. Use expand mode instead.'); return; }
-    payload = { mode: 'new', brain: BP.brain, newCategoryName: name, direction: dir, howMany: 5 };
+    basePayload = { mode: 'new', newCategoryName: name, direction: dir, howMany: 5 };
     targetCategory = name;
+  }
+
+  const payload = buildAiAddPayload(basePayload);
+  if(!payload){
+    setErr('Add some brand details first so AI has context to work from.');
+    return;
   }
 
   if(goBtn){ goBtn.disabled = true; goBtn.textContent = '✦ Thinking…'; }
@@ -12495,9 +12532,11 @@ async function retryAiAddPreview(containerId, cat, selectedArr, onChange){
     ? []
     : (segments||[]).filter(s => s.on && s.category === cat && !s._aiAddPlaceholder).map(s => s.name);
   try {
-    const payload = isPlaceholderMode
-      ? { mode: 'new', brain: BP.brain, newCategoryName: cat, howMany: 5 }
-      : { mode: 'expand', brain: BP.brain, category: cat, existingTags: existing, howMany: 5 };
+    const basePayload = isPlaceholderMode
+      ? { mode: 'new', newCategoryName: cat, howMany: 5 }
+      : { mode: 'expand', category: cat, existingTags: existing, howMany: 5 };
+    const payload = buildAiAddPayload(basePayload);
+    if(!payload) throw new Error('Add brand details first so AI has context.');
     const newSegs = await aiAddCallApi(payload);
     renderAiAddPreview(containerId, cat, newSegs, selectedArr, onChange);
   } catch(e){
